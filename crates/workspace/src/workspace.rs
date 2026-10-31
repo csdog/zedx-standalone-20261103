@@ -28,6 +28,11 @@ mod toolbar;
 pub mod welcome;
 pub mod workspace_error;
 mod workspace_settings;
+pub mod zedx_actions;
+mod zedx_workbench;
+mod zedx_layout;
+mod zedx_compact;
+mod zedx_bottom_bar;
 
 pub use dock::Panel;
 pub use multi_workspace::{
@@ -1585,6 +1590,7 @@ pub struct Workspace {
     zoomed_position: Option<DockPosition>,
     maximized_pane: Option<WeakEntity<Pane>>,
     center: PaneGroup,
+    zedx_panel_buttons: [Entity<PanelButtons>; 3],
     left_dock: Entity<Dock>,
     bottom_dock: Entity<Dock>,
     right_dock: Entity<Dock>,
@@ -1974,6 +1980,11 @@ impl Workspace {
         let left_dock_buttons = cx.new(|cx| PanelButtons::new(left_dock.clone(), cx));
         let bottom_dock_buttons = cx.new(|cx| PanelButtons::new(bottom_dock.clone(), cx));
         let right_dock_buttons = cx.new(|cx| PanelButtons::new(right_dock.clone(), cx));
+        let zedx_panel_buttons = [
+            left_dock_buttons.clone(),
+            bottom_dock_buttons.clone(),
+            right_dock_buttons.clone(),
+        ];
         let multi_workspace = window
             .root::<MultiWorkspace>()
             .flatten()
@@ -1981,9 +1992,11 @@ impl Workspace {
         let status_bar = cx.new(|cx| {
             let mut status_bar =
                 StatusBar::new(&center_pane.clone(), multi_workspace.clone(), window, cx);
-            status_bar.add_left_item(left_dock_buttons, window, cx);
-            status_bar.add_right_item(right_dock_buttons, window, cx);
-            status_bar.add_right_item(bottom_dock_buttons, window, cx);
+            if !zedx_workbench::enabled() {
+                status_bar.add_left_item(left_dock_buttons, window, cx);
+                status_bar.add_right_item(right_dock_buttons, window, cx);
+                status_bar.add_right_item(bottom_dock_buttons, window, cx);
+            }
             status_bar
         });
 
@@ -2109,6 +2122,7 @@ impl Workspace {
             left_dock,
             bottom_dock,
             right_dock,
+            zedx_panel_buttons,
             _panels_task: None,
             project: project.clone(),
             follower_states: Default::default(),
@@ -9752,7 +9766,8 @@ impl Render for Workspace {
                                                 DockPosition::Left => {
                                                     workspace.resize_left_dock(
                                                         e.event.position.x
-                                                            - workspace.bounds.left(),
+                                                            - workspace.bounds.left()
+                                                            - zedx_workbench::rail_offset(),
                                                         window,
                                                         cx,
                                                     );
@@ -9760,7 +9775,8 @@ impl Render for Workspace {
                                                 DockPosition::Right => {
                                                     workspace.resize_right_dock(
                                                         workspace.bounds.right()
-                                                            - e.event.position.x,
+                                                            - e.event.position.x
+                                                            - zedx_workbench::rail_offset(),
                                                         window,
                                                         cx,
                                                     );
@@ -9768,7 +9784,8 @@ impl Render for Workspace {
                                                 DockPosition::Bottom => {
                                                     workspace.resize_bottom_dock(
                                                         workspace.bounds.bottom()
-                                                            - e.event.position.y,
+                                                            - e.event.position.y
+                                                            - zedx_workbench::frame_inset(),
                                                         window,
                                                         cx,
                                                     );
@@ -9781,6 +9798,12 @@ impl Render for Workspace {
                             })
                             .child({
                                 match bottom_dock_layout {
+                                    _ if zedx_workbench::enabled() => self.render_zedx_workbench(
+                                        &pane_render_context,
+                                        centered_paddings,
+                                        window,
+                                        cx,
+                                    ),
                                     BottomDockLayout::Full => div()
                                         .flex()
                                         .flex_col()
@@ -10070,7 +10093,7 @@ impl Render for Workspace {
                                     }
                                 })
                             }))
-                            .children(self.render_notifications(window, cx)),
+                            .children(self.render_zedx_notifications(window, cx)),
                     )
                     .when(self.status_bar_visible(cx), |parent| {
                         parent.child(self.status_bar.clone())

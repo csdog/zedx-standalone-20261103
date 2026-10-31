@@ -8,8 +8,8 @@
   // - "dark": Use the theme indicated by the "dark" field
   "theme": {
     "mode": "system",
-    "light": "One Light",
-    "dark": "One Dark",
+    "light": "ZedX Light",
+    "dark": "ZedX Dark",
   },
   "icon_theme": "Zed (Default)",
   // The name of a base set of key bindings to use.
@@ -38,7 +38,7 @@
     // "calt": false
   },
   // The default font size for text in the editor
-  "buffer_font_size": 15,
+  "buffer_font_size": 13,
   // The weight of the editor font in standard CSS units from 100 to 900.
   "buffer_font_weight": 400,
   // Set the buffer's line height.
@@ -68,7 +68,7 @@
   // The weight of the UI font in standard CSS units from 100 to 900.
   "ui_font_weight": 400,
   // The default font size for text in the UI
-  "ui_font_size": 16,
+  "ui_font_size": 13,
   // The font family for agent responses in the agent panel. Falls back to the UI font family if unset.
   "agent_ui_font_family": null,
   // The default font size for agent responses in the agent panel. Falls back to the UI font size if unset.
@@ -882,9 +882,9 @@
     // Delay in milliseconds before tooltips appear for project panel titles.
     "title_tooltip_delay": "default",
     // Default width of the project panel.
-    "default_width": 240,
+    "default_width": 265,
     // Where to dock the project panel. Can be 'left' or 'right'.
-    "dock": "right",
+    "dock": "left",
     // Spacing between worktree entries in the project panel. Can be 'comfortable' or 'standard'.
     "entry_spacing": "comfortable",
     // Whether to show file icons in the project panel.
@@ -1010,7 +1010,7 @@
     // Whether to show the outline panel button in the status bar
     "button": true,
     // Default width of the outline panel.
-    "default_width": 300,
+    "default_width": 270,
     // Where to dock the outline panel. Can be 'left' or 'right'.
     "dock": "right",
     // Whether to show file icons in the outline panel.
@@ -1084,7 +1084,7 @@
     // Whether to show the git panel button in the status bar.
     "button": true,
     // Where to dock the git panel. Can be 'left' or 'right'.
-    "dock": "right",
+    "dock": "left",
     // Default width of the git panel.
     "default_width": 360,
     // Style of the git status indicator in the panel.
@@ -1173,13 +1173,13 @@
     // Whether to show the agent panel button in the status bar.
     "button": true,
     // Where to dock the agent panel. Can be 'left', 'right' or 'bottom'.
-    "dock": "left",
+    "dock": "right",
     // Whether the agent panel should use flexible (proportional) sizing when docked
     // to the left or right. When enabled, `default_width` does not control the panel
     // width, and resetting the panel restores the default proportion.
     //
     // Default: true
-    "flexible": true,
+    "flexible": false,
     // Maximum number of idle threads with loadable sessions to retain in the
     // agent panel. Set to 0 to unload every eligible idle thread when it is
     // no longer active.
@@ -1195,7 +1195,7 @@
     },
     // Default fixed width when the agent panel is docked to the left or right and
     // `flexible` is false.
-    "default_width": 640,
+    "default_width": 270,
     // Default height when the agent panel is docked to the bottom.
     "default_height": 320,
     // Whether to limit the content width in the agent panel. When enabled,
@@ -2027,9 +2027,9 @@
     // Whether to show the cursor position button in the status bar.
     "cursor_position_button": true,
     // Whether to show active line endings button in the status bar.
-    "line_endings_button": false,
+    "line_endings_button": true,
     // Control when to show the active encoding in the status bar.
-    "active_encoding_button": "non_utf8",
+    "active_encoding_button": "enabled",
     // Whether to show an indicator while multi-stroke input is pending.
     // If the input has a timeout, a countdown is shown and hovering pauses it.
     // Its binding preview popover is disabled when "which_key.enabled" is true.
@@ -2065,7 +2065,7 @@
     // Default width when the terminal is docked to the left or right.
     "default_width": 640,
     // Default height when the terminal is docked to the bottom.
-    "default_height": 320,
+    "default_height": 202,
     // What working directory to use when launching the terminal.
     // May take 5 values:
     // 1. Use the current file's directory, falling back to the project

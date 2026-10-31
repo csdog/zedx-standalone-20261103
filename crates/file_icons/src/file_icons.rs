@@ -1,3 +1,5 @@
+mod zedx_file_icons;
+
 use std::sync::Arc;
 use std::{path::Path, str};
 
@@ -26,6 +28,9 @@ impl FileIcons {
     }
 
     pub fn get_icon(path: &Path, cx: &App) -> Option<SharedString> {
+        if let Some(icon) = zedx_file_icons::for_path(path, cx) {
+            return Some(icon);
+        }
         let this = Self::get(cx);
 
         let get_icon_from_suffix = |suffix: &str| -> Option<SharedString> {
@@ -113,6 +118,9 @@ impl FileIcons {
     }
 
     pub fn get_folder_icon(expanded: bool, path: &Path, cx: &App) -> Option<SharedString> {
+        if let Some(icon) = zedx_file_icons::asset("folder", cx) {
+            return Some(icon);
+        }
         fn get_folder_icon(
             icon_theme: &Arc<IconTheme>,
             path: &Path,
@@ -163,6 +171,9 @@ impl FileIcons {
     }
 
     pub fn get_chevron_icon(expanded: bool, cx: &App) -> Option<SharedString> {
+        if let Some(icon) = zedx_file_icons::asset(if expanded { "down" } else { "chevron" }, cx) {
+            return Some(icon);
+        }
         fn get_chevron_icon(icon_theme: &Arc<IconTheme>, expanded: bool) -> Option<SharedString> {
             if expanded {
                 icon_theme.chevron_icons.expanded.clone()

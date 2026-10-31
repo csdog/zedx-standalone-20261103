@@ -29,6 +29,7 @@ pub mod popover_menu;
 mod preview;
 mod render;
 mod shape;
+mod zedx_embedded;
 
 use crate::shape::RelativeHeight;
 use crate::shape::RelativeWidth;

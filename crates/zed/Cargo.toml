@@ -6,7 +6,7 @@ version = "1.26.2"
 publish.workspace = true
 license = "GPL-3.0-or-later"
 authors = ["Zed Team <hi@zed.dev>"]
-default-run = "zed"
+default-run = "zedx"
 
 [lints]
 workspace = true
@@ -55,7 +55,7 @@ visual-tests = [
 ]
 
 [[bin]]
-name = "zed"
+name = "zedx"
 path = "src/main.rs"
 
 [[bin]]
@@ -157,6 +157,7 @@ language_selector.workspace = true
 language_tools.workspace = true
 languages = { workspace = true, features = ["load-grammars"] }
 line_ending_selector.workspace = true
+lsp.workspace = true
 lsp_command_selector.workspace = true
 log.workspace = true
 lsp_locations.workspace = true
@@ -174,6 +175,9 @@ outline_panel.workspace = true
 parking_lot.workspace = true
 paths.workspace = true
 picker.workspace = true
+picker_preview.workspace = true
+fuzzy_nucleo.workspace = true
+command_palette_hooks.workspace = true
 profiling.workspace = true
 project.workspace = true
 project_panel.workspace = true
@@ -206,6 +210,8 @@ tab_switcher.workspace = true
 tasks_ui.workspace = true
 telemetry.workspace = true
 telemetry_events.workspace = true
+terminal.workspace = true
+task.workspace = true
 terminal_view.workspace = true
 theme.workspace = true
 theme_extension.workspace = true

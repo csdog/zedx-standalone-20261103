@@ -632,7 +632,10 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
         let git_blame_status = cx.new(|_| git_ui::GitBlameStatus::default());
         let merge_conflict_indicator =
             cx.new(|cx| git_ui::MergeConflictIndicator::new(workspace, cx));
+        let zedx_project_state = cx.new(|cx| crate::zedx_status_bar::ProjectState::new(workspace, cx));
+        let zedx_indentation = cx.new(|_| crate::zedx_status_bar::Indentation::new(workspace));
         workspace.status_bar().update(cx, |status_bar, cx| {
+            status_bar.add_left_item(zedx_project_state, window, cx);
             status_bar.add_left_item(search_button, window, cx);
             status_bar.add_left_item(lsp_button, window, cx);
             status_bar.add_left_item(diagnostic_summary, window, cx);
@@ -641,9 +644,10 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
             status_bar.add_left_item(merge_conflict_indicator, window, cx);
             status_bar.add_left_item(activity_indicator, window, cx);
             status_bar.add_right_item(edit_prediction_ui, window, cx);
-            status_bar.add_right_item(active_buffer_encoding, window, cx);
-            status_bar.add_right_item(active_buffer_language, window, cx);
             status_bar.add_right_item(active_toolchain_language, window, cx);
+            status_bar.add_right_item(active_buffer_language, window, cx);
+            status_bar.add_right_item(zedx_indentation, window, cx);
+            status_bar.add_right_item(active_buffer_encoding, window, cx);
             status_bar.add_right_item(line_ending_indicator, window, cx);
             status_bar.add_right_item(cursor_position, window, cx);
             status_bar.add_right_item(image_info, window, cx);
@@ -801,6 +805,7 @@ fn initialize_panels(window: &mut Window, cx: &mut Context<Workspace>) -> Task<a
         }
 
         futures::join!(
+            crate::zedx_panels::initialize(workspace_handle.clone(), cx.clone()).map(|result| { result.log_err(); }),
             add_panel_when_ready(project_panel, workspace_handle.clone(), cx.clone()),
             add_panel_when_ready(outline_panel, workspace_handle.clone(), cx.clone()),
             add_panel_when_ready(terminal_panel, workspace_handle.clone(), cx.clone()),
@@ -2378,6 +2383,7 @@ pub fn load_default_keymap(cx: &mut App) {
         )
         .unwrap(),
     );
+    crate::zedx_search::bind_keys(cx);
 }
 
 /// Namespaces of actions that are part of an AI feature. When the user opts out

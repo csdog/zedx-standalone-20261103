@@ -238,6 +238,9 @@ impl RenderOnce for Icon {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let color = self.color.color(cx);
         let svg = match self.source {
+            IconSource::Embedded(path) if path.starts_with("icons/zedx/") => {
+                return crate::zedx::asset(path).size(self.size).into_any_element();
+            }
             IconSource::Embedded(path) => svg().path(path),
             IconSource::ExternalSvg(path) => svg().external_path(path),
             IconSource::External(path) => {

@@ -13,6 +13,7 @@ pub mod prelude;
 mod styles;
 mod traits;
 pub mod utils;
+pub mod zedx;
 
 pub use components::*;
 pub use prelude::*;

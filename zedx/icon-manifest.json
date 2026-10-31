@@ -1,0 +1,158 @@
+{
+  "folder": {
+    "dark": "icons/zedx/folder-dark.svg",
+    "light": "icons/zedx/folder-light.svg"
+  },
+  "project": {
+    "dark": "icons/zedx/project-dark.svg",
+    "light": "icons/zedx/project-light.svg"
+  },
+  "search": {
+    "dark": "icons/zedx/search-dark.svg",
+    "light": "icons/zedx/search-light.svg"
+  },
+  "git": {
+    "dark": "icons/zedx/git-dark.svg",
+    "light": "icons/zedx/git-light.svg"
+  },
+  "structure": {
+    "dark": "icons/zedx/structure-dark.svg",
+    "light": "icons/zedx/structure-light.svg"
+  },
+  "terminal": {
+    "dark": "icons/zedx/terminal-dark.svg",
+    "light": "icons/zedx/terminal-light.svg"
+  },
+  "play": {
+    "dark": "icons/zedx/play-dark.svg",
+    "light": "icons/zedx/play-light.svg"
+  },
+  "debug": {
+    "dark": "icons/zedx/debug-dark.svg",
+    "light": "icons/zedx/debug-light.svg"
+  },
+  "settings": {
+    "dark": "icons/zedx/settings-dark.svg",
+    "light": "icons/zedx/settings-light.svg"
+  },
+  "chevron": {
+    "dark": "icons/zedx/chevron-dark.svg",
+    "light": "icons/zedx/chevron-light.svg"
+  },
+  "down": {
+    "dark": "icons/zedx/down-dark.svg",
+    "light": "icons/zedx/down-light.svg"
+  },
+  "more": {
+    "dark": "icons/zedx/more-dark.svg",
+    "light": "icons/zedx/more-light.svg"
+  },
+  "minus": {
+    "dark": "icons/zedx/minus-dark.svg",
+    "light": "icons/zedx/minus-light.svg"
+  },
+  "check": {
+    "dark": "icons/zedx/check-dark.svg",
+    "light": "icons/zedx/check-light.svg"
+  },
+  "spark": {
+    "dark": "icons/zedx/spark-dark.svg",
+    "light": "icons/zedx/spark-light.svg"
+  },
+  "database": {
+    "dark": "icons/zedx/database-dark.svg",
+    "light": "icons/zedx/database-light.svg"
+  },
+  "bell": {
+    "dark": "icons/zedx/bell-dark.svg",
+    "light": "icons/zedx/bell-light.svg"
+  },
+  "split": {
+    "dark": "icons/zedx/split-dark.svg",
+    "light": "icons/zedx/split-light.svg"
+  },
+  "refresh": {
+    "dark": "icons/zedx/refresh-dark.svg",
+    "light": "icons/zedx/refresh-light.svg"
+  },
+  "sun": {
+    "dark": "icons/zedx/sun-dark.svg",
+    "light": "icons/zedx/sun-light.svg"
+  },
+  "arrow-up": {
+    "dark": "icons/zedx/arrow-up-dark.svg",
+    "light": "icons/zedx/arrow-up-light.svg"
+  },
+  "code": {
+    "dark": "icons/zedx/code-dark.svg",
+    "light": "icons/zedx/code-light.svg"
+  },
+  "history": {
+    "dark": "icons/zedx/history-dark.svg",
+    "light": "icons/zedx/history-light.svg"
+  },
+  "warning": {
+    "dark": "icons/zedx/warning-dark.svg",
+    "light": "icons/zedx/warning-light.svg"
+  },
+  "find-tool": {
+    "dark": "icons/zedx/find-tool-dark.svg",
+    "light": "icons/zedx/find-tool-light.svg"
+  },
+  "commit": {
+    "dark": "icons/zedx/commit-dark.svg",
+    "light": "icons/zedx/commit-light.svg"
+  },
+  "run-tool": {
+    "dark": "icons/zedx/run-tool-dark.svg",
+    "light": "icons/zedx/run-tool-light.svg"
+  },
+  "file-rust": {
+    "dark": "icons/zedx/file-rust-dark.svg",
+    "light": "icons/zedx/file-rust-light.svg"
+  },
+  "file-toml": {
+    "dark": "icons/zedx/file-toml-dark.svg",
+    "light": "icons/zedx/file-toml-light.svg"
+  },
+  "file-markdown": {
+    "dark": "icons/zedx/file-markdown-dark.svg",
+    "light": "icons/zedx/file-markdown-light.svg"
+  },
+  "file-cargo": {
+    "dark": "icons/zedx/file-cargo-dark.svg",
+    "light": "icons/zedx/file-cargo-light.svg"
+  },
+  "collapse": {
+    "dark": "icons/zedx/collapse-dark.svg",
+    "light": "icons/zedx/collapse-light.svg"
+  },
+  "close": {
+    "dark": "icons/zedx/close-dark.svg",
+    "light": "icons/zedx/close-light.svg"
+  },
+  "menu": {
+    "dark": "icons/zedx/menu-dark.svg",
+    "light": "icons/zedx/menu-light.svg"
+  },
+  "search-preview": {
+    "dark": "icons/zedx/search-preview-dark.svg",
+    "light": "icons/zedx/search-preview-light.svg"
+  },
+  "search-filter": {
+    "dark": "icons/zedx/search-filter-dark.svg",
+    "light": "icons/zedx/search-filter-light.svg"
+  },
+  "search-find": {
+    "dark": "icons/zedx/search-find-dark.svg",
+    "light": "icons/zedx/search-find-light.svg"
+  },
+  "search-class": {
+    "dark": "icons/zedx/search-class-dark.svg",
+    "light": "icons/zedx/search-class-light.svg"
+  },
+  "search-history": {
+    "dark": "icons/zedx/search-history-dark.svg",
+    "light": "icons/zedx/search-history-light.svg"
+  }
+}

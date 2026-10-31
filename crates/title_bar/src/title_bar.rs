@@ -4,6 +4,8 @@ mod onboarding_banner;
 mod plan_chip;
 mod title_bar_settings;
 mod update_version;
+mod zedx_project_identity;
+mod zedx_title_actions;
 
 use crate::application_menu::{ApplicationMenu, show_menus};
 use crate::plan_chip::PlanChip;
@@ -332,12 +334,12 @@ impl Render for TitleBar {
                         .when(render_project_items, |title_bar| {
                             title_bar
                                 .when(title_bar_settings.show_project_items, |title_bar| {
-                                    title_bar
-                                        .children(self.render_project_host(cx))
-                                        .child(self.render_project_name(project_name, window, cx))
+                                    title_bar.children(self.render_project_host(cx)).child(
+                                        self.render_zedx_project_identity(project_name, window, cx),
+                                    )
                                 })
                                 .when_some(
-                                    repository.filter(|_| is_git_enabled),
+                                    repository.filter(|_| is_git_enabled && window.viewport_size().width >= px(760.0)),
                                     |title_bar, repository| {
                                         title_bar.children(self.render_worktree_and_branch(
                                             repository,
@@ -381,13 +383,15 @@ impl Render for TitleBar {
                 .pr_1()
                 .gap_1()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                .child(self.render_zedx_actions(window, cx))
                 .child(self.render_call_controls(window, cx))
                 .children(self.render_connection_status(status, cx))
                 .child(self.update_version.clone())
                 .when(
                     user.is_none()
                         && is_signed_out_or_auth_error
-                        && TitleBarSettings::get_global(cx).show_sign_in,
+                        && TitleBarSettings::get_global(cx).show_sign_in
+                        && window.viewport_size().width >= px(760.0),
                     |this| this.child(self.render_sign_in_button(cx)),
                 )
                 .when(is_signing_in, |this| {

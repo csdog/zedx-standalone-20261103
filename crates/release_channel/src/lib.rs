@@ -2,6 +2,8 @@
 
 #![deny(missing_docs)]
 
+mod zedx_brand;
+
 use std::{env, str::FromStr, sync::LazyLock};
 
 use gpui::{App, Global};
@@ -199,17 +201,12 @@ impl ReleaseChannel {
 
     /// Returns whether we want to poll for updates for this [`ReleaseChannel`]
     pub fn poll_for_updates(&self) -> bool {
-        !matches!(self, ReleaseChannel::Dev)
+        false
     }
 
     /// Returns the display name for this [`ReleaseChannel`].
     pub fn display_name(&self) -> &'static str {
-        match self {
-            ReleaseChannel::Dev => "Zed Dev",
-            ReleaseChannel::Nightly => "Zed Nightly",
-            ReleaseChannel::Preview => "Zed Preview",
-            ReleaseChannel::Stable => "Zed",
-        }
+        zedx_brand::DISPLAY_NAME
     }
 
     /// Returns the programmatic name for this [`ReleaseChannel`].
@@ -226,12 +223,7 @@ impl ReleaseChannel {
     /// and WM_CLASS on X11.
     /// This also has to match the bundle identifier for Zed on macOS.
     pub fn app_id(&self) -> &'static str {
-        match self {
-            ReleaseChannel::Dev => "dev.zed.Zed-Dev",
-            ReleaseChannel::Nightly => "dev.zed.Zed-Nightly",
-            ReleaseChannel::Preview => "dev.zed.Zed-Preview",
-            ReleaseChannel::Stable => "dev.zed.Zed",
-        }
+        zedx_brand::APPLICATION_ID
     }
 
     /// Returns the query parameter for this [`ReleaseChannel`].

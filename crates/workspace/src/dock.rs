@@ -1358,13 +1358,10 @@ impl Render for Dock {
                             Axis::Vertical => this.h_full().w_full(),
                         })
                         .child(
-                            entry
-                                .panel
-                                .to_any()
-                                .cached(StyleRefinement::default().v_flex().size_full()),
+                            self.render_zedx_panel(&entry.panel, cx),
                         ),
                 )
-                .when(self.resizable(cx), |this| {
+                .when(self.resizable(cx) && !crate::zedx_workbench::enabled(), |this| {
                     this.child(create_resize_handle())
                 })
         } else {
@@ -1387,8 +1384,14 @@ impl PanelButtons {
     }
 }
 
+#[path = "zedx_tool_window_bar.rs"]
+mod zedx_tool_window_bar;
+
 impl Render for PanelButtons {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if crate::zedx_workbench::enabled() {
+            return self.render_zedx(window, cx).into_any_element();
+        }
         let dock = self.dock.read(cx);
         let active_index = dock.active_panel_index;
         let is_open = dock.is_open;
@@ -1581,6 +1584,7 @@ impl Render for PanelButtons {
             .when(has_buttons && dock.position == DockPosition::Left, |this| {
                 this.child(Divider::vertical().color(DividerColor::Border))
             })
+            .into_any_element()
     }
 }
 

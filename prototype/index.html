@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZedX — A familiar place to build</title>
+<style>
+:root{color-scheme:dark;--bg:#1e1f22;--surface:#26272b;--rail:#242529;--raised:#2d2f34;--line:#35363b;--muted:#8b8e98;--text:#cdd0d8;--strong:#ecedf0;--blue:#7aa7ff;--selected:#314365;--purple:#b7a0f5;--green:#93c79b;--code:#bcbec4;--panel-width:265px;--bottom-height:202px}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{font:12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text)}button,input{font:inherit}button{border:0;color:inherit;background:none;cursor:pointer}button,input,[contenteditable]{outline:none}button:focus-visible,input:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}button{transition:background .14s,color .14s}button:hover{background:var(--raised);color:var(--strong)}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}.icon{display:inline-flex;align-items:center;justify-content:center}.icon-button{width:28px;height:28px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}.icon-button svg{width:16px;height:16px}.sep{width:1px;height:20px;background:var(--line);margin:0 8px}.spacer{flex:1}.muted{color:var(--muted)}.blue{color:var(--blue)}.green{color:var(--green)}kbd{font:11px -apple-system,sans-serif;color:var(--muted);border:1px solid var(--line);padding:2px 5px;border-radius:4px}.app{height:100dvh;display:flex;flex-direction:column;min-width:360px}.topbar{height:48px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;background:#292a2f;border-bottom:1px solid #1b1c1f}.traffic{display:flex;gap:7px;margin:0 16px 0 4px}.traffic i{width:11px;height:11px;border-radius:50%;background:#ff6058}.traffic i:nth-child(2){background:#febc2e}.traffic i:nth-child(3){background:#29c840}.brand{font-size:15px;font-weight:650;letter-spacing:-.6px;display:flex;align-items:center;gap:9px;color:var(--strong)}.brandmark{width:25px;height:25px;background:#8b9eff;color:#191c2b;border-radius:6px;display:grid;place-items:center;font:800 17px monospace;letter-spacing:-3px;padding-right:3px}.project-switch{font-weight:550;padding:7px 9px;border-radius:5px;display:flex;align-items:center;gap:8px}.project-switch svg{width:12px}.branch{display:flex;gap:6px;align-items:center;color:var(--muted);padding:6px;border-radius:5px}.branch svg{width:15px}.run-config{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:5px}.run-config svg{width:13px}.run{color:#8bd49c}.search-top{display:flex;align-items:center;gap:9px;color:var(--muted);padding:6px 9px;border-radius:5px}.search-top svg{width:15px}.preview{font-size:10px;letter-spacing:1px;color:#9b9da8;border:1px solid #494b54;padding:3px 5px;border-radius:4px}.body{display:flex;flex:1;min-height:0}.rail{width:46px;background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 0;flex:none;border-right:1px solid var(--line)}.rail.right{border-right:0;border-left:1px solid var(--line)}.tool{width:34px;height:35px;display:grid;place-items:center;border-radius:6px;position:relative;color:#9c9fa9}.tool svg{width:20px;height:20px}.tool.active{background:#35405a;color:#b0c7ff}.tool.active:before{content:'';position:absolute;left:-6px;top:8px;bottom:8px;width:2px;background:#88aaff;border-radius:2px}.tool .badge{position:absolute;right:3px;top:2px;background:#719ef1;color:#172135;border:2px solid var(--rail);border-radius:9px;font-size:9px;min-width:14px;height:14px;display:grid;place-items:center}.tool[title]:hover:after{content:attr(title);position:absolute;left:40px;top:5px;padding:7px 9px;white-space:nowrap;z-index:30;background:#393b41;color:#e4e5e9;border:1px solid #50525a;border-radius:4px;font-size:11px;pointer-events:none}.right .tool[title]:hover:after{right:40px;left:auto}.rail-divider{width:20px;height:1px;background:var(--line);margin:7px 0}.sidebar{width:var(--panel-width);flex:none;display:flex;flex-direction:column;overflow:hidden;background:var(--surface)}.sidebar.hidden{display:none}.panel-head{height:41px;display:flex;align-items:center;padding:0 13px;gap:8px;font-size:12px;font-weight:550;flex:none}.panel-head svg{width:14px}.panel-head .icon-button{width:23px;height:23px}.panel-head .icon-button svg{width:14px}.panel-body{flex:1;overflow:auto;padding:4px 8px}.panel-foot{padding:12px 14px;border-top:1px solid var(--line);font-size:11px;display:flex;align-items:center;gap:7px}.panel-foot .dot{width:6px;height:6px;background:var(--green);border-radius:50%}.tree-row{height:27px;display:flex;align-items:center;gap:6px;width:100%;padding:0 7px;border-radius:4px;text-align:left;white-space:nowrap;color:#c3c5ce;font-size:12px}.tree-row:hover{background:#303238}.tree-row.selected{background:var(--selected);color:#dce7ff}.tree-row .chev{width:12px;height:12px;color:#8b8e98}.tree-row .folder{color:#a5adbd;width:16px;height:16px}.tree-row .file-icon{width:16px;font-size:11px;text-align:center;font-weight:700;color:#d3a576;flex:none}.tree-row .file-icon.toml{color:#a3adc0}.tree-row .file-icon.md{color:#8aafe0}.tree-row .file-icon.rust{font-size:10px;color:#e4ad7c}.tree-row small{margin-left:auto;font-size:10px;color:#8eb29a}.tree-group[hidden]{display:none}.root-row{font-weight:550;color:var(--strong)}.root-path{font-size:10px;font-weight:400;color:#878a95;margin-left:2px}.section-label{display:flex;align-items:center;gap:8px;color:#9699a5;text-transform:uppercase;letter-spacing:.7px;font-size:10px;padding:15px 8px 8px}.resize-x{width:4px;flex:none;background:var(--line);border-left:1px solid var(--surface);border-right:2px solid var(--bg);cursor:col-resize}.resize-x:hover,.resize-y:hover{background:var(--blue)}.workspace{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}.editor-area{display:flex;flex:1;min-height:0}.editor{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}.tabs{height:41px;border-bottom:1px solid var(--line);display:flex;flex:none;background:#242529;overflow-x:auto;scrollbar-width:none}.tab{position:relative;height:41px;display:flex;align-items:center;gap:8px;padding:0 15px;border-right:1px solid #303136;white-space:nowrap;font-size:12px;color:#9699a3}.tab.active{color:var(--strong);background:var(--bg)}.tab.active:after{content:'';height:2px;background:var(--blue);position:absolute;left:0;right:0;bottom:0}.tab .rust{font-size:10px;font-weight:700;color:#e4ad7c}.tab .close-tab{font-size:16px;margin-left:12px;color:#8a8c95;line-height:1}.tab .modified{width:5px;height:5px;background:var(--blue);border-radius:50%}.tab-spacer{flex:1;display:flex;align-items:center;justify-content:flex-end;min-width:35px;padding:0 7px}.breadcrumbs{height:32px;display:flex;align-items:center;gap:8px;padding:0 19px;color:#8f929d;font-size:11px;flex:none}.breadcrumbs svg{width:11px;height:11px;color:#656873}.breadcrumbs .crumb-current{color:#b8bbc6}.crumb-icon{color:#ad93dc;font-size:12px}.codewrap{position:relative;overflow:auto;flex:1;min-height:0;padding:13px 0 40px;scrollbar-width:thin;scrollbar-color:#44464e transparent}.code-line{display:flex;min-width:max-content;min-height:24px;font:12.5px/24px 'JetBrains Mono','SFMono-Regular',Consolas,monospace;letter-spacing:.03px}.code-line.current{background:#282c35}.code-line .gutter{position:sticky;left:0;display:flex;align-items:center;width:76px;flex:none;background:var(--bg);color:#626773;font-size:11px;user-select:none}.code-line.current .gutter{background:#282c35}.line-no{width:45px;text-align:right;padding-right:15px}.fold{width:13px;color:#646975;font-size:10px}.change{height:24px;width:2px;background:transparent;margin-right:14px}.changed .change{background:#72a5de}.code-text{white-space:pre;color:var(--code);padding-right:35px;tab-size:4}.kw{color:#cf8e6d}.str{color:#a5bf87}.type{color:#b4b9d1}.fn{color:#61a8e8}.comment{color:#7b8495}.number{color:#7fb4c5}.attribute{color:#b3ae60}.hint{color:#6f7480;font-size:11px}.editor-note{display:flex;justify-content:space-between;align-items:center;padding:0 18px;height:27px;font-size:10px;color:#737884;border-top:1px solid #27292e;flex:none}.editor-note .check{color:#94b69b}.resize-y{height:4px;flex:none;background:#35363b;cursor:row-resize}.bottom{height:var(--bottom-height);min-height:100px;flex:none;display:flex;flex-direction:column;background:#212226}.bottom.hidden,.resize-y.hidden{display:none}.bottom-tabs{height:35px;flex:none;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid #303136;gap:4px}.bottom-tab{height:35px;display:flex;align-items:center;gap:7px;padding:0 11px;color:#9699a5;position:relative;font-size:11px}.bottom-tab svg{width:14px}.bottom-tab.active{color:var(--strong)}.bottom-tab.active:after{content:'';height:2px;position:absolute;left:8px;right:8px;bottom:0;background:var(--blue)}.tab-count{padding:0 4px;border-radius:3px;background:#35373f;color:#a5adbf;font-size:10px}.terminal{flex:1;overflow:auto;padding:12px 20px;font:11.5px/22px 'SFMono-Regular',Consolas,monospace}.term-path{color:#aab8e4}.term-arrow{color:#94c7a0;margin-right:9px}.term-sub{color:#888e9b}.term-input-row{display:flex;gap:7px;align-items:center}.term-input{background:none;border:0;color:#d0d3dc;flex:1;min-width:50px;font:inherit;caret-color:#bbc8ff}.statusbar{height:25px;flex:none;display:flex;align-items:center;padding:0 11px 0 13px;gap:17px;background:#292a2f;border-top:1px solid #36373e;font-size:10px;color:#a2a6b2}.statusbar svg{width:12px;height:12px}.status-item{display:flex;align-items:center;gap:5px}.statusbar button{font-size:10px;border-radius:3px;padding:2px 4px}.right-panel{width:280px;flex:none;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column}.right-panel.hidden{display:none}.outline{padding:3px 10px;overflow:auto}.outline-row{height:29px;display:flex;align-items:center;gap:8px;font-size:11px;padding:0 8px;color:#bfc3cf;border-radius:4px}.outline-row:hover{background:var(--raised)}.sym{font:10px monospace;color:#bd9fe2}.outline-row.method{padding-left:24px}.agent-content{padding:15px;line-height:1.8;font-size:12px}.agent-content .agent-label{font-size:10px;color:#9da7bf;letter-spacing:.5px;margin-bottom:15px}.agent-card{padding:12px;border:1px solid #44464f;border-radius:7px;margin-top:15px;color:#aeb5c5}.agent-compose{margin-top:auto;margin:14px;padding:10px;border:1px solid #474b58;border-radius:7px}.agent-compose textarea{width:100%;height:60px;border:0;resize:none;background:none;color:var(--text);font:12px/1.7 inherit;outline:none}.agent-compose footer{display:flex;align-items:center;justify-content:space-between;color:#989daa;font-size:10px}.agent-send{background:#667dc5;color:#fff;width:25px;height:25px;border-radius:5px}.search-field{margin:2px 0 12px;position:relative}.search-field input{width:100%;background:#1e2025;border:1px solid #4c5365;border-radius:5px;padding:8px 10px;color:var(--strong)}.result-file{padding:9px 7px 3px;font-size:11px;color:#c5c9d4}.result-line{padding:5px 8px 5px 20px;color:#9199ab;font:10.5px/1.7 monospace;cursor:pointer}.result-line:hover{background:var(--raised)}mark{background:#465064;color:#d7e6ff;border-radius:2px}.git-title{padding:9px 8px;font-size:11px;color:#a2a8b5;display:flex;justify-content:space-between}.git-file{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:11px}.git-file:hover{background:var(--raised)}.git-file span:last-child{margin-left:auto;color:#8cbf9d}.commit-box{padding:12px;border-top:1px solid var(--line)}.commit-box textarea{width:100%;height:76px;background:#212227;border:1px solid #41434c;border-radius:5px;padding:10px;color:var(--text);font:11px/1.6 inherit;resize:none}.primary{width:100%;padding:8px;border-radius:5px;margin-top:8px;background:#3d568b;color:#e1eaff}.primary:hover{background:#4b659a}.toast{position:fixed;right:65px;bottom:44px;z-index:80;background:#343a47;border:1px solid #566580;border-radius:7px;padding:12px 18px;font-size:12px;box-shadow:0 8px 25px #0004;max-width:400px}.toast.hidden{display:none}.empty-editor{height:100%;display:grid;place-content:center;text-align:center;color:var(--muted);gap:12px}.empty-editor h2{font-size:24px;color:#a8b4d4;margin:0}.bottom-view{flex:1;overflow:auto;padding:12px 20px;font:11px/23px monospace}.bottom-view.hidden{display:none}.bottom-view .success{color:var(--green)}.light{--bg:#fafafa;--surface:#f1f2f4;--rail:#e9eaed;--raised:#e0e3e9;--line:#d6d8df;--muted:#686f7d;--text:#414753;--strong:#232a37;--blue:#356bc5;--selected:#d9e5fa;--code:#343d4b}.light .topbar,.light .statusbar{background:#e9ebf0;border-color:#d6d8df}.light .tabs{background:#eeeff2}.light .tab{border-color:#ddd}.light .code-line.current,.light .code-line.current .gutter{background:#edf1f8}.light .code-line .gutter{color:#9299a5}.light .kw{color:#a44725}.light .str{color:#4c7934}.light .type{color:#555e78}.light .fn{color:#2f65a2}.light .comment{color:#7d8391}.light .bottom{background:#f5f5f7}.light .bottom-tabs{border-color:#ddd}.light .search-field input,.light .commit-box textarea{background:#fff;color:#343d4b}.light .editor-note{border-color:#e5e5e8}.light .tool.active{background:#d3def3;color:#315eab}.light .term-path{color:#576fa0}.light .term-input{color:#343d4b}.light .outline-row{color:#535f75}.light .tree-row{color:#535965}.light .toast{background:#e5ecfa;color:#2f466d}.light .number{color:#277b8d}.light .hint{color:#9399a4}
+@media(min-width:1700px){.code-line{font-size:14px;line-height:27px;min-height:27px}.change{height:27px}}@media(max-width:1100px){:root{--panel-width:225px}.search-top span,.preview{display:none}.right-panel{width:245px}.run-config{max-width:160px}.code-line{font-size:11.5px}}@media(max-width:760px){.traffic,.branch,.run-config,.topbar .sep,.right-panel{display:none!important}.topbar{padding:0 8px}.sidebar{width:205px}.search-top kbd{display:none}.statusbar{gap:8px}.statusbar .optional{display:none}.code-line .gutter{width:53px}.line-no{width:35px;padding-right:9px}.change{margin-right:4px}.breadcrumbs{padding-left:10px;white-space:nowrap;overflow:hidden}}@media(max-width:560px){.sidebar{position:absolute;top:48px;bottom:25px;left:46px;z-index:20;width:235px;box-shadow:15px 0 30px #0004}.resize-x{display:none}.project-switch{font-size:11px}.brand{font-size:14px}.bottom{height:180px}.right.rail{width:37px}.tabs .tab{padding:0 10px}.editor-note span:last-child{display:none}.statusbar{font-size:9px}.statusbar .status-encoding{display:none}}.light .tree-row.selected{background:#d9e5fa;color:#254c8d}.light .tab.active{background:#fafafa;color:#28364f}.light .tool.active{background:#d3def3;color:#315eab}.light .code-text{color:#343d4b}.light .resize-y{background:#d6d8df}.light .bottom-tabs .tab-count{background:#dfe3ec;color:#53627a}@media(max-width:760px){#terminal-label{display:none}.bottom-tabs{padding:0 5px;gap:0}.bottom-tab{padding:0 8px;font-size:10px}.bottom-tabs .icon-button{width:24px;flex:none}.terminal{padding:10px 14px}.editor-note{white-space:nowrap;overflow:hidden}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Preview 02 — IDEA / OpenIDEA New UI: project widget, expui icons and islands. */
+:root{--bg:#1b1d20;--surface:#202328;--rail:transparent;--raised:#ffffff0c;--line:#ffffff0b;--muted:#8c939e;--text:#c9cdd4;--strong:#e0e3e9;--selected:#2a4270;--blue:#8aafff;--island-radius:10px;--island-gap:6px;--frame-margin:14px;--frame-tint:rgba(37,42,48,.78);--island-border:rgba(255,255,255,.035)}
+html{background:#13181e}body{background:radial-gradient(ellipse at 0% 0%,#435b59 0%,transparent 52%),radial-gradient(ellipse at 100% 100%,#30364d 0%,transparent 55%),#172029;padding:var(--frame-margin)}body:before{content:'';position:fixed;width:38vw;height:65vh;left:-12vw;top:-18vh;background:#46655c;border-radius:50%;filter:blur(100px);opacity:.3;pointer-events:none}.app{height:calc(100dvh - var(--frame-margin)*2);border-radius:13px;border:1px solid #ffffff24;overflow:hidden;background:var(--frame-tint);backdrop-filter:blur(36px) saturate(1.15);-webkit-backdrop-filter:blur(36px) saturate(1.15);box-shadow:0 26px 85px #0006;position:relative}.topbar{height:51px;background:transparent;border:0;padding:0 12px;gap:7px}.traffic{margin:0 14px 0 4px;gap:8px}.traffic i{width:12px;height:12px}.main-menu{margin-right:1px}.project-switch{height:32px;padding:0 7px;gap:8px;font-size:12px;font-weight:500;border-radius:6px}.project-avatar{display:grid;place-items:center;width:23px;height:23px;border-radius:5px;background:linear-gradient(135deg,#8bb7a2,#557d83);box-shadow:inset 0 0 0 1px #ffffff16;color:#fff;font-size:10px;font-weight:650;letter-spacing:.4px}.project-switch>svg{width:12px;color:#a3aab5}.branch{font-size:11px;color:#a0a6af;height:30px;padding:0 7px}.branch>svg:first-child{width:16px;height:16px}.topbar .sep{background:#ffffff0d;margin:0 5px;height:18px}.preview{border:0;background:#ffffff06;color:#7f8997;font-size:9px;padding:4px 6px;letter-spacing:.8px}.search-top{height:30px;font-size:11px;color:#a0a8b5}.search-top kbd{border:0;background:#ffffff07;font-size:10px;color:#8d97a6}.run-config{font-size:11px;height:30px;padding:0 7px;white-space:nowrap}.icon-button{color:#b4bac4}.icon-button:hover{background:#ffffff0c}.rail{width:44px;background:transparent;border:0;gap:4px;padding:2px 0 8px}.rail.right{border:0;width:42px}.rail .tool{width:32px;height:34px;border-radius:6px;color:#a9afb8}.tool svg{width:20px;height:20px}.tool.active{background:#42536d;color:#d6e3ff}.tool.active:before{display:none}.tool .badge{border-color:#3b424b;right:1px;top:0;transform:scale(.87);background:#85a8ef}.rail-divider{background:#ffffff10;width:19px;margin:6px 0}.body{padding-bottom:0}.sidebar{background:rgba(29,33,38,.75);border:1px solid var(--island-border);border-radius:var(--island-radius);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}.panel-head{height:38px;font-size:11.5px;padding:0 12px;gap:7px}.panel-head>svg{width:11px;color:#969ca7}.panel-head .icon-button{opacity:.8}.panel-body{padding:3px 7px}.panel-foot{border-top:1px solid #ffffff06;padding:10px 12px;font-size:10px;color:#989fa9}.panel-foot .dot{width:5px;height:5px;background:#7eaf91}.tree-row{height:27px;border-radius:4px;font-size:11.5px;gap:6px;color:#bbc1ca}.tree-row.selected{background:#2d4268;color:#dde7f8}.tree-row:hover{background:#ffffff07}.tree-row.selected:hover{background:#344b75}.tree-row .file-type{width:16px;height:16px;flex:none}.tree-row .folder{color:#aeb3be}.root-row{font-weight:600}.root-path{font-size:9px;color:#777f8b}.section-label{font-size:9px;letter-spacing:.4px;color:#878f9c}.resize-x{width:6px;background:none;border:0}.resize-x:hover{background:#ffffff13;border-radius:3px}.editor-area{border-radius:var(--island-radius);overflow:hidden;border:1px solid var(--island-border)}.editor{background:#1b1d20}.tabs{height:38px;background:#212429;border-bottom:1px solid #ffffff05}.tab{height:38px;padding:0 13px;border-right:0;font-size:11px;gap:7px;color:#8e97a5}.tab.active{background:#1b1d20;color:#dce0e7}.tab.active:after{height:2px;left:9px;right:9px;background:#78a1f1;border-radius:2px}.tab .file-type{width:16px;height:16px}.tab .close-tab{display:grid;place-items:center;width:15px;height:18px;margin-left:9px;color:#7e8794}.close-tab svg{width:12px;height:12px;pointer-events:none}.tab .modified{width:4px;height:4px}.tab:hover{background:#ffffff04}.tab.active:hover{background:#1b1d20}.breadcrumbs{height:31px;padding:0 15px;font-size:10px;gap:7px;color:#7f8794;background:#1b1d20}.breadcrumbs svg{width:10px;height:10px}.codewrap{padding-top:12px;background:#1b1d20}.code-line .gutter{background:#1b1d20;color:#5f6670}.code-line.current,.code-line.current .gutter{background:#23272e}.code-line{font-weight:400;font-size:12.5px;line-height:24px;min-height:24px}.code-line .gutter{width:73px}.change{margin-right:12px}.changed .change{background:#436da7}.code-text{color:#bfc4cd}.fn{color:#6aa7d7}.kw{color:#cd9476}.comment{color:#6f7e82}.editor-note{height:26px;background:#1b1d20;border-top:1px solid #ffffff04;font-size:9px;color:#737f8d}.editor-note .check{color:#6e947b}.resize-y{height:6px;background:none}.resize-y:hover{background:#ffffff12;border-radius:3px}.bottom{background:rgba(25,29,34,.84);border:1px solid var(--island-border);border-radius:var(--island-radius);overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}.bottom-tabs{height:35px;border-bottom:1px solid #ffffff05;padding:0 10px;gap:1px}.bottom-tab{height:35px;font-size:10.5px;gap:6px;padding:0 10px}.bottom-tab svg{height:14px;width:14px}.bottom-tab.active:after{left:10px;right:10px;height:2px;background:#7a9cdc}.terminal{font-size:11px;line-height:22px;padding:11px 18px}.term-sub{color:#778393}.term-path{color:#9baecb}.term-input{font-size:11px}.right-panel{border-left:6px solid #282e35;background:#202328;width:270px}.statusbar{height:27px;background:transparent;border:0;gap:15px;padding:0 12px;font-size:9px;color:#8d98a7}.statusbar svg{width:12px;height:12px}.statusbar button{font-size:9px}.statusbar .optional{color:#85928c}.toast{background:#2c3749e8;backdrop-filter:blur(20px);border:1px solid #ffffff19;border-radius:8px}.light{--frame-tint:#e5e9eecc;--island-border:#ffffff75;--raised:#00000007;--selected:#dce8fd;color-scheme:light;background:radial-gradient(ellipse at 0% 0%,#bed5ce 0%,transparent 52%),radial-gradient(ellipse at 100% 100%,#b5c3dc 0%,transparent 55%),#d0d7e1}.light.app{background:var(--frame-tint)}.light .app{border-color:#ffffffa0;box-shadow:0 25px 80px #32415f30}.light .topbar,.light .statusbar{background:transparent;border:0}.light .sidebar{background:#f3f6f9bd}.light .editor,.light .breadcrumbs,.light .codewrap,.light .code-line .gutter,.light .editor-note{background:#fff}.light .editor-area,.light .sidebar,.light .bottom{border-color:#ffffff70}.light .tabs{background:#f4f6f9;border-color:#e9edf2}.light .tab{color:#6c7787}.light .tab.active,.light .tab.active:hover{background:#fff;color:#243754}.light .tree-row{color:#566174}.light .tree-row.selected{background:#dae6f9;color:#2b4e84}.light .tree-row:hover{background:#e5eaf2}.light .rail .tool{color:#697486}.light .tool.active{background:#cfdaea;color:#3b5f91}.light .panel-foot{border-color:#dfe5ee}.light .bottom{background:#f6f8fbd6}.light .bottom-tabs{border-color:#e4e9f1}.light .code-line.current,.light .code-line.current .gutter{background:#edf2fa}.light .editor-note{border-color:#edf0f5}.light .right-panel{background:#f3f6f9;border-left-color:#e2e8ef}.light .branch,.light .search-top,.light .run-config,.light .icon-button{color:#697486}.light .project-switch{color:#343f52}.light .topbar .sep{background:#00000010}.light .preview{color:#7e8ca1;background:#00000004}.light .search-top kbd{color:#8792a3;background:#00000004}.light .statusbar{color:#737f91}.light .resize-y{background:none}.light .resize-x:hover,.light .resize-y:hover{background:#a2b5cf55}.light .rail-divider{background:#0000000e}.light .tool .badge{border-color:#dce4ee}.light .comment{color:#7a8d87}.light .term-sub{color:#7c899a}.light .code-text{color:#3b4658}
+@media(max-width:1100px){:root{--frame-margin:8px}.preview{display:none}.run-config{max-width:none}.search-top{padding:4px}.traffic{margin-right:6px}.topbar{gap:4px}.branch{font-size:10px}.code-line{font-size:11.5px}}@media(max-width:760px){:root{--frame-margin:6px}.topbar{height:47px}.branch,.traffic,.main-menu,.run-config{display:none!important}.topbar .project-switch{display:flex!important}.app{border-radius:10px;min-width:0}.sidebar{top:47px;bottom:27px;left:44px;background:#242a32ee}.light .sidebar{background:#f3f6f9f2}.editor-area,.bottom{border-radius:8px}.rail{width:38px}.rail.right{width:34px}.rail .tool{width:29px;height:33px}.rail .tool svg{width:19px;height:19px}.statusbar{gap:9px}.resize-x{width:5px}.code-line .gutter{width:54px}.line-no{width:34px;padding-right:8px}.change{margin-right:4px}.terminal{font-size:10px}.bottom-tab{font-size:10px;padding:0 6px}.bottom-tabs .tab-count{font-size:9px}.bottom-tabs{padding:0 4px}.icon-button{flex:none}.statusbar .status-item:first-child{max-width:135px;overflow:hidden;white-space:nowrap}.breadcrumbs{padding-left:10px}.editor-note span:last-child{display:none}}
+
+
+/* Preview 03 — readable density, quieter materials and keyboard-first search. */
+:root{--frame-tint:rgba(35,39,45,.91);--muted:#9ba3af}body{background:radial-gradient(ellipse at 0% 0%,#354641 0%,transparent 52%),radial-gradient(ellipse at 100% 100%,#272e3d 0%,transparent 55%),#172029}body:before{opacity:.14}.app{box-shadow:0 22px 65px #0005;border-color:#ffffff1b}.sidebar{background:#1f2328df}.bottom{background:#1c2026eb}.tool.active{background:#3c4c65;color:#dae6fa}.rail .tool:hover{background:#ffffff0c}.rail .tool.active:hover{background:#485b78}.tool .badge{min-width:14px;height:14px;line-height:1;border-color:#303842}.panel-head{font-size:12px}.tree-row{font-size:12px;height:27px}.root-path{font-size:10px}.section-label{color:#8c95a2;font-size:9.5px;letter-spacing:.25px}.tab{font-size:11.5px}.tab .close-tab{border-radius:3px;opacity:0}.tab:hover .close-tab,.tab:focus-visible .close-tab,.tab.active .close-tab{opacity:1}.tab .close-tab:hover{background:#ffffff10;color:#d9e3f2}.code-line{font-size:13px;line-height:25px;min-height:25px}.change{height:25px}.code-line .gutter{color:#717a88}.comment{color:#81908e}.breadcrumbs{font-size:10.5px;color:#939eac}.editor-note{font-size:10px;color:#8d98a8}.bottom-tab{font-size:11px}.terminal,.term-input{font-size:11.5px}.statusbar,.statusbar button{font-size:10px}.statusbar{color:#a1aab8}.preview{color:#9aa6b8}.panel-foot{font-size:10.5px}.resize-x,.resize-y{position:relative}.resize-x:after,.resize-y:after{content:'';position:absolute;border-radius:3px;background:#86a9e980;opacity:0;transition:opacity .15s}.resize-x:after{width:2px;left:2px;top:18%;bottom:18%}.resize-y:after{height:2px;top:2px;left:25%;right:25%}.resize-x:hover:after,.resize-y:hover:after,.resize-x:focus-visible:after,.resize-y:focus-visible:after,.dragging:after{opacity:1}.resize-x:hover,.resize-y:hover{background:transparent}.resizing,.resizing *{cursor:inherit!important;user-select:none!important}.tree-row:focus-visible{background:#30415b;outline:1px solid #91b0ea}.light .tree-row:focus-visible{background:#e1eaf8;outline-color:#6388c6}.search-top:hover{background:#ffffff0b}.hidden{display:none!important}.light .app{--frame-tint:#e4e9f1ed;box-shadow:0 22px 65px #32415f25}.light .sidebar{background:#f4f7fbe6}.light .bottom{background:#f7f9fcf0}.light .panel-head{color:#39465c}.light .panel-foot,.light .breadcrumbs{color:#6e7f96}.light .code-line .gutter{color:#8995a7}.light .tool.active{color:#315b98;background:#d1def2}.light .rail .tool:hover{background:#00000006}.light .rail .tool.active:hover{background:#c6d8f2}.light .statusbar{color:#697b94}
+@media(max-width:760px){.code-line{font-size:12px;line-height:24px;min-height:24px}.change{height:24px}.statusbar,.statusbar button{font-size:9px}.terminal,.term-input{font-size:10.5px}.bottom-tab{font-size:10px}}
+
+
+/* Preview 04 — Search Everywhere, based on IDEA New UI / OpenIDEA layout. */
+.dialog-backdrop{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:9vh 18px 18px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}.palette{position:relative;display:flex;flex-direction:column;width:min(800px,calc(100vw - 36px));max-height:82dvh;background:#25272bf7;border:1px solid #5b5e6670;border-radius:10px;box-shadow:0 18px 65px #0008,0 3px 12px #0005;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);overflow:hidden;font-size:12px;color:#d5d8df}.palette-top{display:flex;align-items:center;gap:8px;min-height:43px;flex:none;padding:0 9px;background:#2d2f34da;border-bottom:1px solid #ffffff09}.palette-categories{display:flex;align-items:center;gap:2px;flex:1;min-width:0;height:43px}.palette-categories button{position:relative;padding:0 10px;height:43px;white-space:nowrap;color:#c4c7d0;font-size:12px;background:none;border-radius:0}.palette-categories button:hover{background:#ffffff07}.palette-categories button.active{color:#f0f2f6}.palette-categories button.active:after{content:'';position:absolute;bottom:0;left:7px;right:7px;height:3px;border-radius:3px;background:#5b8df2}.palette-scope-controls{flex:none;display:flex;align-items:center}.palette-include{display:flex;align-items:center;gap:5px;font-size:10.5px;color:#bfc3cc;white-space:nowrap;cursor:pointer;user-select:none}.palette-include input{width:13px;height:13px;margin:0;accent-color:#548af7;cursor:pointer}.palette-scope-controls select{background:none;border:0;color:#c0c7d5;font-size:11px;padding:5px;outline:none;max-width:130px}.palette-scope-controls option{background:#2d2f34;color:#d5d8df}.palette-tools{display:flex;gap:2px;flex:none;margin-left:2px}.palette-tools .icon-button{width:25px;height:25px;color:#9ba3b1;border-radius:4px}.palette-tools .icon-button svg{width:16px;height:16px}.palette-tools .icon-button:hover{background:#ffffff0c}.palette-tools .icon-button[aria-pressed=true],.palette-tools .icon-button[aria-expanded=true]{background:#ffffff12;color:#cdd6e5}.palette-tools .icon-button:disabled{opacity:.3;cursor:default;background:none}.palette-query-row{padding:6px 9px 7px;flex:none}.palette-search{height:35px;display:flex;align-items:center;gap:7px;padding:0 4px 0 6px;background:transparent;border:0;border-bottom:1px solid #62677555;border-radius:0}.palette-search:focus-within{border-color:#71809c85}.palette-magnifier{display:flex;align-items:center;color:#8e99ab;gap:0;flex:none}.palette-magnifier>svg{width:16px;height:16px}.palette-magnifier .small-chevron{width:9px;height:9px;margin-left:-2px}.palette-search input{flex:1;min-width:0;height:100%;background:none;border:0;color:#e2e4e9;font-size:13px;caret-color:#d9e2f4}.palette-search input:focus-visible{outline:none}.palette-query-hint{color:#7d8492;font-size:11px;white-space:nowrap}.palette-search .icon-button{width:21px;height:21px;color:#8a94a6}.palette-search .icon-button svg{width:12px;height:12px}.palette-results{min-height:0;max-height:336px;overflow:auto;flex:0 1 auto;padding:0 5px 7px;scrollbar-width:thin;scrollbar-color:#50545e transparent}.palette-section{display:flex;align-items:center;gap:10px;height:25px;padding:0 9px;color:#888f9d;font-size:10px;user-select:none}.section-rule{height:1px;flex:1;background:#ffffff07}.palette-result{width:100%;height:26px;min-height:26px;display:flex;align-items:center;gap:6px;padding:0 9px;text-align:left;border-radius:4px;background:none;color:#d5d8e0;font-size:12px;white-space:nowrap}.palette-result.selected,.palette-result.selected:hover{background:#2d4776;color:#e5ecf9}.palette-result:hover:not(.selected){background:#ffffff06}.palette-result>svg{width:16px;height:16px;flex:none}.palette-row-main{display:flex;align-items:baseline;gap:8px;flex:1;min-width:0;overflow:hidden}.palette-name{flex:0 1 auto;min-width:0;max-width:68%;overflow:hidden;text-overflow:ellipsis;white-space:pre;color:inherit}.palette-row-location{flex:1 1 90px;min-width:30px;overflow:hidden;text-overflow:ellipsis;color:#8b94a3;font-size:11px;white-space:nowrap}.palette-result.selected .palette-row-location{color:#b5c5e2}.palette-row-right{max-width:25%;overflow:hidden;text-overflow:ellipsis;flex:none;color:#8b95a7;font-size:11px;text-align:right;margin-left:10px}.palette-result.selected .palette-row-right{color:#a5b9dd}.palette-result .module-icon{width:16px;height:16px;color:#8c98ad}.palette-result mark{color:inherit;background:#6d91c533;border-radius:2px;font-weight:600}.palette-result.selected mark{background:#8aacf43b}.light .palette-result.selected mark{background:#9ebbf466}.method-icon{font:italic 17px Georgia,serif;color:#ab91db;flex:none;width:16px;text-align:center}.class-icon{color:#b19cda}.text-match{font:11.5px 'SFMono-Regular',Consolas,monospace}.palette-empty{height:120px;display:flex;align-items:center;justify-content:center;color:#7f8796;font-size:12px}.palette-foot{display:flex;align-items:center;gap:16px;min-height:30px;height:30px;flex:none;padding:0 12px;background:#2b2e34d9;border-top:1px solid #ffffff0a;font-size:10px;white-space:nowrap;overflow:hidden}.palette-location{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#8d95a4}.palette-footer-link{color:#83a9f4;font-size:10.5px;padding:0;height:24px;border-radius:0;flex:none;background:none}.palette-footer-link:hover{background:none;color:#abc7ff;text-decoration:underline}.palette-empty-help{margin-left:auto;color:#778396;font-size:10px}.palette-empty-help span{margin:0 6px}.palette-preview{height:205px;flex:none;display:flex;flex-direction:column;border-top:1px solid #41454e;background:#1d1f23;overflow:hidden}.source-preview-path{display:flex;align-items:center;gap:7px;padding:0 12px;height:28px;flex:none;font-size:10px;color:#8896ab;border-bottom:1px solid #ffffff05}.source-preview-path>.file-type{width:13px;height:13px}.source-preview-path .icon-button{margin-left:auto;width:21px;height:21px}.source-preview-path .icon-button svg{width:12px;height:12px}.source-preview-code{overflow:auto;flex:1;padding:6px 0;scrollbar-width:thin}.source-preview-line{display:flex;align-items:center;min-height:22px;font:11.5px/22px 'SFMono-Regular',Consolas,monospace;white-space:pre;min-width:max-content}.source-preview-line>span{display:block;width:43px;padding-right:12px;text-align:right;flex:none;color:#626d7e;border-right:1px solid #ffffff07;user-select:none}.source-preview-line code{font:inherit;padding:0 12px;color:#c4cad6}.source-preview-line.at-target{background:#31435f55}.palette-filter{position:absolute;right:33px;top:39px;z-index:3;width:190px;padding:8px 0;background:#2c3038f7;border:1px solid #5a647580;border-radius:6px;box-shadow:0 10px 30px #0006;font-size:11px;backdrop-filter:blur(20px)}.filter-title{padding:2px 12px 8px;color:#969fb0;font-size:10px}.palette-filter label{display:flex;align-items:center;gap:7px;height:28px;padding:0 12px;cursor:pointer;color:#cbd1dd}.palette-filter label:hover{background:#ffffff07}.palette-filter input{accent-color:#578bf1}.palette-filter label span{margin-left:auto;color:#7e8b9e}.search-editor-split{width:46%;min-width:200px;display:flex;flex-direction:column;border-left:6px solid #2a2f36;background:#1b1d20}.search-split-title{height:38px;display:flex;align-items:center;gap:7px;padding:0 12px;background:#24272d;font-size:11px;flex:none}.search-split-title .file-type{width:16px;height:16px}.search-split-title .icon-button{margin-left:auto}.search-split-code{overflow:auto;flex:1;padding:12px 0}.search-split-code .source-preview-line{line-height:24px;min-height:24px}.light .palette{background:#fffffff8;color:#222735;border-color:#c6cbd5b0;box-shadow:0 18px 55px #26344f35,0 2px 9px #26344f20}.light .palette-top{background:#f5f6f9e8;border-color:#e3e6ec}.light .palette-categories button{color:#3e4554}.light .palette-categories button.active{color:#1b2130}.light .palette-categories button:hover{background:#00000004}.light .palette-categories button.active:after{background:#4b7ef1}.light .palette-include{color:#515b6d}.light .palette-tools .icon-button{color:#767e8e}.light .palette-tools .icon-button[aria-pressed=true]{background:#e0e4eb}.light .palette-search{border-color:#d9dfe9}.light .palette-search:focus-within{border-color:#a2b8df}.light .palette-search input{color:#263348}.light .palette-magnifier{color:#78859a}.light .palette-query-hint{color:#969eac}.light .palette-section{color:#8b93a1}.light .section-rule{background:#e9edf4}.light .palette-result{color:#2b3547}.light .palette-result.selected,.light .palette-result.selected:hover{background:#d8e4fc;color:#1d2e4b}.light .palette-result:hover:not(.selected){background:#f1f4f9}.light .palette-row-location,.light .palette-row-right{color:#798599}.light .palette-result.selected .palette-row-location,.light .palette-result.selected .palette-row-right{color:#5e7497}.light .palette-result mark{background:#a6bef24d}.light .palette-foot{background:#f5f6f9d9;border-color:#e3e7ee}.light .palette-location{color:#8791a4}.light .palette-footer-link{color:#4c73b9}.light .palette-scope-controls select{color:#617087}.light .palette-scope-controls option{background:#fff;color:#39465d}.light .palette-preview{background:#fff;border-color:#e0e5ee}.light .source-preview-path{border-color:#e7ecf4;color:#8794a8}.light .source-preview-line code{color:#39465c}.light .source-preview-line>span{border-color:#edf0f6;color:#a1abbc}.light .source-preview-line.at-target{background:#edf2fc}.light .palette-filter{background:#fffffff7;border-color:#d3dbe8;box-shadow:0 10px 30px #39486b28}.light .palette-filter label{color:#4a5971}.light .palette-filter label:hover{background:#edf2fa}.light .search-editor-split{border-color:#e5eaf3;background:#fff}.light .search-split-title{background:#f3f5f9}.light .palette-empty{color:#8793a6}
+@media(max-width:760px){.palette{width:min(800px,calc(100vw - 24px));max-height:85dvh}.dialog-backdrop{padding:7vh 12px 12px}.palette-top{flex-wrap:wrap;gap:0;min-height:43px;padding:0 7px}.palette-categories{width:100%;flex:none;height:37px;justify-content:space-between}.palette-categories button{height:37px;font-size:11px;padding:0 6px}.palette-scope-controls{margin:0 auto 0 3px;height:32px}.palette-include{font-size:10px}.palette-tools{height:32px}.palette-query-row{padding:5px 7px 6px}.palette-query-hint{font-size:10px}.palette-search input{font-size:12px}.palette-results{min-height:0;max-height:280px}.palette-result{font-size:11px;height:27px;gap:5px;padding:0 6px}.palette-row-main{gap:5px}.palette-row-location{font-size:10px}.palette-row-right{font-size:10px;max-width:20%;margin-left:5px}.palette-section{font-size:10px;padding:0 6px}.palette-foot{padding:0 9px;gap:8px}.palette-location{font-size:9px}.palette-footer-link{font-size:9px}.palette-preview{height:175px}.search-editor-split{width:50%;min-width:100px}.source-preview-line{font-size:10px}.palette-filter{top:70px;right:30px}}
+
+.palette-results:has(.palette-empty){min-height:64px;max-height:120px}.palette-empty{height:64px}
+</style>
+</head>
+<body>
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
+<symbol id="glyph-folder" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M8.10584 4.34613L8.25344 4.5H8.46667H13C13.8284 4.5 14.5 5.17157 14.5 6V12.1333C14.5 12.9529 13.932 13.5 13.3667 13.5H2.63333C2.06804 13.5 1.5 12.9529 1.5 12.1333V3.86667C1.5 3.04707 2.06804 2.5 2.63333 2.5H6.1217C6.25792 2.5 6.38824 2.55557 6.48253 2.65387L8.10584 4.34613Z" fill="#43454A" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-project" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M10.5199 5.57617L10.7285 5.75H11H17C17.6904 5.75 18.25 6.30964 18.25 7V15.1667C18.25 16.0671 17.553 16.75 16.75 16.75H3.25C2.44705 16.75 1.75 16.0671 1.75 15.1667V4.83333C1.75 3.93294 2.44705 3.25 3.25 3.25H7.63795C7.69643 3.25 7.75307 3.2705 7.798 3.30794L10.5199 5.57617Z" stroke="currentColor" stroke-width="1.5"/>
+</g></symbol>
+<symbol id="glyph-search" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="7" cy="7" r="4.5" stroke="currentColor"/>
+<path d="M10.1992 10.2002L13.4992 13.4961" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-git" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="4.5" cy="4" r="2" stroke="currentColor"/>
+<path d="M4.5 11H8.5C9.60457 11 10.5 10.1046 10.5 9V9V7.5" stroke="currentColor"/>
+<path d="M4.5 6.5L4.5 14.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10.5" cy="6" r="2" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-structure" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M2.75 1C3.16421 1 3.5 1.33579 3.5 1.75V4H6V3C6 1.89543 6.89543 1 8 1H16C17.1046 1 18 1.89543 18 3V7C18 8.10457 17.1046 9 16 9H8C6.89543 9 6 8.10457 6 7V5.5H3.5V14H6V13C6 11.8954 6.89543 11 8 11H16C17.1046 11 18 11.8954 18 13V17C18 18.1046 17.1046 19 16 19H8C6.89543 19 6 18.1046 6 17V15.5H3.5V18.25C3.5 18.6642 3.16421 19 2.75 19C2.33579 19 2 18.6642 2 18.25V1.75C2 1.33579 2.33579 1 2.75 1ZM16 12.5H8C7.72386 12.5 7.5 12.7239 7.5 13V17C7.5 17.2761 7.72386 17.5 8 17.5H16C16.2761 17.5 16.5 17.2761 16.5 17V13C16.5 12.7239 16.2761 12.5 16 12.5ZM8 2.5H16C16.2761 2.5 16.5 2.72386 16.5 3V7C16.5 7.27614 16.2761 7.5 16 7.5H8C7.72386 7.5 7.5 7.27614 7.5 7V3C7.5 2.72386 7.72386 2.5 8 2.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/></symbol>
+<symbol id="glyph-play" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M13.5 7.13397C14.1667 7.51888 14.1667 8.48112 13.5 8.86602L4.5 14.0622C3.83333 14.4471 3 13.966 3 13.1962L3 2.80385C3 2.03405 3.83333 1.55292 4.5 1.93782L13.5 7.13397Z" fill="#253627" stroke="#57965C"/>
+</g></symbol>
+<symbol id="glyph-debug" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M10.6907 4.4347C10.6974 4.35728 10.7008 4.27899 10.7008 4.2C10.7008 2.70883 9.49195 1.5 8.00078 1.5C6.50961 1.5 5.30078 2.70883 5.30078 4.2C5.30078 4.27871 5.30416 4.35672 5.3108 4.43387C4.83909 4.6943 4.43389 5.06042 4.12714 5.5003L2.0178 4.36019C1.77487 4.22888 1.4715 4.31937 1.34019 4.5623C1.20889 4.80523 1.29938 5.1086 1.5423 5.2399L3.67822 6.39438C3.5626 6.74191 3.5 7.11364 3.5 7.5V8.50006H1C0.723858 8.50006 0.5 8.72392 0.5 9.00006C0.5 9.2762 0.723858 9.50006 1 9.50006H3.5V10C3.5 10.4892 3.57807 10.9602 3.72243 11.4012L1.52989 12.667C1.29075 12.8051 1.20881 13.1109 1.34688 13.3501C1.48495 13.5892 1.79075 13.6711 2.02989 13.5331L4.14017 12.3147C4.92703 13.624 6.36122 14.5 8 14.5C9.63821 14.5 11.072 13.6246 11.859 12.3161L13.967 13.5331C14.2061 13.6712 14.5119 13.5893 14.65 13.3501C14.7881 13.111 14.7061 12.8052 14.467 12.6671L12.2771 11.4028C12.4217 10.9613 12.5 10.4898 12.5 10V9.49982H15C15.2761 9.49982 15.5 9.27596 15.5 8.99982C15.5 8.72367 15.2761 8.49982 15 8.49982H12.5V7.5C12.5 7.11367 12.4374 6.74197 12.3218 6.39447L14.4551 5.23979C14.698 5.10835 14.7883 4.80492 14.6569 4.56207C14.5254 4.31922 14.222 4.2289 13.9791 4.36035L11.8729 5.50036C11.5665 5.06092 11.1618 4.69509 10.6907 4.4347ZM6.30577 4.06885C6.53015 4.02369 6.76231 4 7 4H9C9.23825 4 9.47094 4.02381 9.69582 4.06917C9.62902 3.19142 8.89564 2.5 8.00078 2.5C7.10603 2.5 6.37272 3.19125 6.30577 4.06885ZM4.5 7.5C4.5 6.11929 5.61929 5 7 5H9C10.3807 5 11.5 6.11929 11.5 7.5V10C11.5 11.933 9.933 13.5 8 13.5C6.067 13.5 4.5 11.933 4.5 10V7.5Z" fill="#57965C"/>
+<path d="M7 4C6.76231 4 6.53015 4.02369 6.30577 4.06885C6.37272 3.19125 7.10603 2.5 8.00078 2.5C8.89564 2.5 9.62902 3.19142 9.69582 4.06917C9.47094 4.02381 9.23825 4 9 4H7Z" fill="#253627"/>
+<path d="M7 5C5.61929 5 4.5 6.11929 4.5 7.5V10C4.5 11.933 6.067 13.5 8 13.5C9.933 13.5 11.5 11.933 11.5 10V7.5C11.5 6.11929 10.3807 5 9 5H7Z" fill="#253627"/>
+</g></symbol>
+<symbol id="glyph-settings" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M3.96446 5.54781C3.63344 5.99572 3.35137 6.48132 3.12584 6.99671L4.14987 8.72634C4.61489 9.51177 4.61489 10.4882 4.14987 11.2736L3.12584 13.0033C3.35137 13.5187 3.63344 14.0043 3.96446 14.4522L5.9723 14.4302C6.88501 14.4202 7.73062 14.9084 8.17831 15.7038L9.16331 17.4539C9.43778 17.4843 9.71717 17.5 10.0007 17.5C10.2843 17.5 10.5637 17.4843 10.8382 17.4539L11.8232 15.7038C12.2709 14.9084 13.1165 14.4202 14.0292 14.4302L16.037 14.4522C16.368 14.0043 16.6501 13.5186 16.8756 13.0033L15.8516 11.2736C15.3866 10.4882 15.3866 9.51177 15.8516 8.72634L16.8756 6.99671C16.6501 6.48132 16.368 5.99572 16.037 5.54781L14.0292 5.56981C13.1165 5.57981 12.2709 5.09159 11.8232 4.29617L10.8382 2.5461C10.5637 2.51567 10.2843 2.5 10.0007 2.5C9.71717 2.5 9.43779 2.51567 9.16332 2.54609L8.17831 4.29617C7.73062 5.09159 6.88501 5.57981 5.9723 5.56981L3.96446 5.54781ZM13.6234 10C13.6234 12.0008 12.0015 13.6227 10.0007 13.6227C7.99996 13.6227 6.37802 12.0008 6.37802 10C6.37802 7.99924 7.99996 6.37729 10.0007 6.37729C12.0015 6.37729 13.6234 7.99923 13.6234 10ZM5.98873 4.0699C6.35382 4.0739 6.69206 3.87861 6.87114 3.56044L7.98752 1.57695C8.13019 1.32346 8.37572 1.14153 8.66343 1.09868C9.09976 1.03368 9.54632 1 10.0007 1C10.4552 1 10.9017 1.03368 11.3381 1.09868C11.6258 1.14154 11.8713 1.32346 12.014 1.57695L13.1303 3.56044C13.3094 3.87861 13.6477 4.0739 14.0127 4.0699L16.2875 4.04498C16.5778 4.0418 16.8576 4.16301 17.0387 4.38992C17.594 5.08559 18.0482 5.8654 18.3793 6.70716C18.4856 6.9775 18.4507 7.28065 18.3027 7.53062L17.1424 9.49053C16.9563 9.8047 16.9563 10.1953 17.1424 10.5094L18.3027 12.4694C18.4507 12.7193 18.4856 13.0225 18.3793 13.2928C18.0482 14.1346 17.594 14.9144 17.0387 15.6101C16.8576 15.837 16.5778 15.9582 16.2875 15.955L14.0128 15.9301C13.6477 15.9261 13.3094 16.1214 13.1303 16.4395L12.014 18.423C11.8713 18.6765 11.6258 18.8584 11.3381 18.9013C10.9017 18.9663 10.4552 19 10.0007 19C9.54631 19 9.09976 18.9663 8.66343 18.9013C8.37571 18.8584 8.13018 18.6765 7.98751 18.423L6.87114 16.4395C6.69206 16.1214 6.35382 15.9261 5.98873 15.9301L3.71401 15.955C3.4237 15.9582 3.14389 15.837 2.96277 15.6101C2.40752 14.9144 1.95325 14.1346 1.62217 13.2928C1.51585 13.0225 1.55076 12.7193 1.69876 12.4694L2.85913 10.5094C3.04514 10.1953 3.04514 9.8047 2.85913 9.49053L1.69876 7.53061C1.55076 7.28064 1.51584 6.97749 1.62217 6.70715C1.95325 5.86539 2.40751 5.08558 2.96276 4.38992C3.14388 4.16301 3.42369 4.0418 3.71401 4.04498L5.98873 4.0699ZM12.1234 10C12.1234 11.1723 11.1731 12.1227 10.0007 12.1227C8.82839 12.1227 7.87802 11.1723 7.87802 10C7.87802 8.82766 8.82839 7.87729 10.0007 7.87729C11.1731 7.87729 12.1234 8.82766 12.1234 10Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-chevron" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M6 11.5L9.5 8L6 4.5" stroke="#B4B8BF" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-down" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M11.5 6.25L8 9.75L4.5 6.25" stroke="#B4B8BF" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-more" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="3" cy="8" r="1" transform="rotate(-90 3 8)" fill="currentColor"/>
+<circle cx="8" cy="8" r="1" transform="rotate(-90 8 8)" fill="currentColor"/>
+<circle cx="13" cy="8" r="1" transform="rotate(-90 13 8)" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-minus" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2 8.5C1.72386 8.5 1.5 8.27614 1.5 8C1.5 7.72386 1.72386 7.5 2 7.5L2 8.5ZM14 7.5C14.2761 7.5 14.5 7.72386 14.5 8C14.5 8.27614 14.2761 8.5 14 8.5L14 7.5ZM2 7.5L14 7.5L14 8.5L2 8.5L2 7.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-check" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 8.25L6 11.75L13.5 4.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-spark" viewBox="0 0 24 24"><path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7Z"/></symbol>
+<symbol id="glyph-database" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g clip-path="url(#database-clip0_8311_12787)">
+<path d="M3 2.5H13C13.8284 2.5 14.5 3.17157 14.5 4V12C14.5 12.8284 13.8284 13.5 13 13.5H3C2.17157 13.5 1.5 12.8284 1.5 12V4C1.5 3.17157 2.17157 2.5 3 2.5Z" fill="#43454A" stroke="currentColor"/>
+<path d="M5.5 3V13" stroke="currentColor"/>
+<path d="M10.5 3V13" stroke="currentColor"/>
+<path d="M2 5.5H14" stroke="currentColor"/>
+</g>
+<defs>
+<clipPath id="database-clip0_8311_12787">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</g></symbol>
+<symbol id="glyph-bell" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M8.67717 17.5625H11.3229C11.2515 17.7305 11.148 17.8849 11.0165 18.0164C10.7469 18.286 10.3813 18.4375 10 18.4375C9.61878 18.4375 9.25315 18.286 8.98358 18.0164C8.85202 17.8849 8.74859 17.7305 8.67717 17.5625Z" stroke="currentColor" stroke-width="1.12498"/>
+<path d="M4.67081 10.3354C4.72288 10.2313 4.74999 10.1164 4.74999 10V7C4.74999 4.97056 5.52681 3.69096 6.52723 2.90116C7.55609 2.08891 8.8818 1.75 9.99999 1.75C11.1182 1.75 12.4439 2.08891 13.4728 2.90116C14.4732 3.69096 15.25 4.97056 15.25 7V10C15.25 10.1164 15.2771 10.2313 15.3292 10.3354L17.4648 14.6067C17.6126 14.9023 17.3977 15.25 17.0672 15.25H2.93274C2.6023 15.25 2.38739 14.9023 2.53516 14.6067L4.67081 10.3354Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-split" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M8.5 3H12C12.5523 3 13 3.44772 13 4V12C13 12.5523 12.5523 13 12 13H8.5V3ZM7.5 2H8.5H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H8.5H7.5H4C2.89543 14 2 13.1046 2 12V4C2 2.89543 2.89543 2 4 2H7.5ZM7.5 13H4C3.44772 13 3 12.5523 3 12V4C3 3.44772 3.44772 3 4 3H7.5V13Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-refresh" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 9V8C2.5 4.96243 4.96243 2.5 8 2.5C9.10679 2.5 10.1372 2.82692 11 3.38947" stroke="currentColor" stroke-linecap="round"/>
+<path d="M5 12.6105C5.86278 13.1731 6.89321 13.5 8 13.5C11.0376 13.5 13.5 11.0376 13.5 8V7" stroke="currentColor" stroke-linecap="round"/>
+<path d="M0.49997 7.50027L2.5 9.5L4.49998 7.50023" stroke="currentColor" stroke-linecap="round"/>
+<path d="M11.5 8.49982L13.5 6.5L15.5 8.49982" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-sun" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g clip-path="url(#sun-clip0_6654_52127)">
+<path d="M8.5 1C8.5 0.723858 8.27614 0.5 8 0.5C7.72386 0.5 7.5 0.723858 7.5 1V3.02469C7.66445 3.00836 7.83125 3 8 3C8.16875 3 8.33555 3.00836 8.5 3.02469V1Z" fill="currentColor"/>
+<path d="M3.40381 2.6967L4.83563 4.12853C4.57708 4.34011 4.34011 4.57708 4.12853 4.83563L2.6967 3.40381C2.50144 3.20854 2.50144 2.89196 2.6967 2.6967C2.89196 2.50144 3.20854 2.50144 3.40381 2.6967Z" fill="currentColor"/>
+<path d="M3.02469 7.5H1C0.723858 7.5 0.5 7.72386 0.5 8C0.5 8.27614 0.723858 8.5 1 8.5H3.02469C3.00836 8.33555 3 8.16875 3 8C3 7.83125 3.00836 7.66445 3.02469 7.5Z" fill="currentColor"/>
+<path d="M2.6967 12.5962L4.12853 11.1644C4.34011 11.4229 4.57708 11.6599 4.83563 11.8715L3.40381 13.3033C3.20854 13.4986 2.89196 13.4986 2.6967 13.3033C2.50144 13.108 2.50144 12.7915 2.6967 12.5962Z" fill="currentColor"/>
+<path d="M7.5 12.9753V15C7.5 15.2761 7.72386 15.5 8 15.5C8.27614 15.5 8.5 15.2761 8.5 15V12.9753C8.33555 12.9916 8.16875 13 8 13C7.83125 13 7.66445 12.9916 7.5 12.9753Z" fill="currentColor"/>
+<path d="M12.5962 13.3033L11.1644 11.8715C11.4229 11.6599 11.6599 11.4229 11.8715 11.1644L13.3033 12.5962C13.4986 12.7915 13.4986 13.108 13.3033 13.3033C13.108 13.4986 12.7915 13.4986 12.5962 13.3033Z" fill="currentColor"/>
+<path d="M12.9753 8.5H15C15.2761 8.5 15.5 8.27614 15.5 8C15.5 7.72386 15.2761 7.5 15 7.5H12.9753C12.9916 7.66445 13 7.83125 13 8C13 8.16875 12.9916 8.33555 12.9753 8.5Z" fill="currentColor"/>
+<path d="M13.3033 3.40381L11.8715 4.83563C11.6599 4.57708 11.4229 4.34011 11.1644 4.12853L12.5962 2.6967C12.7915 2.50144 13.108 2.50144 13.3033 2.6967C13.4986 2.89196 13.4986 3.20854 13.3033 3.40381Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12 8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8C4 5.79086 5.79086 4 8 4C10.2091 4 12 5.79086 12 8ZM11 8C11 9.65685 9.65685 11 8 11C6.34315 11 5 9.65685 5 8C5 6.34315 6.34315 5 8 5C9.65685 5 11 6.34315 11 8Z" fill="currentColor"/>
+</g>
+<defs>
+<clipPath id="sun-clip0_6654_52127">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</g></symbol>
+<symbol id="glyph-arrow-up" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.3536 6.34645C12.5488 6.54171 12.5488 6.85829 12.3536 7.05355C12.1583 7.24882 11.8417 7.24882 11.6464 7.05355L8.5 3.9071L8.5 13.5071C8.5 13.7832 8.27614 14.0071 8 14.0071C7.72386 14.0071 7.5 13.7832 7.5 13.5071L7.5 3.90711L4.35355 7.05355C4.15829 7.24882 3.84171 7.24882 3.64645 7.05355C3.45118 6.85829 3.45118 6.54171 3.64645 6.34645L7.64645 2.34644L8 1.99289L8.35355 2.34644L12.3536 6.34645Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-14-2 18"/></symbol>
+<symbol id="glyph-history" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 5V8L10.5 9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-warning" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 4.59998L8 8.39998" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+<circle cx="8.00078" cy="10.7" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="0.4"/>
+</g></symbol>
+<symbol id="glyph-find-tool" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 9C14.5 12.0376 12.0376 14.5 9 14.5C5.96243 14.5 3.5 12.0376 3.5 9C3.5 5.96243 5.96243 3.5 9 3.5C12.0376 3.5 14.5 5.96243 14.5 9ZM13.3584 14.478C12.1625 15.4307 10.6478 16 9 16C5.13401 16 2 12.866 2 9C2 5.13401 5.13401 2 9 2C12.866 2 16 5.13401 16 9C16 10.6478 15.4307 12.1625 14.478 13.3584C14.5086 13.3812 14.5379 13.4065 14.5657 13.4343L18.5657 17.4343C18.8781 17.7467 18.8781 18.2533 18.5657 18.5657C18.2533 18.8781 17.7467 18.8781 17.4343 18.5657L13.4343 14.5657C13.4065 14.5379 13.3812 14.5086 13.3584 14.478Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-commit" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.25 9.25C19.6642 9.25 20 9.58579 20 10C20 10.4142 19.6642 10.75 19.25 10.75L13.9298 10.75C13.5787 12.6006 11.9528 14 10 14C8.04721 14 6.42125 12.6006 6.0702 10.75L0.75 10.75C0.335787 10.75 -1.92951e-07 10.4142 -1.74846e-07 10C-1.5674e-07 9.58579 0.335787 9.25 0.75 9.25L6.0702 9.25C6.42125 7.39935 8.04721 6 10 6C11.9528 6 13.5787 7.39935 13.9298 9.25L19.25 9.25ZM10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-run-tool" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M16.125 11.0825L5.625 17.1447C4.79167 17.6258 3.75 17.0244 3.75 16.0622L3.75 3.93782C3.75 2.97557 4.79167 2.37417 5.625 2.85529L16.125 8.91747C16.9583 9.39859 16.9583 10.6014 16.125 11.0825Z" stroke="currentColor" stroke-width="1.5"/>
+</g></symbol>
+<symbol id="glyph-file-rust" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g stroke-linejoin="round"><path d="M14 4C14 2.89543 13.1046 2 12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4Z" fill="#D4774A"/><path transform="translate(4 6)" d="M0.5 6V0.5H2.1C2.9 0.5 3.5 1.1 3.5 1.75C3.5 2.4 2.9 3 2.1 3H0.5M2.2 3L3.6 6" stroke="white"/><path transform="translate(9 6)" d="M3.4 1.2C3.1 0.8 2.6 0.5 2 0.5C1.2 0.5 0.6 1 0.6 1.7C0.6 2.5 1.3 2.7 2 2.95C2.8 3.2 3.4 3.5 3.4 4.3C3.4 5 2.8 5.5 2 5.5C1.3 5.5 0.8 5.2 0.5 4.8" stroke="white"/></g>
+</g></symbol>
+<symbol id="glyph-file-toml" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<rect x="2.5" y="2.5" width="11" height="11" rx="1.5" fill="#25324D" stroke="#548AF7"/>
+<path d="M5.21826 4.5H10.7783V5.645H8.61826V11.5H7.38826V5.645H5.21826V4.5Z" fill="#548AF7"/>
+</g></symbol>
+<symbol id="glyph-file-markdown" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.5929 9.9438L12.5929 4.70001L13.7929 4.70002L13.7929 9.94379L15.0763 8.66037L15.9248 9.5089L13.1929 12.2409L10.4609 9.5089L11.3095 8.66037L12.5929 9.9438Z" fill="#548AF7"/>
+<path d="M0.5 4.70001H2.94558L4.65385 9.14463L4.76288 9.60155L4.85635 9.14463L6.51269 4.70001H8.98423V11.9692H7.14096V7.59732L7.17212 7.12482L5.34442 11.9692H4.08269L2.31212 7.17155L2.34327 7.59732V11.9692H0.5V4.70001Z" fill="#548AF7"/>
+</g></symbol>
+<symbol id="glyph-file-cargo" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g stroke-linejoin="round"><path d="M8 1.5L14.5 4.75V11.25L8 14.5L1.5 11.25V4.75Z" fill="#45322B" stroke="#C77D55"/><path d="M1.5 4.75L8 8L14.5 4.75M8 8V14.5" stroke="#C77D55"/></g>
+</g></symbol>
+<symbol id="glyph-collapse" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M4.5 2.5L8 6L11.5 2.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M4.5 13.5L8 10L11.5 13.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-close" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M3.5 12.5L12.5 3.5M12.5 12.5L3.5 3.5" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-menu" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 4H13.5M2.5 8H13.5M2.5 12H13.5" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-search-preview" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<rect x="2.5" y="1.5" width="11" height="13" rx="1.5" stroke="currentColor"/>
+<rect x="5" y="5" width="6" height="1" rx="0.5" fill="currentColor"/>
+<rect x="5" y="7.5" width="6" height="1" rx="0.5" fill="currentColor"/>
+<rect x="5" y="10" width="6" height="1" rx="0.5" fill="currentColor"/>
+</g></symbol><symbol id="glyph-search-filter" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M13.5 2.5H2.5L6.5 7.5V14L9.5 12V7.5L13.5 2.5Z" stroke="currentColor" stroke-linejoin="round"/>
+</g></symbol><symbol id="glyph-search-find" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M9 7L5.5 10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8.5 10.5L5.5 10.5L5.5 7.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor"/>
+</g></symbol><symbol id="glyph-search-class" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" fill="#25324D" stroke="#548AF7"/>
+<path d="M8.13295 11.5C9.61223 11.5 10.8836 10.6105 11.2075 9.33909H10.2213C9.90229 10.0739 9.11914 10.6057 8.13295 10.6057C6.77936 10.6057 5.80284 9.51796 5.80284 8C5.80284 6.48204 6.77936 5.39434 8.13295 5.39434C9.11914 5.39434 9.90229 5.92611 10.2213 6.66091H11.2075C10.8836 5.3895 9.61223 4.5 8.13295 4.5C6.21859 4.5 4.79248 5.99378 4.79248 8C4.79248 10.0062 6.21859 11.5 8.13295 11.5Z" fill="#548AF7"/>
+</g></symbol><symbol id="glyph-search-history" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 5V8L10.5 9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol><symbol id="glyph-project-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M10.5199 5.57617L10.7285 5.75H11H17C17.6904 5.75 18.25 6.30964 18.25 7V15.1667C18.25 16.0671 17.553 16.75 16.75 16.75H3.25C2.44705 16.75 1.75 16.0671 1.75 15.1667V4.83333C1.75 3.93294 2.44705 3.25 3.25 3.25H7.63795C7.69643 3.25 7.75307 3.2705 7.798 3.30794L10.5199 5.57617Z" stroke="currentColor" stroke-width="1.5"/>
+</g></symbol>
+<symbol id="glyph-find-tool-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 9C14.5 12.0376 12.0376 14.5 9 14.5C5.96243 14.5 3.5 12.0376 3.5 9C3.5 5.96243 5.96243 3.5 9 3.5C12.0376 3.5 14.5 5.96243 14.5 9ZM13.3584 14.478C12.1625 15.4307 10.6478 16 9 16C5.13401 16 2 12.866 2 9C2 5.13401 5.13401 2 9 2C12.866 2 16 5.13401 16 9C16 10.6478 15.4307 12.1625 14.478 13.3584C14.5086 13.3812 14.5379 13.4065 14.5657 13.4343L18.5657 17.4343C18.8781 17.7467 18.8781 18.2533 18.5657 18.5657C18.2533 18.8781 17.7467 18.8781 17.4343 18.5657L13.4343 14.5657C13.4065 14.5379 13.3812 14.5086 13.3584 14.478Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-commit-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M19.25 9.25C19.6642 9.25 20 9.58579 20 10C20 10.4142 19.6642 10.75 19.25 10.75L13.9298 10.75C13.5787 12.6006 11.9528 14 10 14C8.04721 14 6.42125 12.6006 6.0702 10.75L0.75 10.75C0.335787 10.75 -1.92951e-07 10.4142 -1.74846e-07 10C-1.5674e-07 9.58579 0.335787 9.25 0.75 9.25L6.0702 9.25C6.42125 7.39935 8.04721 6 10 6C11.9528 6 13.5787 7.39935 13.9298 9.25L19.25 9.25ZM10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-git-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="4.5" cy="4" r="2" stroke="currentColor"/>
+<path d="M4.5 11.5H8.5C9.60457 11.5 10.5 10.6046 10.5 9.5V9.5V8" stroke="currentColor"/>
+<path d="M4.5 6.5L4.5 14.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10.5" cy="6" r="2" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-structure-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M2.75 1C3.16421 1 3.5 1.33579 3.5 1.75V4H6V3C6 1.89543 6.89543 1 8 1H16C17.1046 1 18 1.89543 18 3V7C18 8.10457 17.1046 9 16 9H8C6.89543 9 6 8.10457 6 7V5.5H3.5V14H6V13C6 11.8954 6.89543 11 8 11H16C17.1046 11 18 11.8954 18 13V17C18 18.1046 17.1046 19 16 19H8C6.89543 19 6 18.1046 6 17V15.5H3.5V18.25C3.5 18.6642 3.16421 19 2.75 19C2.33579 19 2 18.6642 2 18.25V1.75C2 1.33579 2.33579 1 2.75 1ZM16 12.5H8C7.72386 12.5 7.5 12.7239 7.5 13V17C7.5 17.2761 7.72386 17.5 8 17.5H16C16.2761 17.5 16.5 17.2761 16.5 17V13C16.5 12.7239 16.2761 12.5 16 12.5ZM8 2.5H16C16.2761 2.5 16.5 2.72386 16.5 3V7C16.5 7.27614 16.2761 7.5 16 7.5H8C7.72386 7.5 7.5 7.27614 7.5 7V3C7.5 2.72386 7.72386 2.5 8 2.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-folder-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M8.10584 4.34613L8.25344 4.5H8.46667H13C13.8284 4.5 14.5 5.17157 14.5 6V12.1333C14.5 12.9529 13.932 13.5 13.3667 13.5H2.63333C2.06804 13.5 1.5 12.9529 1.5 12.1333V3.86667C1.5 3.04707 2.06804 2.5 2.63333 2.5H6.1217C6.25792 2.5 6.38824 2.55557 6.48253 2.65387L8.10584 4.34613Z" fill="#EBECF0" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-search-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="7" cy="7" r="4.5" stroke="currentColor"/>
+<path d="M10.1992 10.2002L13.4992 13.4961" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-play-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M13.5 7.13397C14.1667 7.51888 14.1667 8.48112 13.5 8.86602L4.5 14.0622C3.83333 14.4471 3 13.966 3 13.1962L3 2.80385C3 2.03405 3.83333 1.55292 4.5 1.93782L13.5 7.13397Z" fill="#F2FCF3" stroke="#208A3C"/>
+</g></symbol>
+<symbol id="glyph-run-tool-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M16.125 11.0825L5.625 17.1447C4.79167 17.6258 3.75 17.0244 3.75 16.0622L3.75 3.93782C3.75 2.97557 4.79167 2.37417 5.625 2.85529L16.125 8.91747C16.9583 9.39859 16.9583 10.6014 16.125 11.0825Z" stroke="currentColor" stroke-width="1.5"/>
+</g></symbol>
+<symbol id="glyph-debug-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M10.6907 4.4347C10.6974 4.35728 10.7008 4.27899 10.7008 4.2C10.7008 2.70883 9.49195 1.5 8.00078 1.5C6.50961 1.5 5.30078 2.70883 5.30078 4.2C5.30078 4.27871 5.30416 4.35672 5.3108 4.43387C4.83909 4.6943 4.43389 5.06042 4.12714 5.5003L2.0178 4.36019C1.77487 4.22888 1.4715 4.31937 1.34019 4.5623C1.20889 4.80523 1.29938 5.1086 1.5423 5.2399L3.67822 6.39438C3.5626 6.74191 3.5 7.11364 3.5 7.5V8.50006H1C0.723858 8.50006 0.5 8.72392 0.5 9.00006C0.5 9.2762 0.723858 9.50006 1 9.50006H3.5V10C3.5 10.4892 3.57807 10.9602 3.72243 11.4012L1.52989 12.667C1.29075 12.8051 1.20881 13.1109 1.34688 13.3501C1.48495 13.5892 1.79075 13.6711 2.02989 13.5331L4.14017 12.3147C4.92703 13.624 6.36122 14.5 8 14.5C9.63821 14.5 11.072 13.6246 11.859 12.3161L13.967 13.5331C14.2061 13.6712 14.5119 13.5893 14.65 13.3501C14.7881 13.111 14.7061 12.8052 14.467 12.6671L12.2771 11.4028C12.4217 10.9613 12.5 10.4898 12.5 10V9.49982H15C15.2761 9.49982 15.5 9.27596 15.5 8.99982C15.5 8.72367 15.2761 8.49982 15 8.49982H12.5V7.5C12.5 7.11367 12.4374 6.74197 12.3218 6.39447L14.4551 5.23979C14.698 5.10835 14.7883 4.80492 14.6569 4.56207C14.5254 4.31922 14.222 4.2289 13.9791 4.36035L11.8729 5.50036C11.5665 5.06092 11.1618 4.69509 10.6907 4.4347ZM6.30577 4.06885C6.53015 4.02369 6.76231 4 7 4H9C9.23825 4 9.47094 4.02381 9.69582 4.06917C9.62902 3.19142 8.89564 2.5 8.00078 2.5C7.10603 2.5 6.37272 3.19125 6.30577 4.06885ZM4.5 7.5C4.5 6.11929 5.61929 5 7 5H9C10.3807 5 11.5 6.11929 11.5 7.5V10C11.5 11.933 9.933 13.5 8 13.5C6.067 13.5 4.5 11.933 4.5 10V7.5Z" fill="#208A3C"/>
+<path d="M7 4C6.76231 4 6.53015 4.02369 6.30577 4.06885C6.37272 3.19125 7.10603 2.5 8.00078 2.5C8.89564 2.5 9.62902 3.19142 9.69582 4.06917C9.47094 4.02381 9.23825 4 9 4H7Z" fill="#F2FCF3"/>
+<path d="M7 5C5.61929 5 4.5 6.11929 4.5 7.5V10C4.5 11.933 6.067 13.5 8 13.5C9.933 13.5 11.5 11.933 11.5 10V7.5C11.5 6.11929 10.3807 5 9 5H7Z" fill="#F2FCF3"/>
+</g></symbol>
+<symbol id="glyph-settings-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M3.96446 5.54781C3.63344 5.99572 3.35137 6.48132 3.12584 6.99671L4.14987 8.72634C4.61489 9.51177 4.61489 10.4882 4.14987 11.2736L3.12584 13.0033C3.35137 13.5187 3.63344 14.0043 3.96446 14.4522L5.9723 14.4302C6.88501 14.4202 7.73062 14.9084 8.17831 15.7038L9.16331 17.4539C9.43778 17.4843 9.71717 17.5 10.0007 17.5C10.2843 17.5 10.5637 17.4843 10.8382 17.4539L11.8232 15.7038C12.2709 14.9084 13.1165 14.4202 14.0292 14.4302L16.037 14.4522C16.368 14.0043 16.6501 13.5186 16.8756 13.0033L15.8516 11.2736C15.3866 10.4882 15.3866 9.51177 15.8516 8.72634L16.8756 6.99671C16.6501 6.48132 16.368 5.99572 16.037 5.54781L14.0292 5.56981C13.1165 5.57981 12.2709 5.09159 11.8232 4.29617L10.8382 2.5461C10.5637 2.51567 10.2843 2.5 10.0007 2.5C9.71717 2.5 9.43779 2.51567 9.16332 2.54609L8.17831 4.29617C7.73062 5.09159 6.88501 5.57981 5.9723 5.56981L3.96446 5.54781ZM13.6234 10C13.6234 12.0008 12.0015 13.6227 10.0007 13.6227C7.99996 13.6227 6.37802 12.0008 6.37802 10C6.37802 7.99924 7.99996 6.37729 10.0007 6.37729C12.0015 6.37729 13.6234 7.99923 13.6234 10ZM5.98873 4.0699C6.35382 4.0739 6.69206 3.87861 6.87114 3.56044L7.98752 1.57695C8.13019 1.32346 8.37572 1.14153 8.66343 1.09868C9.09976 1.03368 9.54632 1 10.0007 1C10.4552 1 10.9017 1.03368 11.3381 1.09868C11.6258 1.14154 11.8713 1.32346 12.014 1.57695L13.1303 3.56044C13.3094 3.87861 13.6477 4.0739 14.0127 4.0699L16.2875 4.04498C16.5778 4.0418 16.8576 4.16301 17.0387 4.38992C17.594 5.08559 18.0482 5.8654 18.3793 6.70716C18.4856 6.9775 18.4507 7.28065 18.3027 7.53062L17.1424 9.49053C16.9563 9.8047 16.9563 10.1953 17.1424 10.5094L18.3027 12.4694C18.4507 12.7193 18.4856 13.0225 18.3793 13.2928C18.0482 14.1346 17.594 14.9144 17.0387 15.6101C16.8576 15.837 16.5778 15.9582 16.2875 15.955L14.0128 15.9301C13.6477 15.9261 13.3094 16.1214 13.1303 16.4395L12.014 18.423C11.8713 18.6765 11.6258 18.8584 11.3381 18.9013C10.9017 18.9663 10.4552 19 10.0007 19C9.54631 19 9.09976 18.9663 8.66343 18.9013C8.37571 18.8584 8.13018 18.6765 7.98751 18.423L6.87114 16.4395C6.69206 16.1214 6.35382 15.9261 5.98873 15.9301L3.71401 15.955C3.4237 15.9582 3.14389 15.837 2.96277 15.6101C2.40752 14.9144 1.95325 14.1346 1.62217 13.2928C1.51585 13.0225 1.55076 12.7193 1.69876 12.4694L2.85913 10.5094C3.04514 10.1953 3.04514 9.8047 2.85913 9.49053L1.69876 7.53061C1.55076 7.28064 1.51584 6.97749 1.62217 6.70715C1.95325 5.86539 2.40751 5.08558 2.96276 4.38992C3.14388 4.16301 3.42369 4.0418 3.71401 4.04498L5.98873 4.0699ZM12.1234 10C12.1234 11.1723 11.1731 12.1227 10.0007 12.1227C8.82839 12.1227 7.87802 11.1723 7.87802 10C7.87802 8.82766 8.82839 7.87729 10.0007 7.87729C11.1731 7.87729 12.1234 8.82766 12.1234 10Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-chevron-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M6 11.5L9.5 8L6 4.5" stroke="#818594" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-down-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M11.5 6.25L8 9.75L4.5 6.25" stroke="#818594" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-more-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="3" cy="8" r="1" transform="rotate(-90 3 8)" fill="currentColor"/>
+<circle cx="8" cy="8" r="1" transform="rotate(-90 8 8)" fill="currentColor"/>
+<circle cx="13" cy="8" r="1" transform="rotate(-90 13 8)" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-minus-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2 8.5C1.72386 8.5 1.5 8.27614 1.5 8C1.5 7.72386 1.72386 7.5 2 7.5L2 8.5ZM14 7.5C14.2761 7.5 14.5 7.72386 14.5 8C14.5 8.27614 14.2761 8.5 14 8.5L14 7.5ZM2 7.5L14 7.5L14 8.5L2 8.5L2 7.5Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-check-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 8.25L6 11.75L13.5 4.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-database-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M3 2.5H13C13.8284 2.5 14.5 3.17157 14.5 4V12C14.5 12.8284 13.8284 13.5 13 13.5H3C2.17157 13.5 1.5 12.8284 1.5 12V4C1.5 3.17157 2.17157 2.5 3 2.5Z" fill="#EBECF0" stroke="currentColor"/>
+<path d="M5.5 3V13" stroke="currentColor"/>
+<path d="M10.5 3V13" stroke="currentColor"/>
+<path d="M2 5.5H14" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-bell-light" viewBox="0 0 20 20" fill="none"><g stroke="none">
+<path d="M8.67717 17.5625H11.3229C11.2515 17.7305 11.148 17.8849 11.0165 18.0164C10.7469 18.286 10.3813 18.4375 10 18.4375C9.61878 18.4375 9.25315 18.286 8.98358 18.0164C8.85202 17.8849 8.74859 17.7305 8.67717 17.5625Z" stroke="currentColor" stroke-width="1.12498"/>
+<path d="M4.67081 10.3354C4.72288 10.2313 4.74999 10.1164 4.74999 10V7C4.74999 4.97056 5.52681 3.69096 6.52723 2.90116C7.55609 2.08891 8.8818 1.75 9.99999 1.75C11.1182 1.75 12.4439 2.08891 13.4728 2.90116C14.4732 3.69096 15.25 4.97056 15.25 7V10C15.25 10.1164 15.2771 10.2313 15.3292 10.3354L17.4648 14.6067C17.6126 14.9023 17.3977 15.25 17.0672 15.25H2.93274C2.6023 15.25 2.38739 14.9023 2.53516 14.6067L4.67081 10.3354Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-split-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M8.5 3H12C12.5523 3 13 3.44772 13 4V12C13 12.5523 12.5523 13 12 13H8.5V3ZM7.5 2H8.5H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H8.5H7.5H4C2.89543 14 2 13.1046 2 12V4C2 2.89543 2.89543 2 4 2H7.5ZM7.5 13H4C3.44772 13 3 12.5523 3 12V4C3 3.44772 3.44772 3 4 3H7.5V13Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-refresh-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 9V8C2.5 4.96243 4.96243 2.5 8 2.5C9.10679 2.5 10.1372 2.82692 11 3.38947" stroke="currentColor" stroke-linecap="round"/>
+<path d="M5 12.6105C5.86278 13.1731 6.89321 13.5 8 13.5C11.0376 13.5 13.5 11.0376 13.5 8V7" stroke="currentColor" stroke-linecap="round"/>
+<path d="M0.49997 7.50027L2.5 9.5L4.49998 7.50023" stroke="currentColor" stroke-linecap="round"/>
+<path d="M11.5 8.49982L13.5 6.5L15.5 8.49982" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-sun-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g clip-path="url(#sun-light-clip0_6654_52124)">
+<path d="M8.5 1C8.5 0.723858 8.27614 0.5 8 0.5C7.72386 0.5 7.5 0.723858 7.5 1V3.02469C7.66445 3.00836 7.83125 3 8 3C8.16875 3 8.33555 3.00836 8.5 3.02469V1Z" fill="currentColor"/>
+<path d="M3.40381 2.6967L4.83563 4.12853C4.57708 4.34011 4.34011 4.57708 4.12853 4.83563L2.6967 3.40381C2.50144 3.20854 2.50144 2.89196 2.6967 2.6967C2.89196 2.50144 3.20854 2.50144 3.40381 2.6967Z" fill="currentColor"/>
+<path d="M3.02469 7.5H1C0.723858 7.5 0.5 7.72386 0.5 8C0.5 8.27614 0.723858 8.5 1 8.5H3.02469C3.00836 8.33555 3 8.16875 3 8C3 7.83125 3.00836 7.66445 3.02469 7.5Z" fill="currentColor"/>
+<path d="M2.6967 12.5962L4.12853 11.1644C4.34011 11.4229 4.57708 11.6599 4.83563 11.8715L3.40381 13.3033C3.20854 13.4986 2.89196 13.4986 2.6967 13.3033C2.50144 13.108 2.50144 12.7915 2.6967 12.5962Z" fill="currentColor"/>
+<path d="M7.5 12.9753V15C7.5 15.2761 7.72386 15.5 8 15.5C8.27614 15.5 8.5 15.2761 8.5 15V12.9753C8.33555 12.9916 8.16875 13 8 13C7.83125 13 7.66445 12.9916 7.5 12.9753Z" fill="currentColor"/>
+<path d="M12.5962 13.3033L11.1644 11.8715C11.4229 11.6599 11.6599 11.4229 11.8715 11.1644L13.3033 12.5962C13.4986 12.7915 13.4986 13.108 13.3033 13.3033C13.108 13.4986 12.7915 13.4986 12.5962 13.3033Z" fill="currentColor"/>
+<path d="M12.9753 8.5H15C15.2761 8.5 15.5 8.27614 15.5 8C15.5 7.72386 15.2761 7.5 15 7.5H12.9753C12.9916 7.66445 13 7.83125 13 8C13 8.16875 12.9916 8.33555 12.9753 8.5Z" fill="currentColor"/>
+<path d="M13.3033 3.40381L11.8715 4.83563C11.6599 4.57708 11.4229 4.34011 11.1644 4.12853L12.5962 2.6967C12.7915 2.50144 13.108 2.50144 13.3033 2.6967C13.4986 2.89196 13.4986 3.20854 13.3033 3.40381Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12 8C12 10.2091 10.2091 12 8 12C5.79086 12 4 10.2091 4 8C4 5.79086 5.79086 4 8 4C10.2091 4 12 5.79086 12 8ZM11 8C11 9.65685 9.65685 11 8 11C6.34315 11 5 9.65685 5 8C5 6.34315 6.34315 5 8 5C9.65685 5 11 6.34315 11 8Z" fill="currentColor"/>
+</g>
+<defs>
+<clipPath id="sun-light-clip0_6654_52124">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</g></symbol>
+<symbol id="glyph-arrow-up-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.3536 6.34645C12.5488 6.54171 12.5488 6.85829 12.3536 7.05355C12.1583 7.24882 11.8417 7.24882 11.6464 7.05355L8.5 3.9071L8.5 13.5071C8.5 13.7832 8.27614 14.0071 8 14.0071C7.72386 14.0071 7.5 13.7832 7.5 13.5071L7.5 3.90711L4.35355 7.05355C4.15829 7.24882 3.84171 7.24882 3.64645 7.05355C3.45118 6.85829 3.45118 6.54171 3.64645 6.34645L7.64645 2.34644L8 1.99289L8.35355 2.34644L12.3536 6.34645Z" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-history-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 5V8L10.5 9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-warning-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 4.59998L8 8.39998" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+<circle cx="8.00078" cy="10.7" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="0.4"/>
+</g></symbol>
+<symbol id="glyph-file-rust-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g stroke-linejoin="round"><path d="M14 4C14 2.89543 13.1046 2 12 2H4C2.89543 2 2 2.89543 2 4V12C2 13.1046 2.89543 14 4 14H12C13.1046 14 14 13.1046 14 12V4Z" fill="#B7501F"/><path transform="translate(4 6)" d="M0.5 6V0.5H2.1C2.9 0.5 3.5 1.1 3.5 1.75C3.5 2.4 2.9 3 2.1 3H0.5M2.2 3L3.6 6" stroke="white"/><path transform="translate(9 6)" d="M3.4 1.2C3.1 0.8 2.6 0.5 2 0.5C1.2 0.5 0.6 1 0.6 1.7C0.6 2.5 1.3 2.7 2 2.95C2.8 3.2 3.4 3.5 3.4 4.3C3.4 5 2.8 5.5 2 5.5C1.3 5.5 0.8 5.2 0.5 4.8" stroke="white"/></g>
+</g></symbol>
+<symbol id="glyph-file-toml-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<rect x="2.5" y="2.5" width="11" height="11" rx="1.5" fill="#F5F8FE" stroke="#3574F0"/>
+<path d="M5.21826 4.5H10.7783V5.645H8.61826V11.5H7.38826V5.645H5.21826V4.5Z" fill="#3574F0"/>
+</g></symbol>
+<symbol id="glyph-file-markdown-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.5929 9.9438L12.5929 4.70001L13.7929 4.70002L13.7929 9.94379L15.0763 8.66037L15.9248 9.5089L13.1929 12.2409L10.4609 9.5089L11.3095 8.66037L12.5929 9.9438Z" fill="#3574F0"/>
+<path d="M0.5 4.70001H2.94558L4.65385 9.14463L4.76288 9.60155L4.85635 9.14463L6.51269 4.70001H8.98423V11.9692H7.14096V7.59732L7.17212 7.12482L5.34442 11.9692H4.08269L2.31212 7.17155L2.34327 7.59732V11.9692H0.5V4.70001Z" fill="#3574F0"/>
+</g></symbol>
+<symbol id="glyph-file-cargo-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<g stroke-linejoin="round"><path d="M8 1.5L14.5 4.75V11.25L8 14.5L1.5 11.25V4.75Z" fill="#FFF4EB" stroke="#E66D17"/><path d="M1.5 4.75L8 8L14.5 4.75M8 8V14.5" stroke="#E66D17"/></g>
+</g></symbol>
+<symbol id="glyph-collapse-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M4.5 2.5L8 6L11.5 2.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M4.5 13.5L8 10L11.5 13.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-close-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M3.5 12.5L12.5 3.5M12.5 12.5L3.5 3.5" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-menu-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M2.5 4H13.5M2.5 8H13.5M2.5 12H13.5" stroke="currentColor" stroke-linecap="round"/>
+</g></symbol>
+<symbol id="glyph-search-preview-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<rect x="2.5" y="1.5" width="11" height="13" rx="1.5" stroke="currentColor"/>
+<rect x="5" y="5" width="6" height="1" rx="0.5" fill="currentColor"/>
+<rect x="5" y="7.5" width="6" height="1" rx="0.5" fill="currentColor"/>
+<rect x="5" y="10" width="6" height="1" rx="0.5" fill="currentColor"/>
+</g></symbol>
+<symbol id="glyph-search-filter-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M13.5 2.5H2.5L6.5 7.5V14L9.5 12V7.5L13.5 2.5Z" stroke="currentColor" stroke-linejoin="round"/>
+</g></symbol>
+<symbol id="glyph-search-find-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<path d="M9 7L5.5 10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8.5 10.5L5.5 10.5L5.5 7.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor"/>
+</g></symbol>
+<symbol id="glyph-search-class-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" fill="#E7EFFD" stroke="#3574F0"/>
+<path d="M8.13295 11.5C9.61223 11.5 10.8836 10.6105 11.2075 9.33909H10.2213C9.90229 10.0739 9.11914 10.6057 8.13295 10.6057C6.77936 10.6057 5.80284 9.51796 5.80284 8C5.80284 6.48204 6.77936 5.39434 8.13295 5.39434C9.11914 5.39434 9.90229 5.92611 10.2213 6.66091H11.2075C10.8836 5.3895 9.61223 4.5 8.13295 4.5C6.21859 4.5 4.79248 5.99378 4.79248 8C4.79248 10.0062 6.21859 11.5 8.13295 11.5Z" fill="#3574F0"/>
+</g></symbol>
+<symbol id="glyph-search-history-light" viewBox="0 0 16 16" fill="none"><g stroke="none">
+<circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
+<path d="M8 5V8L10.5 9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</g></symbol>
+</defs></svg>
+<div class="app">
+<header class="topbar">
+<div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+<button class="icon-button main-menu" id="main-menu" aria-label="主菜单" title="主菜单"><svg><use href="#glyph-menu"/></svg></button>
+<button class="project-switch" id="project-switch" title="项目：zedx · ~/IdeaProjects/zedx" aria-label="项目 zedx"><span class="project-avatar" aria-hidden="true">ZE</span><span>zedx</span><svg><use href="#glyph-down"/></svg></button>
+<button class="branch" id="branch-btn" title="Git 分支"><svg><use href="#glyph-git"/></svg>feat / idea-workbench<svg style="width:10px"><use href="#glyph-down"/></svg></button>
+<div class="spacer"></div><span class="preview">PREVIEW 05</span><div class="sep"></div>
+<button class="run-config" id="config-btn"><svg class="run"><use href="#glyph-code"/></svg>ZedX · Development<svg><use href="#glyph-down"/></svg></button>
+<button class="icon-button run" title="运行 · ⌃R" id="run-btn"><svg><use href="#glyph-play"/></svg></button><button class="icon-button" title="调试" id="debug-btn"><svg><use href="#glyph-debug"/></svg></button>
+<div class="sep"></div><button class="search-top" id="search-top" title="Search Everywhere · 双击 Shift"><svg><use href="#glyph-search"/></svg><span>Search Everywhere</span><kbd>⇧ ⇧</kbd></button><button class="icon-button" id="theme-toggle" title="切换浅色 / 深色主题"><svg><use href="#glyph-sun"/></svg></button>
+</header>
+<div class="body">
+<nav class="rail" aria-label="左侧工具窗口">
+<button class="tool active" data-panel="project" title="项目 · ⌘1" aria-label="项目" aria-pressed="true"><svg><use href="#glyph-project"/></svg></button>
+<button class="tool" data-panel="search" title="搜索 · ⌘⇧F" aria-label="搜索" aria-pressed="false"><svg><use href="#glyph-find-tool"/></svg></button>
+<button class="tool" data-panel="git" title="提交 · ⌘0" aria-label="Git 提交" aria-pressed="false"><svg><use href="#glyph-commit"/></svg><span class="badge">3</span></button>
+<button class="tool" data-panel="structure" title="结构 · ⌘7" aria-label="结构" aria-pressed="false"><svg><use href="#glyph-structure"/></svg></button>
+<div class="spacer"></div><button class="tool" data-bottom="run" title="运行" aria-label="运行窗口"><svg><use href="#glyph-run-tool"/></svg></button><button class="tool active" data-bottom="terminal" title="终端 · ⌥F12" aria-label="终端"><svg><use href="#glyph-terminal"/></svg></button><div class="rail-divider"></div><button class="tool" id="settings-btn" title="设置" aria-label="设置"><svg><use href="#glyph-settings"/></svg></button>
+</nav>
+<aside class="sidebar" id="sidebar"><div class="panel-head"><span id="panel-title">Project</span><svg><use href="#glyph-down"/></svg><div class="spacer"></div><button class="icon-button" id="collapse-tree" title="折叠所有文件夹"><svg><use href="#glyph-collapse"/></svg></button><button class="icon-button" id="sidebar-hide" title="隐藏面板"><svg><use href="#glyph-minus"/></svg></button></div><div class="panel-body" id="panel-body"></div><footer class="panel-foot"><span class="dot"></span><span id="panel-footer">Rust workspace</span><span class="spacer"></span><span class="muted">12 crates</span></footer></aside>
+<div class="resize-x" id="resize-x" role="separator" aria-label="调整项目面板宽度" aria-orientation="vertical"></div>
+<main class="workspace">
+<div class="editor-area"><section class="editor" aria-label="代码编辑器"><div class="tabs" id="tabs"></div><div class="breadcrumbs" id="breadcrumbs"></div><div class="codewrap" id="codewrap" tabindex="0" aria-label="源码预览"></div><div class="editor-note"><span><span class="check">✓</span> <span id="file-note">Source preview · Rust</span></span><span>⌘B 跳转定义 <span style="margin:0 10px;color:#484c56">·</span> ⌥↵ 快速操作</span></div></section>
+<aside class="right-panel hidden" id="right-panel"></aside></div>
+<div class="resize-y" id="resize-y" role="separator" aria-label="调整工具窗口高度" aria-orientation="horizontal"></div>
+<section class="bottom" id="bottom" aria-label="底部工具窗口"><header class="bottom-tabs"><button class="bottom-tab active" data-view="terminal"><svg><use href="#glyph-terminal"/></svg>Terminal</button><button class="bottom-tab" data-view="run"><svg><use href="#glyph-play"/></svg>Run</button><button class="bottom-tab" data-view="problems"><svg><use href="#glyph-warning"/></svg>Problems <span class="tab-count">2</span></button><div class="spacer"></div><span class="muted" style="font-size:10px;margin-right:10px" id="terminal-label">Local · zsh</span><button class="icon-button" id="clear-terminal" title="清空终端"><svg><use href="#glyph-refresh"/></svg></button><button class="icon-button" id="bottom-hide" title="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header><div class="terminal" id="terminal"><div class="term-sub">ZedX interface preview · interactive demo terminal</div><div><span class="term-arrow">❯</span><span class="term-path">~/IdeaProjects/zedx</span> <span class="muted">on</span> <span style="color:#b8a1dd">feat/idea-workbench</span></div><div id="terminal-output"><div><span class="muted">$</span> cargo check -p workspace</div><div><span class="green">&nbsp; Finished</span> <span class="term-sub">dev profile [unoptimized + debuginfo] — 示例输出</span></div></div><div class="term-input-row"><span class="term-arrow">❯</span><input class="term-input" id="terminal-input" aria-label="演示终端命令" autocomplete="off" spellcheck="false" placeholder="输入 help 查看演示命令"></div></div><div class="bottom-view hidden" id="run-view"></div><div class="bottom-view hidden" id="problems-view"><div><span style="color:#d5b575">△</span> &nbsp;Unused import: <span class="blue">Context</span> <span class="muted">— workspace.rs:4</span></div><div><span style="color:#d5b575">△</span> &nbsp;Field <span class="blue">active_panel</span> is never read <span class="muted">— sidebar.rs:18</span></div><div class="muted" style="margin-top:7px">示例诊断 · 点击左侧文件可切换代码预览</div></div></section>
+</main>
+<nav class="rail right" aria-label="右侧工具窗口"><button class="tool" data-right="agent" title="AI 助手" aria-label="AI 助手"><svg><use href="#glyph-spark"/></svg></button><button class="tool" data-right="outline" title="文件大纲" aria-label="文件大纲"><svg><use href="#glyph-structure"/></svg></button><button class="tool" id="database-btn" title="数据库" aria-label="数据库"><svg><use href="#glyph-database"/></svg></button><div class="spacer"></div><button class="tool" id="notification-btn" title="通知" aria-label="通知"><svg><use href="#glyph-bell"/></svg></button></nav>
+</div>
+<footer class="statusbar"><span class="status-item"><svg><use href="#glyph-git"/></svg>feat/idea-workbench</span><span class="status-item optional"><svg class="green"><use href="#glyph-check"/></svg>All changes saved</span><div class="spacer"></div><span id="cursor-pos">22:9</span><span class="status-encoding">LF</span><span class="status-encoding">UTF-8</span><button id="indent-btn">4 spaces</button><span id="language-status">Rust</span><span style="color:#81899d">HTML 原型</span></footer>
+</div>
+<div class="dialog-backdrop hidden" id="palette-backdrop"><section class="palette" role="dialog" aria-modal="true" aria-label="Search Everywhere">
+<div class="palette-top"><div class="palette-categories" role="tablist" aria-label="Search scope"><button data-kind="All" class="active" role="tab" aria-selected="true">All</button><button data-kind="Classes" role="tab" aria-selected="false">Classes</button><button data-kind="Files" role="tab" aria-selected="false">Files</button><button data-kind="Symbols" role="tab" aria-selected="false">Symbols</button><button data-kind="Actions" role="tab" aria-selected="false">Actions</button><button data-kind="Text" role="tab" aria-selected="false">Text</button></div>
+<div class="palette-scope-controls"><label class="palette-include" id="palette-include-label"><input type="checkbox" id="palette-include"><span id="palette-include-text">Include non-project items</span></label><select id="palette-scope" class="hidden" aria-label="Search scope"><option value="project">Project Files</option><option value="all">All Places</option></select></div>
+<div class="palette-tools"><button class="icon-button" id="palette-preview-toggle" aria-label="源码预览" title="Preview" aria-pressed="false"><svg><use href="#glyph-search-preview"/></svg></button><button class="icon-button" id="palette-filter-toggle" aria-label="筛选文件类型" title="Filter" aria-expanded="false"><svg><use href="#glyph-search-filter"/></svg></button><button class="icon-button" id="palette-find" aria-label="在查找工具窗口打开" title="Open in Find Tool Window"><svg><use href="#glyph-search-find"/></svg></button></div></div>
+<div class="palette-query-row"><div class="palette-search"><span class="palette-magnifier" aria-hidden="true"><svg><use href="#glyph-search"/></svg><svg class="small-chevron"><use href="#glyph-down"/></svg></span><input id="palette-input" role="combobox" aria-label="Search query" aria-expanded="false" aria-autocomplete="list" aria-controls="palette-results" placeholder="" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="palette-query-hint" id="palette-query-hint">Type / to see commands</span><button id="palette-clear" class="icon-button hidden" aria-label="清空搜索"><svg><use href="#glyph-close"/></svg></button></div></div>
+<div class="palette-results" id="palette-results" role="listbox" aria-label="Results"></div>
+<div class="palette-preview hidden" id="palette-preview" aria-label="所选结果的源码预览"></div>
+<footer class="palette-foot"><span class="palette-location" id="palette-location" title=""></span><button id="palette-split" class="palette-footer-link">Open in Right Split</button><span class="palette-empty-help hidden" id="palette-empty-help">Tab to switch tabs <span>·</span> Esc to close</span></footer>
+<div id="palette-filter" class="palette-filter hidden" role="group" aria-label="File types"><div class="filter-title">File types</div><label><input type="checkbox" value="rs" checked>Rust <span>.rs</span></label><label><input type="checkbox" value="toml" checked>TOML <span>.toml</span></label><label><input type="checkbox" value="md" checked>Markdown <span>.md</span></label></div>
+</section></div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<script>
+const LIGHT_ICONS=new Set(["project", "find-tool", "commit", "git", "structure", "folder", "search", "play", "run-tool", "debug", "settings", "chevron", "down", "more", "minus", "check", "database", "bell", "split", "refresh", "sun", "arrow-up", "history", "warning", "file-rust", "file-toml", "file-markdown", "file-cargo", "collapse", "close", "menu", "search-preview", "search-filter", "search-find", "search-class", "search-history"]);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],icon=(n,c='')=>`<svg class="${c}" aria-hidden="true"><use href="#glyph-${n}${document.body.classList.contains('light')&&LIGHT_ICONS.has(n)?'-light':''}"/></svg>`,esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fileIcon=n=>icon(n.endsWith('.rs')?'file-rust':n.endsWith('.toml')?'file-cargo':'file-markdown','file-type');
+const files={
+'sidebar.rs':{path:'crates / workspace / src / sidebar.rs',lang:'Rust',code:`use gpui::{App, Context, Entity, IntoElement, Render, Window};
+use ui::{prelude::*, IconButton, IconName, Tooltip};
+
+use crate::{DockPosition, Panel, Workspace};
+
+/// A familiar home for every tool window.
+/// Keep the editor quiet. Keep your tools within reach.
+pub struct ToolWindowBar {
+    workspace: WeakEntity<Workspace>,
+    panels: Vec<PanelEntry>,
+    active_panel: Option<PanelId>,
+    position: DockPosition,
+}
+
+impl ToolWindowBar {
+    pub fn new(workspace: &Entity<Workspace>, cx: &mut App) -> Self {
+        Self {
+            workspace: workspace.downgrade(),
+            panels: Vec::new(),
+            active_panel: None,
+            position: DockPosition::Left,
+        }
+    }
+
+    fn render_panel_button(
+        &self,
+        panel: &PanelEntry,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let is_active = self.active_panel == Some(panel.id);
+
+        IconButton::new(panel.id, panel.icon)
+            .selected(is_active)
+            .tooltip(Tooltip::text(panel.title))
+            .on_click(cx.listener(move |this, _, window, cx| {
+                this.toggle_panel(panel.id, window, cx);
+            }))
+    }
+}
+
+impl Render for ToolWindowBar {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        v_flex()
+            .w(px(46.0))
+            .h_full()
+            .bg(cx.theme().colors().panel_background)
+            .children(self.panels.iter().map(|panel| {
+                self.render_panel_button(panel, cx)
+            }))
+    }
+}`},
+'workspace.rs':{path:'crates / workspace / src / workspace.rs',lang:'Rust',code:`use gpui::{Context, IntoElement, Render, Window};
+use ui::prelude::*;
+
+use crate::dock::{Dock, DockPosition};
+use crate::sidebar::ToolWindowBar;
+
+/// ZedX workbench: your editor, your layout.
+pub struct Workspace {
+    left_bar: Entity<ToolWindowBar>,
+    left_dock: Entity<Dock>,
+    editor: Entity<EditorPane>,
+    bottom_dock: Entity<Dock>,
+    right_bar: Entity<ToolWindowBar>,
+}
+
+impl Render for Workspace {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        h_flex()
+            .size_full()
+            .child(self.left_bar.clone())
+            .child(self.left_dock.clone())
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .child(self.editor.clone())
+                    .child(self.bottom_dock.clone()),
+            )
+            .child(self.right_bar.clone())
+    }
+}`},
+'dock.rs':{path:'crates / workspace / src / dock.rs',lang:'Rust',code:`use gpui::{Context, Entity, Window};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum DockPosition {
+    Left,
+    Right,
+    Bottom,
+}
+
+/// Tool windows share one predictable lifecycle.
+pub trait Panel {
+    fn title(&self) -> &'static str;
+    fn icon(&self) -> IconName;
+    fn position(&self) -> DockPosition;
+    fn set_position(&mut self, position: DockPosition);
+}
+
+impl Dock {
+    pub fn toggle_panel(&mut self, id: PanelId, cx: &mut Context<Self>) {
+        if self.active_panel == Some(id) {
+            self.active_panel = None;
+        } else {
+            self.active_panel = Some(id);
+        }
+        cx.notify();
+    }
+}`},
+'Cargo.toml':{path:'zedx / Cargo.toml',lang:'TOML',code:`[workspace]
+resolver = "2"
+members = [
+    "crates/zed",
+    "crates/workspace",
+    "crates/editor",
+    "crates/gpui",
+    "crates/ui",
+]
+
+[workspace.package]
+name = "zedx"
+version = "0.1.0"
+edition = "2024"
+
+# Familiar workflow. Native performance.
+[workspace.dependencies]
+gpui = { path = "crates/gpui" }
+ui = { path = "crates/ui" }
+workspace = { path = "crates/workspace" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1`},
+'README.md':{path:'zedx / README.md',lang:'Markdown',code:`# ZedX
+
+A familiar place to build.
+
+Zed 的速度，IDEA 的工作方式。
+
+## Workbench
+
+- 左右两侧竖向工具窗口栏
+- 项目、搜索、Git、结构，一键切换
+- 终端、运行、问题，统一底部停靠
+- 让编辑器保持专注，让工具触手可及
+
+## Approach
+
+保留 Zed 的编辑器、GPUI 和语言服务基础。
+先验证工作台布局，再逐步移植到 Rust。
+
+## Current stage
+
+HTML 交互原型。示例代码用于展示视觉与交互，
+不代表已实现或可编译的 Rust 改动。`}
+};
+let current='sidebar.rs',openTabs=['workspace.rs','sidebar.rs','Cargo.toml'],panel='project',bottomView='terminal',rightView=null,lastFocus=null,paletteIndex=0,paletteKind='All';
+let includeNonProject=false,searchPreview=false;const SEARCH_KINDS=['All','Classes','Files','Symbols','Actions','Text'];const searchFileTypes=new Set(['rs','toml','md']);
+function toast(message){$('#toast').textContent=message;$('#toast').classList.remove('hidden');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3000)}
+function highlight(line){const re=/(\/\/.*$|#.*$|"(?:[^"\\]|\\.)*"|'static\b|\b(?:use|pub|struct|impl|fn|let|mut|self|Self|for|move|if|else|enum|trait|Some|None|return|true|false)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*(?=\())/g;let out='',last=0;for(const m of line.matchAll(re)){out+=esc(line.slice(last,m.index));let t=m[0],cls=t.startsWith('//')||t.startsWith('#')?'comment':t.startsWith('"')?'str':/^\d/.test(t)?'number':/^(use|pub|struct|impl|fn|let|mut|self|Self|for|move|if|else|enum|trait|Some|None|return|true|false|'static)$/.test(t)?'kw':'fn';out+=`<span class="${cls}">${esc(t)}</span>`;last=m.index+t.length}return out+esc(line.slice(last))}
+function openFile(name){if(!files[name])return;if(!openTabs.includes(name))openTabs.push(name);current=name;renderEditor();if(innerWidth<560)hideSidebar();}
+function renderEditor(){let f=files[current];$('#tabs').innerHTML=openTabs.map(n=>`<button class="tab ${n===current?'active':''}" data-file="${n}" aria-label="打开 ${n}" aria-selected="${n===current}">${fileIcon(n)}${n}${n==='sidebar.rs'?'<span class="modified"></span>':''}<span class="close-tab" data-close="${n}" aria-label="关闭 ${n}">${icon('close')}</span></button>`).join('')+`<div class="tab-spacer"><button class="icon-button" id="split-btn" title="拆分编辑器">${icon('split')}</button></div>`;if(!f){$('#codewrap').innerHTML='<div class="empty-editor"><h2>ZedX</h2><span>打开左侧文件，开始探索</span><span>⌘P 搜索文件</span></div>';$('#breadcrumbs').textContent='';return}$('#breadcrumbs').innerHTML=f.path.split(' / ').map((p,i)=>`${i?icon('chevron'):''}<span class="${i===3?'crumb-current':''}">${esc(p)}</span>`).join('')+(current.endsWith('.rs')?`${icon('chevron')}<span class="crumb-icon">S</span><span class="crumb-current">${current==='sidebar.rs'?'ToolWindowBar':current==='workspace.rs'?'Workspace':'Dock'}</span>`:'');$('#codewrap').innerHTML=f.code.split('\n').map((line,i)=>`<div class="code-line ${i===21?'current':''} ${i>=14&&i<=22?'changed':''}" data-line="${i+1}"><span class="gutter"><span class="line-no">${i+1}</span><span class="fold">${/[{}]\s*$/.test(line)&&line.trim().endsWith('{')?'⌄':''}</span><span class="change"></span></span><span class="code-text">${highlight(line)||' '}</span></div>`).join('');$('#language-status').textContent=f.lang;$('#cursor-pos').textContent=current==='sidebar.rs'?'22:9':'1:1';$$('[data-tree-file]').forEach(el=>el.classList.toggle('selected',el.dataset.treeFile===current));$('#tabs').querySelectorAll('[data-file]').forEach(el=>el.onclick=e=>{if(e.target.closest('[data-close]')){let closeName=e.target.closest('[data-close]').dataset.close;openTabs=openTabs.filter(n=>n!==closeName);if(current===closeName)current=openTabs.at(-1);renderEditor()}else openFile(el.dataset.file)});$('#split-btn').onclick=()=>toggleRight('outline');$('#codewrap').scrollTop=0;}
+function fileRow(name,depth=2,status=''){return `<button class="tree-row ${name===current?'selected':''}" data-tree-file="${name}" style="padding-left:${8+depth*17}px">${fileIcon(name)}${name}<small>${status}</small></button>`}
+function folderRow(name,id,depth=0,expanded=true){return `<button class="tree-row" data-folder="${id}" aria-expanded="${expanded}" style="padding-left:${7+depth*17}px">${icon(expanded?'down':'chevron','chev')}${icon('folder','folder')}<span>${name}</span></button>`}
+function projectHtml(){return `<button class="tree-row root-row" data-folder="root" aria-expanded="true">${icon('down','chev')}${icon('folder','folder')}zedx <span class="root-path">~/IdeaProjects/zedx</span></button><div class="tree-group" id="group-root">${folderRow('.github','github',1,false)}<div class="tree-group" id="group-github" hidden><div class="tree-row" style="padding-left:58px">workflows</div></div>${folderRow('assets','assets',1,false)}<div class="tree-group" id="group-assets" hidden><div class="tree-row" style="padding-left:58px">icons</div></div>${folderRow('crates','crates',1)}<div class="tree-group" id="group-crates">${folderRow('editor','editor',2,false)}<div class="tree-group" id="group-editor" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('gpui','gpui',2,false)}<div class="tree-group" id="group-gpui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('ui','ui',2,false)}<div class="tree-group" id="group-ui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('workspace','workspace',2)}<div class="tree-group" id="group-workspace">${folderRow('src','src',3)}<div class="tree-group" id="group-src">${fileRow('dock.rs',4)}${fileRow('sidebar.rs',4,'M')}${fileRow('workspace.rs',4,'M')}</div>${fileRow('Cargo.toml',3)}</div>${folderRow('zed','zed',2,false)}<div class="tree-group" id="group-zed" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div></div>${folderRow('docs','docs',1,false)}<div class="tree-group" id="group-docs" hidden><div class="tree-row muted" style="padding-left:58px">PLAN.md</div></div>${fileRow('Cargo.toml',1,'M')}${fileRow('README.md',1)}</div><div class="section-label">${icon('chevron','chev')}External Libraries</div><div class="section-label">${icon('chevron','chev')}Scratches and Consoles</div>`}
+function showPanel(name){if(panel===name&&!$('#sidebar').classList.contains('hidden'))return hideSidebar();panel=name;$('#sidebar').classList.remove('hidden');$('#resize-x').style.display='';$$('[data-panel]').forEach(el=>{el.classList.toggle('active',el.dataset.panel===name);el.setAttribute('aria-pressed',el.dataset.panel===name)});renderPanel()}
+function hideSidebar(){$('#sidebar').classList.add('hidden');$('#resize-x').style.display='none';$$('[data-panel]').forEach(el=>{el.classList.remove('active');el.setAttribute('aria-pressed','false')})}
+function renderPanel(){$('#panel-title').textContent={project:'Project',search:'Find in Files',git:'Commit',structure:'Structure'}[panel];$('#panel-footer').textContent={project:'Rust workspace',search:'Project scope',git:'3 modified files',structure:'Current file'}[panel];let b=$('#panel-body');b.innerHTML=panel==='project'?projectHtml():panel==='search'?`<div class="search-field"><input id="find-input" value="ToolWindowBar" placeholder="搜索项目代码" aria-label="搜索项目代码"></div><div class="muted" style="font-size:10px;padding:0 7px 7px">In Project · 3 matches in 2 files</div><div id="find-results"></div>`:panel==='git'?`<div class="git-title">Changes <span>3 files</span></div>${['sidebar.rs','workspace.rs','Cargo.toml'].map(n=>`<div class="git-file" data-tree-file="${n}"><input type="checkbox" checked aria-label="暂存 ${n}"><span>${esc(n)}</span><span>M</span></div>`).join('')}<div class="commit-box"><textarea aria-label="提交信息" placeholder="Commit message">feat: add IDEA-style tool window bar</textarea><button class="primary" id="commit-btn">Commit 3 files</button><div class="muted" style="font-size:10px;margin-top:8px">界面演示，不会操作真实仓库</div></div>`:`<div class="muted" style="padding:3px 8px 12px;font-size:10px">${esc(current||'sidebar.rs')}</div>${outlineHtml()}`;b.querySelectorAll('[data-tree-file]').forEach(el=>el.onclick=e=>{if(e.target.type!=='checkbox')openFile(el.dataset.treeFile)});b.querySelectorAll('[data-folder]').forEach(el=>el.onclick=()=>{let g=$('#group-'+el.dataset.folder);if(!g)return;g.hidden=!g.hidden;el.setAttribute('aria-expanded',!g.hidden);el.querySelector('use').setAttribute('href',g.hidden?'#glyph-chevron':'#glyph-down')});if(panel==='search'){$('#find-input').oninput=renderSearch;renderSearch()}if(panel==='git')$('#commit-btn').onclick=()=>toast('提交预览已准备好 · 当前为 HTML 交互演示');b.querySelectorAll('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine))}
+function renderSearch(){let q=$('#find-input').value.trim();let matches=[];if(q)for(const [name,file]of Object.entries(files)){let rows=file.code.split('\n').map((text,i)=>({text,line:i+1})).filter(l=>l.text.toLowerCase().includes(q.toLowerCase()));if(rows.length)matches.push(`<div class="result-file">${esc(name)} <span class="muted">${rows.length}</span></div>`+rows.map(l=>`<div class="result-line" data-search-file="${name}" data-search-line="${l.line}">${l.line}&nbsp; ${esc(l.text.trim()).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<mark>${m}</mark>`)}</div>`).join(''))}$('#find-results').innerHTML=matches.join('')||'<div class="muted" style="padding:10px 7px">'+(q?'没有匹配结果':'输入关键字以搜索')+'</div>';$$('[data-search-file]').forEach(el=>el.onclick=()=>{openFile(el.dataset.searchFile);goLine(+el.dataset.searchLine)})}
+function goLine(n){let el=$(`[data-line="${n}"]`);if(!el)return;$$('.code-line.current').forEach(x=>x.classList.remove('current'));el.classList.add('current');el.scrollIntoView({block:'center'});$('#cursor-pos').textContent=n+':1'}
+function outlineHtml(){return `<div class="outline"><div class="outline-row" data-goto-line="7"><span class="sym">S</span>ToolWindowBar</div>${[['new',15],['render_panel_button',24],['render',41],['toggle_panel',32]].map(([n,l])=>`<button class="outline-row method" data-goto-line="${l}"><span class="sym" style="color:#80a9d4">m</span>${n}()</button>`).join('')}</div>`}
+function toggleRight(name){if(rightView===name){rightView=null;$('#right-panel').classList.add('hidden')}else{rightView=name;$('#right-panel').classList.remove('hidden');$('#right-panel').innerHTML=`<div class="panel-head">${name==='agent'?'Assistant':'Structure'}<span class="spacer"></span><button class="icon-button" id="right-close" title="关闭面板">${icon('minus')}</button></div>`+(name==='outline'?outlineHtml():`<div class="agent-content"><div class="agent-label">ZEDX ASSISTANT</div><strong>在代码旁边，保持专注。</strong><p class="muted">讨论当前文件、理解项目结构，或一起完成下一次改动。</p><div class="agent-card">当前上下文<br><span class="blue">${esc(current||'sidebar.rs')}</span><br><span class="muted">crates / workspace</span></div></div><div class="agent-compose"><textarea id="agent-input" placeholder="描述你想完成的改动…" aria-label="发送给助手的消息"></textarea><footer><span>Agent · Auto</span><button class="agent-send" id="agent-send" title="发送">${icon('arrow-up')}</button></footer></div>`);$('#right-close').onclick=()=>toggleRight(name);$$('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine));if(name==='agent')$('#agent-send').onclick=()=>toast('这是界面原型，尚未连接 AI 服务')}$$('[data-right]').forEach(el=>el.classList.toggle('active',el.dataset.right===rightView))}
+function showBottom(view,toggle=false){if(toggle&&bottomView===view&&!$('#bottom').classList.contains('hidden')){hideBottom();return}bottomView=view;$('#bottom').classList.remove('hidden');$('#resize-y').classList.remove('hidden');$$('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===view));$('#terminal').classList.toggle('hidden',view!=='terminal');$('#terminal').style.display=view==='terminal'?'':'none';$('#run-view').classList.toggle('hidden',view!=='run');$('#problems-view').classList.toggle('hidden',view!=='problems');$$('[data-bottom]').forEach(el=>el.classList.toggle('active',el.dataset.bottom===view));$('#terminal-label').textContent=view==='terminal'?'Local · zsh':view==='run'?'Development · demo':'Workspace diagnostics';if(view==='run'&&!$('#run-view').innerHTML)$('#run-view').innerHTML='<div class="muted">选择顶部运行按钮，预览运行流程。</div>'}
+function hideBottom(){$('#bottom').classList.add('hidden');$('#resize-y').classList.add('hidden');$$('[data-bottom]').forEach(el=>el.classList.remove('active'))}
+function runDemo(debug=false){showBottom('run');$('#run-view').innerHTML=`<div class="muted">${debug?'Debugger attached':'Starting'} · ZedX Development <span class="muted">（演示）</span></div><div><span class="success">✓</span> Workspace initialized</div><div><span class="success">✓</span> Tool windows registered: Project, Search, Git, Structure</div><div><span class="success">✓</span> Workbench ready</div><div style="margin-top:6px;color:#8fa8da">Process finished with exit code 0</div>`;toast(debug?'已展示调试流程示例':'已展示运行流程示例')}
+function setPaletteKind(kind){
+  paletteKind=kind;paletteIndex=0;$('#palette-filter').classList.add('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded','false');
+  $$('.palette-categories [data-kind]').forEach(el=>{const active=el.dataset.kind===kind;el.classList.toggle('active',active);el.setAttribute('aria-selected',String(active));el.tabIndex=active?0:-1});
+  const checkbox=kind==='All'||kind==='Actions';$('#palette-include-label').classList.toggle('hidden',!checkbox);$('#palette-scope').classList.toggle('hidden',checkbox);
+  $('#palette-include-text').textContent=kind==='Actions'?'Include disabled actions':'Include non-project items';$('#palette-include').checked=includeNonProject;$('#palette-scope').value=includeNonProject?'all':'project';
+  $('#palette-filter-toggle').classList.toggle('hidden',kind==='All'||kind==='Actions');$('#palette-find').disabled=kind==='Actions';
+  $('#palette-query-hint').textContent=kind==='All'?'Type / to see commands':kind==='Text'?'⌘↵ to open in Find tool window':'';
+  renderPalette();$('#palette-input').focus();
+}
+function openPalette(kind='All'){
+  if(!$('#palette-backdrop').classList.contains('hidden'))return;
+  lastFocus=document.activeElement;$('#palette-backdrop').classList.remove('hidden');$('#palette-input').value='';
+  $('#palette-input').setAttribute('aria-expanded','true');includeNonProject=false;setPaletteKind(kind);
+}
+function closePalette(){
+  if($('#palette-backdrop').classList.contains('hidden'))return;
+  $('#palette-backdrop').classList.add('hidden');$('#palette-filter').classList.add('hidden');$('#palette-input').setAttribute('aria-expanded','false');
+  $('#palette-input').removeAttribute('aria-activedescendant');lastFocus?.isConnected&&lastFocus.focus();
+}
+function searchScore(item,query){
+  if(!query)return 100;
+  const name=item.label.toLowerCase(),q=query.toLowerCase();
+  if(name===q)return 1000;if(name.startsWith(q))return 800-q.length;if(name.includes(q))return 600-name.indexOf(q);
+  if((item.detail+' '+(item.alias||'')).toLowerCase().includes(q))return 300;
+  let cursor=-1,gaps=0;for(const ch of q){const next=name.indexOf(ch,cursor+1);if(next<0)return -1;gaps+=next-cursor-1;cursor=next}return 150-gaps;
+}
+function paletteItems(){
+  let query=$('#palette-input').value.trim();const commandMode=query.startsWith('/');if(commandMode)query=query.slice(1);
+  const fileAllowed=name=>searchFileTypes.has(name.split('.').at(-1));
+  const fileNames=[...new Set([current,...openTabs].filter(Boolean).concat(Object.keys(files)))].filter(fileAllowed);
+  const fileItems=fileNames.map(name=>({id:'file:'+name,label:name,detail:files[name].path.split(' / ').slice(0,-1).join('/'),file:name,run:()=>openFile(name),kind:'Files'}));
+  const classItems=[],symbolItems=[];
+  for(const [name,file]of Object.entries(files)){
+    if(!name.endsWith('.rs')||!fileAllowed(name))continue;
+    file.code.split('\n').forEach((line,i)=>{const m=line.match(/^\s*(?:pub\s+)?(struct|enum|trait|fn)\s+([A-Za-z_]\w*)/);if(!m)return;
+      const isClass=m[1]!=='fn',item={id:'symbol:'+name+':'+i,label:m[2]+(!isClass?'()':''),detail:name+':'+(i+1),file:name,line:i+1,symbol:isClass?'C':'m',run:()=>{openFile(name);goLine(i+1)},kind:isClass?'Classes':'Symbols'};
+      (isClass?classItems:symbolItems).push(item);
+    });
+  }
+  const actions=[
+    {id:'action:terminal',icon:'terminal',label:'Terminal',alias:'toggle terminal 终端',detail:'⌥F12',location:'View | Tool Windows',run:()=>showBottom('terminal',true),kind:'Actions'},
+    {id:'action:project',icon:'project',label:'Project',alias:'toggle project panel 项目 文件树',detail:'⌘1',location:'View | Tool Windows',run:()=>showPanel('project'),kind:'Actions'},
+    {id:'action:search',icon:'search',label:'Find in Files…',alias:'全局搜索 查找',detail:'⌘⇧F',location:'Edit | Find',run:()=>{showPanel('search');$('#find-input')?.focus()},kind:'Actions'},
+    {id:'action:git',icon:'commit',label:'Commit…',alias:'show commit 提交 Git',detail:'⌘0',location:'Git',run:()=>showPanel('git'),kind:'Actions'},
+    {id:'action:theme',icon:'sun',label:'Switch Color Theme',alias:'主题 深色 浅色',detail:'',location:'View | Appearance',run:toggleTheme,kind:'Actions'},
+    {id:'action:layout',icon:'refresh',label:'Restore Default Layout',alias:'reset window layout 重置 布局 面板',detail:'',location:'Window | Layouts',run:resetLayout,kind:'Actions'}
+  ];
+  const ranked=items=>items.map(item=>({...item,score:searchScore(item,query)})).filter(item=>item.score>=0).sort((a,b)=>b.score-a.score);
+  if(commandMode)return ranked(actions).map(item=>({...item,section:'Actions'}));
+  if(!query&&(paletteKind==='All'||paletteKind==='Files'))return fileItems.map(item=>({...item,section:'Recent Files'}));
+  const group=(items,section)=>ranked(items).map(item=>({...item,section}));
+  if(paletteKind==='Classes')return group(classItems,'Classes');if(paletteKind==='Files')return group(fileItems,'Files');
+  if(paletteKind==='Symbols')return group([...classItems,...symbolItems],'Symbols');if(paletteKind==='Actions')return group(actions,'Actions');
+  const textItems=[];
+  if(query)for(const [name,file]of Object.entries(files)){
+    if(!fileAllowed(name))continue;
+    file.code.split('\n').forEach((line,i)=>{if(!line.toLowerCase().includes(query.toLowerCase()))return;textItems.push({id:'text:'+name+':'+i,label:line.trim(),detail:name+':'+(i+1),file:name,line:i+1,kind:'Text',section:'Text',run:()=>{openFile(name);goLine(i+1)}})});
+  }
+  if(paletteKind==='Text')return textItems.slice(0,60);
+  const primary=[...group(classItems,'Classes'),...group(fileItems,'Files'),...group(symbolItems,'Symbols'),...group(actions,'Actions')];
+  return primary.length<=3?primary.concat(textItems.slice(0,15)):primary;
+}
+function resultLabel(label){
+  const query=$('#palette-input').value.trim().replace(/^\//,'').toLowerCase();if(!query)return esc(label);
+  const lower=label.toLowerCase(),positions=new Set(),at=lower.indexOf(query);
+  if(at>=0){for(let i=at;i<at+query.length;i++)positions.add(i)}else{
+    let cursor=-1;for(const ch of query){cursor=lower.indexOf(ch,cursor+1);if(cursor<0)return esc(label);positions.add(cursor)}
+  }
+  let html='',marking=false;for(let i=0;i<label.length;i++){
+    const match=positions.has(i);if(match&&!marking)html+='<mark>';if(!match&&marking)html+='</mark>';html+=esc(label[i]);marking=match;
+  }
+  return html+(marking?'</mark>':'');
+}
+function selectPalette(index){const items=paletteItems();if(!items.length)return;paletteIndex=(index+items.length)%items.length;renderPalette();$('[data-palette-index="'+paletteIndex+'"]')?.scrollIntoView({block:'nearest'})}
+function executePalette(index=paletteIndex){const item=paletteItems()[index];if(!item)return;closePalette();item.run();if(item.kind!=='Actions')$('#codewrap').focus()}
+function renderSourcePreview(item){
+  const target=$('#palette-preview');target.classList.toggle('hidden',!searchPreview||!item?.file);if(!searchPreview||!item?.file)return;
+  const lines=files[item.file].code.split('\n'),line=Math.max(1,item.line||1),from=Math.max(0,line-3),to=Math.min(lines.length,from+9);
+  target.innerHTML=`<div class="source-preview-path">${fileIcon(item.file)}<span>${esc(item.file)}</span><button class="icon-button" id="source-preview-close" aria-label="关闭源码预览">${icon('close')}</button></div><div class="source-preview-code">${lines.slice(from,to).map((text,i)=>`<div class="source-preview-line ${i+from+1===line?'at-target':''}"><span>${i+from+1}</span><code>${highlight(text)||' '}</code></div>`).join('')}</div>`;
+  $('#source-preview-close').onclick=()=>{searchPreview=false;$('#palette-preview-toggle').setAttribute('aria-pressed','false');renderPalette();$('#palette-input').focus()};
+}
+function renderPalette(){
+  const items=paletteItems();paletteIndex=items.length?Math.max(0,Math.min(paletteIndex,items.length-1)):0;
+  const query=$('#palette-input').value.trim();let section='';
+  $('#palette-results').innerHTML=items.length?items.map((item,i)=>{
+    const groupHeader=item.section!==section&&(paletteKind==='All'||!query);section=item.section;
+    const header=groupHeader?`<div class="palette-section" role="presentation">${esc(item.section)}<span class="section-rule"></span></div>`:'';
+    const rowIcon=item.kind==='Files'||item.kind==='Text'?fileIcon(item.file):item.kind==='Classes'?icon('search-class','class-icon'):item.kind==='Symbols'?'<span class="method-icon">m</span>':icon(item.icon,'action-icon');
+    const location=item.kind==='Actions'?item.location:item.kind==='Text'?item.detail:item.kind==='Files'?item.detail:item.kind==='Classes'?'crates::workspace':item.detail;
+    return header+`<button class="palette-result ${i===paletteIndex?'selected':''}" id="palette-option-${i}" data-palette-index="${i}" role="option" aria-selected="${i===paletteIndex}" tabindex="-1">${rowIcon}<span class="palette-row-main"><span class="palette-name ${item.kind==='Text'?'text-match':''}" title="${esc(item.label)}">${resultLabel(item.label)}</span><span class="palette-row-location" title="${esc(location)}">${esc(location)}</span></span><span class="palette-row-right" title="${esc(item.kind==='Actions'?item.detail:'zedx')}">${item.kind==='Actions'?esc(item.detail):'zedx'}</span>${item.kind==='Actions'?'':icon('folder','module-icon')}</button>`;
+  }).join(''):`<div class="palette-empty">${query?'Nothing found in project files':'Type to search'}</div>`;
+  $('#palette-clear').classList.toggle('hidden',!query);$('#palette-query-hint').classList.toggle('hidden',!!query);
+  if(items.length)$('#palette-input').setAttribute('aria-activedescendant','palette-option-'+paletteIndex);else $('#palette-input').removeAttribute('aria-activedescendant');
+  const selected=items[paletteIndex];$('#palette-location').textContent=selected?.file?files[selected.file].path.replaceAll(' / ','/')+(selected.line?':'+selected.line:''):selected?.location||'';
+  $('#palette-location').title=$('#palette-location').textContent;$('#palette-split').classList.toggle('hidden',!selected?.file);$('#palette-empty-help').classList.toggle('hidden',!!selected);renderSourcePreview(selected);fitPaletteHeight();
+  $$('[data-palette-index]').forEach(el=>{el.onclick=()=>executePalette(+el.dataset.paletteIndex)});
+}
+function fitPaletteHeight(){
+  if($('#palette-backdrop').classList.contains('hidden'))return;
+  const popup=$('.palette'),results=$('#palette-results');
+  const fixed=[...popup.children].filter(el=>el!==results&&!el.classList.contains('hidden')&&getComputedStyle(el).position!=='absolute').reduce((sum,el)=>sum+el.getBoundingClientRect().height,2);
+  const maxPopup=Math.min(innerHeight*.82,innerHeight-popup.getBoundingClientRect().top-18);
+  const cap=Math.max(64,Math.min(innerWidth<=760?280:336,maxPopup-fixed));
+  const style=getComputedStyle(results);
+  const content=[...results.children].reduce((sum,el)=>sum+el.getBoundingClientRect().height,0)+parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
+  results.style.height=Math.min(Math.max(64,content),cap)+'px';results.style.maxHeight=cap+'px';
+}
+window.addEventListener('resize',fitPaletteHeight);
+function openSearchSplit(){
+  const item=paletteItems()[paletteIndex];if(!item?.file)return;closePalette();$('.search-editor-split')?.remove();
+  const split=document.createElement('section');split.className='search-editor-split';split.setAttribute('aria-label','右侧拆分编辑器');
+  split.innerHTML=`<div class="search-split-title">${fileIcon(item.file)}<span>${esc(item.file)}</span><button class="icon-button" aria-label="关闭拆分编辑器">${icon('close')}</button></div><div class="search-split-code" tabindex="0">${files[item.file].code.split('\n').map((line,i)=>`<div class="source-preview-line ${i+1===(item.line||1)?'at-target':''}"><span>${i+1}</span><code>${highlight(line)||' '}</code></div>`).join('')}</div>`;
+  $('.editor-area').append(split);split.querySelector('button').onclick=()=>split.remove();split.querySelector('.at-target')?.scrollIntoView({block:'center'});split.querySelector('.search-split-code').focus();
+}
+function setSearchScope(value){includeNonProject=value;$('#palette-include').checked=value;$('#palette-scope').value=value?'all':'project';renderPalette();$('#palette-input').focus()}
+function resetLayout(){
+  document.documentElement.style.removeProperty('--panel-width');document.documentElement.style.removeProperty('--bottom-height');
+  if(rightView)toggleRight(rightView);hideSidebar();showPanel('project');showBottom('terminal');savePreferences();toast('已恢复默认工作台布局');
+}
+function savePreferences(){try{localStorage.setItem('zedx.preview.preferences',JSON.stringify({theme:document.body.classList.contains('light')?'light':'dark',panelWidth:document.documentElement.style.getPropertyValue('--panel-width'),bottomHeight:document.documentElement.style.getPropertyValue('--bottom-height')}))}catch{}}
+function applyIconTheme(){
+  const light=document.body.classList.contains('light');
+  $$('use[href^="#glyph-"]').forEach(use=>{const key=use.getAttribute('href').slice(7).replace(/-light$/,'');if(LIGHT_ICONS.has(key))use.setAttribute('href','#glyph-'+key+(light?'-light':''))});
+}
+function toggleTheme(){document.body.classList.toggle('light');applyIconTheme();savePreferences()}
+function restorePreferences(){try{const saved=JSON.parse(localStorage.getItem('zedx.preview.preferences')||'{}');document.body.classList.toggle('light',saved.theme==='light');if(/^\d+(?:\.\d+)?px$/.test(saved.panelWidth||''))document.documentElement.style.setProperty('--panel-width',saved.panelWidth);if(/^\d+(?:\.\d+)?px$/.test(saved.bottomHeight||''))document.documentElement.style.setProperty('--bottom-height',saved.bottomHeight)}catch{}}
+$$('[data-panel]').forEach(el=>el.onclick=()=>showPanel(el.dataset.panel));$$('[data-bottom]').forEach(el=>el.onclick=()=>showBottom(el.dataset.bottom,true));$$('[data-view]').forEach(el=>el.onclick=()=>showBottom(el.dataset.view));$$('[data-right]').forEach(el=>el.onclick=()=>toggleRight(el.dataset.right));$('#sidebar-hide').onclick=hideSidebar;$('#bottom-hide').onclick=hideBottom;$('#search-top').onclick=()=>openPalette();$('#project-switch').onclick=()=>openPalette('Files');$('#run-btn').onclick=()=>runDemo();$('#debug-btn').onclick=()=>runDemo(true);$('#theme-toggle').onclick=toggleTheme;$('#branch-btn').onclick=()=>showPanel('git');$('#config-btn').onclick=()=>toast('运行配置：ZedX · Development（原型示例）');$('#main-menu').onclick=()=>openPalette('Actions');$('#settings-btn').onclick=()=>{openPalette('Actions');$('#palette-input').value='Switch';renderPalette()};$('#database-btn').onclick=()=>toast('数据库工具窗口 · 留作后续设计');$('#notification-btn').onclick=()=>toast('ZedX Preview 05 · 工作台界面原型已就绪');$('#indent-btn').onclick=()=>toast('缩进：4 个空格');$('#collapse-tree').onclick=()=>{if(panel!=='project'){panel='project';renderPanel()}$$('.tree-group').forEach(el=>el.hidden=true);$$('[data-folder]').forEach(el=>{el.setAttribute('aria-expanded','false');el.querySelector('use')?.setAttribute('href','#glyph-chevron')})};$('#clear-terminal').onclick=()=>$('#terminal-output').innerHTML='';$('#palette-input').oninput=()=>{paletteIndex=0;renderPalette()};$('#palette-backdrop').onclick=e=>{if(e.target===$('#palette-backdrop'))closePalette()};$$('.palette-top [data-kind]').forEach(el=>el.onclick=()=>setPaletteKind(el.dataset.kind));$('#palette-clear').onclick=()=>{$('#palette-input').value='';paletteIndex=0;renderPalette();$('#palette-input').focus()};$('#palette-preview-toggle').onclick=()=>{searchPreview=!searchPreview;$('#palette-preview-toggle').setAttribute('aria-pressed',String(searchPreview));renderPalette();$('#palette-input').focus()};$('#palette-include').onchange=e=>setSearchScope(e.target.checked);$('#palette-scope').onchange=e=>setSearchScope(e.target.value==='all');$('#palette-filter-toggle').onclick=()=>{let open=$('#palette-filter').classList.toggle('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded',String(!open))};$$('#palette-filter input').forEach(el=>el.onchange=()=>{el.checked?searchFileTypes.add(el.value):searchFileTypes.delete(el.value);paletteIndex=0;renderPalette()});$('#palette-find').onclick=()=>{if(paletteKind==='Actions')return;const query=$('#palette-input').value.trim();closePalette();if(panel!=='search'||$('#sidebar').classList.contains('hidden'))showPanel('search');$('#find-input').value=query;renderSearch();$('#find-input').focus()};$('#palette-split').onclick=openSearchSplit;
+$('#terminal-input').onkeydown=e=>{if(e.key!=='Enter')return;let command=e.target.value.trim();if(!command)return;let output=$('#terminal-output');let row=document.createElement('div');row.textContent='$ '+command;output.append(row);let answer=document.createElement('div');answer.className='term-sub';if(command==='clear'){output.innerHTML=''}else if(command==='help'){answer.textContent='演示命令：help · pwd · ls · cargo check · cargo test · clear';output.append(answer)}else{answer.textContent=command==='pwd'?'~/IdeaProjects/zedx':command==='ls'?'crates/   assets/   docs/   Cargo.toml   README.md':command.startsWith('cargo')?'✓ 示例执行完成。此终端不执行系统命令。':'这是演示终端，输入 help 查看可用命令。';output.append(answer)}e.target.value='';$('#terminal').scrollTop=$('#terminal').scrollHeight};
+let shiftTapAt=0,shiftDownAt=0,shiftTapCandidate=false;
+function clearShiftGesture(){shiftTapAt=0;shiftDownAt=0;shiftTapCandidate=false}
+window.addEventListener('blur',clearShiftGesture);
+document.addEventListener('keyup',e=>{
+  if(e.key!=='Shift')return;
+  const now=performance.now(),valid=shiftTapCandidate&&now-shiftDownAt<350&&!e.altKey&&!e.metaKey&&!e.ctrlKey;
+  shiftTapCandidate=false;
+  if(!valid){shiftTapAt=0;return}
+  if(shiftTapAt&&now-shiftTapAt<400){clearShiftGesture();if(!$('#palette-backdrop').classList.contains('hidden'))setSearchScope(!includeNonProject);else openPalette()}else shiftTapAt=now;
+});
+document.addEventListener('keydown',e=>{
+  const modal=!$('#palette-backdrop').classList.contains('hidden');
+  if(e.key==='Shift'){
+    if(!e.repeat){shiftDownAt=performance.now();shiftTapCandidate=!e.ctrlKey&&!e.metaKey&&!e.altKey}
+  }else{shiftTapCandidate=false;shiftTapAt=0}
+  if(e.key==='Escape'&&modal){e.preventDefault();if(!$('#palette-filter').classList.contains('hidden')){$('#palette-filter').classList.add('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded','false');$('#palette-input').focus()}else closePalette();return}
+  if(modal){
+    if(e.isComposing)return;
+    const kinds=SEARCH_KINDS;
+    if(e.altKey&&e.key.toLowerCase()==='n'){e.preventDefault();setSearchScope(!includeNonProject);return}
+    if(e.ctrlKey&&/^[1-6]$/.test(e.key)){e.preventDefault();setPaletteKind(kinds[+e.key-1]);return}
+    if(e.key==='Tab'){e.preventDefault();const index=kinds.indexOf(paletteKind);setPaletteKind(kinds[(index+(e.shiftKey?-1:1)+kinds.length)%kinds.length]);return}
+    if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&document.activeElement?.getAttribute('role')==='tab'){e.preventDefault();const index=kinds.indexOf(paletteKind);setPaletteKind(kinds[(index+(e.key==='ArrowLeft'?-1:1)+kinds.length)%kinds.length]);return}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();selectPalette(paletteIndex+(e.key==='ArrowDown'?1:-1));return}
+    if(e.key==='Enter'){e.preventDefault();if(e.shiftKey)openSearchSplit();else if((e.metaKey||e.ctrlKey)&&paletteKind==='Text')$('#palette-find').click();else executePalette();return}
+    if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='p'){e.preventDefault();setPaletteKind('Files');return}
+    return;
+  }
+  if(e.isComposing)return;
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='p'){e.preventDefault();openPalette('Files')}
+  if((e.metaKey||e.ctrlKey)&&e.key==='1'){e.preventDefault();showPanel('project')}
+  if((e.metaKey||e.ctrlKey)&&e.key==='0'){e.preventDefault();showPanel('git')}
+  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();showPanel('search')}
+  if(e.altKey&&e.key==='F12'){e.preventDefault();showBottom('terminal',true)}
+});
+function resize(handle,axis){
+  handle.tabIndex=0;
+  const update=(delta,absolute=false)=>{
+    if(axis==='x'){
+      const current=$('#sidebar').getBoundingClientRect().width;
+      const width=absolute?delta:current+delta;
+      document.documentElement.style.setProperty('--panel-width',Math.max(180,Math.min(420,width))+'px');
+    }else{
+      const current=$('#bottom').getBoundingClientRect().height;
+      const height=absolute?delta:current+delta;
+      document.documentElement.style.setProperty('--bottom-height',Math.max(110,Math.min(innerHeight-270,height))+'px');
+    }
+  };
+  handle.ondblclick=()=>{document.documentElement.style.removeProperty(axis==='x'?'--panel-width':'--bottom-height');savePreferences()};
+  handle.onkeydown=e=>{const valid=axis==='x'?['ArrowLeft','ArrowRight']:['ArrowUp','ArrowDown'];if(!valid.includes(e.key))return;e.preventDefault();e.stopPropagation();update((e.key==='ArrowLeft'||e.key==='ArrowDown'?-1:1)*16);savePreferences()};
+  handle.onpointerdown=e=>{
+    e.preventDefault();handle.setPointerCapture(e.pointerId);handle.classList.add('dragging');document.body.classList.add('resizing');
+    const move=event=>{if(axis==='x')update(event.clientX-$('.rail').getBoundingClientRect().right,true);else update($('.app').getBoundingClientRect().bottom-event.clientY-27,true)};
+    const stop=()=>{handle.classList.remove('dragging');document.body.classList.remove('resizing');handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',stop);handle.removeEventListener('pointercancel',stop);savePreferences()};
+    handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
+  };
+}
+resize($('#resize-x'),'x');resize($('#resize-y'),'y');restorePreferences();applyIconTheme();
+renderPanel();renderEditor();if(innerWidth<560)hideSidebar();
+</script>
+</body></html>

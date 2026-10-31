@@ -4,6 +4,9 @@
 mod reliability;
 mod watcher_debug;
 mod zed;
+mod zedx_search;
+mod zedx_status_bar;
+mod zedx_panels;
 
 // Ensure the binary name stays in sync with APP_NAME so that the paths used
 // at runtime (data dir, config dir, etc.) match what the binary is called.
@@ -743,6 +746,8 @@ fn main() {
         outline::init(cx);
         call_hierarchy::init(cx);
         project_symbols::init(cx);
+        zedx_search::init(cx);
+        zedx_panels::init(cx);
         project_panel::init(cx);
         outline_panel::init(cx);
         tasks_ui::init(cx);

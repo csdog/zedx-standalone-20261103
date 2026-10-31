@@ -61,3 +61,10 @@ crates/docs_preprocessor/actions.json
 
 .local*
 .cache
+
+# ZedX local artifacts
+.DS_Store
+node_modules/
+target/
+.scratch/
+*.log

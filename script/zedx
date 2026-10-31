@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export PATH="$HOME/.cargo/bin:$PATH"
+export ZED_RELEASE_CHANNEL=dev
+zedx_toolchain="${ZEDX_TOOLCHAIN:-1.98.1}"
+zedx_command="${1:-run}"
+if (( $# > 0 )); then shift; fi
+case "$zedx_command" in
+  check) exec rustup run "$zedx_toolchain" cargo check -p zed --bin zedx --locked "$@" ;;
+  build) exec rustup run "$zedx_toolchain" cargo build -p zed --bin zedx --locked "$@" ;;
+  run) exec rustup run "$zedx_toolchain" cargo run -p zed --bin zedx --locked -- "$@" ;;
+  app)
+    rustup run "$zedx_toolchain" cargo build -p zed --bin zedx --locked
+    python3 zedx/dev_bundle.py
+    exec open target/debug/ZedX.app --args "$@"
+    ;;
+  upstream-ui) export ZEDX_UPSTREAM_UI=1; exec rustup run "$zedx_toolchain" cargo run -p zed --bin zedx --locked -- "$@" ;;
+  assets-test) exec python3 -m unittest discover -s zedx/tests -v "$@" ;;
+  integration-test) exec rustup run "$zedx_toolchain" cargo test -p zed --bin zedx zedx_ --locked "$@" ;;
+  search-test)
+    zedx_test_dir=$(mktemp -d)
+    trap 'rm -rf "$zedx_test_dir"' EXIT
+    cp crates/zed/src/zedx_search_policy.rs "$zedx_test_dir/policy.rs"
+    printf '%s\n' 'mod policy;' > "$zedx_test_dir/main.rs"
+    rustup run "$zedx_toolchain" rustc --edition 2024 --test "$zedx_test_dir/main.rs" -o "$zedx_test_dir/tests"
+    "$zedx_test_dir/tests" "$@"
+    ;;
+  gesture-test)
+    zedx_test_dir=$(mktemp -d)
+    trap 'rm -rf "$zedx_test_dir"' EXIT
+    cp crates/zed/src/zedx_gesture.rs "$zedx_test_dir/zedx_gesture.rs"
+    printf '%s\n' 'mod zedx_gesture;' > "$zedx_test_dir/main.rs"
+    rustup run "$zedx_toolchain" rustc --edition 2024 --test "$zedx_test_dir/main.rs" -o "$zedx_test_dir/tests"
+    "$zedx_test_dir/tests" "$@"
+    ;;
+  *) echo "Usage: script/zedx {check|build|run|app|upstream-ui|assets-test|gesture-test|search-test|integration-test} [arguments]" >&2; exit 2 ;;
+esac
