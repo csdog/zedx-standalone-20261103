@@ -7,6 +7,11 @@ impl SearchWindow {
         let include_non_project = delegate.include_non_project;
         let file_filter = delegate.file_filter;
         let actions = delegate.category == Category::Actions;
+        let scope_label = if actions {
+            "Include disabled actions"
+        } else {
+            "Include non-project items"
+        };
         let weak = cx.entity().downgrade();
         h_flex()
             .w_full()
@@ -24,7 +29,7 @@ impl SearchWindow {
                     this.refresh(window, cx);
                 })))
             .child(Checkbox::new("search-non-project", if include_non_project { ToggleState::Selected } else { ToggleState::Unselected })
-                .label("Include non-project items")
+                .label(scope_label)
                 .label_size(LabelSize::XSmall)
                 .on_click(cx.listener(|this, state, window, cx| {
                     this.picker.update(cx, |picker, _| picker.delegate.include_non_project = *state == ToggleState::Selected);
@@ -298,15 +303,18 @@ impl SearchDelegate {
                                 .w_full()
                                 .min_w_0()
                                 .gap_2()
-                                .child(
-                                    Icon::new(match row.target {
-                                        Target::File(_) => IconName::File,
+                                .child(match &row.icon {
+                                    Some(icon) => ui::zedx::asset(icon.clone())
+                                        .size(px(16.0))
+                                        .into_any_element(),
+                                    None => Icon::new(match row.target {
                                         Target::Action(_) => IconName::BoltOutlined,
                                         _ => IconName::Code,
                                     })
                                     .size(IconSize::Small)
-                                    .color(Color::Muted),
-                                )
+                                    .color(Color::Muted)
+                                    .into_any_element(),
+                                })
                                 .child(
                                     div()
                                         .flex_shrink(1.0)
@@ -330,6 +338,14 @@ impl SearchDelegate {
                                         .size(LabelSize::XSmall)
                                         .color(Color::Muted)
                                         .truncate(),
+                                    ),
+                                )
+                                .child(
+                                    div().flex_none().max_w(relative(0.25)).child(
+                                        Label::new(row.source.clone())
+                                            .size(LabelSize::XSmall)
+                                            .color(Color::Muted)
+                                            .truncate(),
                                     ),
                                 ),
                         ),
@@ -382,6 +398,23 @@ impl SearchDelegate {
                     .color(Color::Muted)
                     .truncate(),
                 ),
+            )
+            .when(
+                !compact
+                    && self
+                        .rows
+                        .get(self.selected)
+                        .is_some_and(|row| !matches!(row.target, Target::Action(_))),
+                |bar| {
+                    bar.child(
+                        Button::new("search-open-right", "Open in Right Split")
+                            .label_size(LabelSize::XSmall)
+                            .on_click(cx.listener(|picker, _, window, cx| {
+                                window.focus(&picker.focus_handle(cx), cx);
+                                window.dispatch_action(menu::SecondaryConfirm.boxed_clone(), cx);
+                            })),
+                    )
+                },
             )
             .child(
                 Label::new(if compact {

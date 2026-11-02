@@ -4,8 +4,8 @@ pub fn island_corners(radius: gpui::Pixels, frame: gpui::Hsla) -> impl gpui::Int
     island::corners(radius, frame)
 }
 
-use crate::{ButtonCommon, ButtonLike, FixedWidth, Tooltip};
-use gpui::{App, ElementId, Img, ParentElement, SharedString, Styled, img, px};
+use crate::{ButtonCommon, ButtonLike, FixedWidth, Label, LabelCommon, LabelSize, Tooltip};
+use gpui::{App, ElementId, Img, InteractiveElement, ParentElement, SharedString, Styled, img, px};
 use theme::ActiveTheme;
 
 #[derive(Clone, Copy, strum::AsRefStr)]
@@ -78,6 +78,26 @@ pub fn tool_button(
         .aria_label(label)
         .tooltip(Tooltip::text(label))
         .child(icon(glyph, cx).size(px(16.0)))
+}
+
+/// The prototype's `.tool-window-head`: one icon, one title, a bottom border, and room for a
+/// caller-supplied meta label and hide control on the right.
+pub fn tool_window_head(
+    id: &'static str,
+    glyph: Icon,
+    title: impl Into<SharedString>,
+    cx: &App,
+) -> gpui::Div {
+    crate::h_flex()
+        .debug_selector(move || format!("zedx-head-{id}"))
+        .h(px(35.0))
+        .flex_none()
+        .px_2()
+        .gap_2()
+        .border_b_1()
+        .border_color(cx.theme().colors().border)
+        .child(icon(glyph, cx).size(px(14.0)))
+        .child(Label::new(title).size(LabelSize::Small))
 }
 
 pub fn tool_window_icon(name: &str) -> Option<Icon> {

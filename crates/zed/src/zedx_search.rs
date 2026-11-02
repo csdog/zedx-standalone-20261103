@@ -1,8 +1,9 @@
 use command_palette_hooks::CommandPaletteFilter;
 use editor::{Bias, Editor, SelectionEffects, scroll::Autoscroll};
+use file_icons::FileIcons;
 use gpui::{
     Action, App, Context, DismissEvent, Entity, EventEmitter, FocusHandle, Focusable, KeyBinding,
-    Render, Task, TaskExt, WeakEntity, Window,
+    Render, SharedString, Task, TaskExt, WeakEntity, Window,
 };
 use language::{Anchor, Buffer, SymbolKind};
 use picker::{Picker, PickerDelegate, PreviewUpdate};
@@ -36,6 +37,7 @@ use policy::{FileFilter, FileTypes, action_search_text, highlight_indices};
 
 use workspace::zedx_actions::{
     NextSearchCategory, PreviousSearchCategory, SearchActions, SearchEverywhere, SearchFiles,
+    SelectSearchCategory,
 };
 
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -108,6 +110,88 @@ pub(crate) fn bind_keys(cx: &mut App) {
             PreviousSearchCategory,
             Some("ZedXSearch > Editor"),
         ),
+        KeyBinding::new(
+            "ctrl-1",
+            SelectSearchCategory { index: 0 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-1",
+            SelectSearchCategory { index: 0 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-2",
+            SelectSearchCategory { index: 1 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-2",
+            SelectSearchCategory { index: 1 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-3",
+            SelectSearchCategory { index: 2 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-3",
+            SelectSearchCategory { index: 2 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-4",
+            SelectSearchCategory { index: 3 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-4",
+            SelectSearchCategory { index: 3 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-5",
+            SelectSearchCategory { index: 4 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-5",
+            SelectSearchCategory { index: 4 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-6",
+            SelectSearchCategory { index: 5 },
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-6",
+            SelectSearchCategory { index: 5 },
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new("alt-n", SearchEverywhere, Some("ZedXSearch")),
+        KeyBinding::new("alt-n", SearchEverywhere, Some("ZedXSearch > Editor")),
+        KeyBinding::new(
+            "cmd-enter",
+            workspace::zedx_actions::SearchFindInFiles,
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "cmd-enter",
+            workspace::zedx_actions::SearchFindInFiles,
+            Some("ZedXSearch > Editor"),
+        ),
+        KeyBinding::new(
+            "ctrl-enter",
+            workspace::zedx_actions::SearchFindInFiles,
+            Some("ZedXSearch"),
+        ),
+        KeyBinding::new(
+            "ctrl-enter",
+            workspace::zedx_actions::SearchFindInFiles,
+            Some("ZedXSearch > Editor"),
+        ),
     ]);
 }
 
@@ -124,6 +208,43 @@ pub fn init(cx: &mut App) {
             workspace.register_action(|workspace, _: &SearchActions, window, cx| {
                 open_category(workspace, Some(Category::Actions), window, cx)
             });
+            workspace.register_action(|workspace, action: &SelectSearchCategory, window, cx| {
+                let Some(modal) = workspace.active_modal::<SearchWindow>(cx) else {
+                    return;
+                };
+                let Some(category) = Category::ALL.get(action.index).copied() else {
+                    return;
+                };
+                modal.update(cx, |modal, cx| {
+                    modal.picker.update(cx, |picker, cx| {
+                        picker.delegate.category = category;
+                        picker.update_matches(picker.query(cx), window, cx);
+                    });
+                    window.focus(&modal.picker.focus_handle(cx), cx);
+                    cx.notify();
+                });
+            });
+            workspace.register_action(
+                |workspace, _: &workspace::zedx_actions::SearchFindInFiles, window, cx| {
+                    let Some(modal) = workspace.active_modal::<SearchWindow>(cx) else {
+                        return;
+                    };
+                    let request = modal.update(cx, |modal, cx| {
+                        let request = modal.find_in_files_request(cx);
+                        if request.is_some() {
+                            cx.emit(DismissEvent);
+                        }
+                        request
+                    });
+                    let Some(request) = request else {
+                        return;
+                    };
+                    window.focus(&workspace.focus_handle(cx), cx);
+                    cx.defer_in(window, move |_, window, cx| {
+                        window.dispatch_action(request.boxed_clone(), cx);
+                    });
+                },
+            );
             let gesture = Rc::new(RefCell::new(gesture::DoubleShift::default()));
             let clock = cx.background_executor().now();
             if let Some(window) = window {
@@ -258,16 +379,25 @@ impl SearchWindow {
         cx.notify();
     }
 
-    fn find_in_files(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    /// Builds the Find in Files request for the current query. Callers that already hold the
+    /// workspace borrow dispatch it themselves, because re-entering `workspace.update` while an
+    /// action handler owns the workspace panics on the double lease.
+    fn find_in_files_request(&self, cx: &App) -> Option<workspace::zedx_actions::FindInFiles> {
         let picker = self.picker.read(cx);
         if picker.delegate.category == Category::Actions {
-            return;
+            return None;
         }
-        let workspace = picker.delegate.workspace.clone();
-        let action = workspace::zedx_actions::FindInFiles {
+        Some(workspace::zedx_actions::FindInFiles {
             query: Some(picker.query(cx)),
             include_ignored: Some(picker.delegate.include_non_project),
+        })
+    }
+
+    fn find_in_files(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(action) = self.find_in_files_request(cx) else {
+            return;
         };
+        let workspace = self.picker.read(cx).delegate.workspace.clone();
         cx.emit(DismissEvent);
         workspace
             .update(cx, |workspace, cx| {
@@ -300,6 +430,8 @@ enum Target {
 struct Row {
     label: String,
     detail: String,
+    source: String,
+    icon: Option<SharedString>,
     target: Target,
 }
 struct SearchDelegate {
@@ -337,9 +469,25 @@ impl SearchDelegate {
         } else {
             path.path.as_unix_str().to_string()
         };
+        let icon = absolute
+            .as_deref()
+            .and_then(|path| FileIcons::get_icon(path, cx));
+        let source = project
+            .worktree_for_id(path.worktree_id, cx)
+            .map(|worktree| {
+                worktree
+                    .read(cx)
+                    .snapshot()
+                    .root_name()
+                    .as_unix_str()
+                    .to_string()
+            })
+            .unwrap_or_default();
         Row {
             label,
             detail,
+            source,
+            icon,
             target: Target::File(path),
         }
     }
@@ -418,31 +566,55 @@ impl SearchDelegate {
                         .into_iter()
                         .take(100 - count)
                         .map(|range| {
-                            let (label, detail) = buffer.read_with(cx, |buffer, cx| {
-                                let snapshot = buffer.snapshot();
-                                let point: language::Point =
-                                    snapshot.summary_for_anchor(&range.start);
-                                let end = if point.row < snapshot.max_point().row {
-                                    language::Point::new(point.row + 1, 0)
-                                } else {
-                                    snapshot.max_point()
-                                };
-                                let label = snapshot
-                                    .text_for_range(language::Point::new(point.row, 0)..end)
-                                    .flat_map(str::chars)
-                                    .take(240)
-                                    .collect::<String>()
-                                    .trim()
-                                    .to_string();
-                                let path = buffer
-                                    .file()
-                                    .map(|file| file.full_path(cx).to_string_lossy().into_owned())
-                                    .unwrap_or_default();
-                                (label, format!("{}:{}", path, point.row + 1))
-                            });
+                            let (label, detail, source, icon) =
+                                buffer.read_with(cx, |buffer, cx| {
+                                    let snapshot = buffer.snapshot();
+                                    let point: language::Point =
+                                        snapshot.summary_for_anchor(&range.start);
+                                    let end = if point.row < snapshot.max_point().row {
+                                        language::Point::new(point.row + 1, 0)
+                                    } else {
+                                        snapshot.max_point()
+                                    };
+                                    let label = snapshot
+                                        .text_for_range(language::Point::new(point.row, 0)..end)
+                                        .flat_map(str::chars)
+                                        .take(240)
+                                        .collect::<String>()
+                                        .trim()
+                                        .to_string();
+                                    let file = buffer.file();
+                                    let path = file
+                                        .map(|file| {
+                                            file.full_path(cx).to_string_lossy().into_owned()
+                                        })
+                                        .unwrap_or_default();
+                                    let icon = file.and_then(|file| {
+                                        let path = file.full_path(cx);
+                                        FileIcons::get_icon(path.as_path(), cx)
+                                    });
+                                    let source = file
+                                        .and_then(|file| {
+                                            project
+                                                .read(cx)
+                                                .worktree_for_id(file.worktree_id(cx), cx)
+                                        })
+                                        .map(|worktree| {
+                                            worktree
+                                                .read(cx)
+                                                .snapshot()
+                                                .root_name()
+                                                .as_unix_str()
+                                                .to_string()
+                                        })
+                                        .unwrap_or_else(|| "Project".to_string());
+                                    (label, format!("{}:{}", path, point.row + 1), source, icon)
+                                });
                             Row {
                                 label,
                                 detail,
+                                source,
+                                icon,
                                 target: Target::Text(buffer.clone(), range),
                             }
                         })
@@ -720,6 +892,7 @@ impl PickerDelegate for SearchDelegate {
         let cancel = self.cancel.clone();
         let file_filter = self.file_filter;
         let include_non_project = self.include_non_project;
+        let project = self.project.clone();
         cx.spawn_in(window, async move |picker, cx| {
             let executor = cx.background_executor().clone();
             let sets = cx
@@ -775,6 +948,8 @@ impl PickerDelegate for SearchDelegate {
                         Some(Row {
                             label: label.clone(),
                             detail: String::new(),
+                            source: "Action".to_string(),
+                            icon: None,
                             target: Target::Action(command.candidate_id),
                         })
                     }));
@@ -797,17 +972,42 @@ impl PickerDelegate for SearchDelegate {
                                     )
                             })
                             .map(|symbol| {
-                                let path = match &symbol.path {
+                                let (path, source, icon) = match &symbol.path {
                                     SymbolLocation::InProject(path) => {
-                                        path.path.as_unix_str().to_string()
+                                        let source = cx.read_entity(&project, |project, cx| {
+                                            project
+                                                .worktree_for_id(path.worktree_id, cx)
+                                                .map(|worktree| {
+                                                    worktree
+                                                        .read(cx)
+                                                        .snapshot()
+                                                        .root_name()
+                                                        .as_unix_str()
+                                                        .to_string()
+                                                })
+                                                .unwrap_or_else(|| "Project".to_string())
+                                        });
+                                        let icon = cx
+                                            .update(|_, cx| {
+                                                FileIcons::get_icon(path.path.as_std_path(), cx)
+                                            })
+                                            .ok()
+                                            .flatten();
+                                        (path.path.as_unix_str().to_string(), source, icon)
                                     }
-                                    SymbolLocation::OutsideProject { abs_path, .. } => {
-                                        abs_path.to_string_lossy().into_owned()
-                                    }
+                                    SymbolLocation::OutsideProject { abs_path, .. } => (
+                                        abs_path.to_string_lossy().into_owned(),
+                                        "External".to_string(),
+                                        cx.update(|_, cx| FileIcons::get_icon(abs_path, cx))
+                                            .ok()
+                                            .flatten(),
+                                    ),
                                 };
                                 Row {
                                     label: symbol.name.clone(),
                                     detail: format!("{}:{}", path, symbol.range.start.0.row + 1),
+                                    source,
+                                    icon,
                                     target: Target::Symbol(Box::new(symbol)),
                                 }
                             })

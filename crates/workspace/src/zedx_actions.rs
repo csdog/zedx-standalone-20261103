@@ -9,9 +9,12 @@ actions!(
         SearchEverywhere,
         SearchFiles,
         SearchActions,
+        SearchFindInFiles,
         RestoreDefaultLayout,
         ShowDatabase,
+        ShowGitHistory,
         ShowNotifications,
+        ToggleBranches,
         ToggleStructure,
         ToggleProblems,
         ToggleRun,
@@ -21,16 +24,34 @@ actions!(
     ]
 );
 
+#[derive(
+    Clone, Debug, Default, PartialEq, serde::Deserialize, schemars::JsonSchema, gpui::Action,
+)]
+#[action(namespace = zedx)]
+pub struct MoveToolWindow {
+    /// Persistent panel name, e.g. `Structure`.
+    pub name: String,
+    /// Rail positions to move by; negative is towards the start of the rail.
+    pub delta: i32,
+}
 #[derive(Clone, Default, PartialEq, serde::Deserialize, schemars::JsonSchema, gpui::Action)]
 #[action(namespace = zedx)]
 pub struct FindInFiles {
     pub query: Option<String>,
     pub include_ignored: Option<bool>,
 }
+#[derive(Clone, Default, PartialEq, serde::Deserialize, schemars::JsonSchema, gpui::Action)]
+#[action(namespace = zedx)]
+pub struct SelectSearchCategory {
+    pub index: usize,
+}
 
 pub fn init(cx: &mut App) {
     cx.observe_new(
         |workspace: &mut Workspace, window, cx: &mut Context<Workspace>| {
+            workspace.register_action(|workspace, action: &MoveToolWindow, window, cx| {
+                workspace.move_zedx_tool_window(&action.name, action.delta as isize, window, cx);
+            });
             if let Some(window) = window {
                 workspace.observe_zedx_compact_docks(window, cx);
             }

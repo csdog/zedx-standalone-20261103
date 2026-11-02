@@ -1,3 +1,23 @@
+/// Project avatars use two letters: two words contribute one letter each,
+/// while a single word contributes its first two letters (the prototype shows
+/// `ZE` for `zedx`).
+pub(super) fn initials_for(name: Option<&str>) -> String {
+    let words = name
+        .unwrap_or("Project")
+        .split(|character: char| !character.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect::<Vec<_>>();
+    match words.as_slice() {
+        [] => "PR".to_string(),
+        [word] => word.chars().take(2).flat_map(char::to_uppercase).collect(),
+        [first, second, ..] => [first, second]
+            .into_iter()
+            .filter_map(|word| word.chars().next())
+            .flat_map(char::to_uppercase)
+            .collect(),
+    }
+}
+
 use super::*;
 
 impl TitleBar {
@@ -7,14 +27,7 @@ impl TitleBar {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let initials: String = name
-            .as_deref()
-            .unwrap_or("Project")
-            .split(|character: char| !character.is_alphanumeric())
-            .filter_map(|word| word.chars().next())
-            .take(2)
-            .flat_map(char::to_uppercase)
-            .collect();
+        let initials = initials_for(name.as_deref());
         let name = name.map(|name| {
             if window.viewport_size().width < px(560.0) {
                 util::truncate_and_trailoff(&name, 10).into()
@@ -28,22 +41,24 @@ impl TitleBar {
             .gap_1()
             .when(window.viewport_size().width >= px(760.0), |row| {
                 row.child(
-                    ui::ButtonLike::new("zedx-main-menu")
-                        .width(px(28.0))
-                        .height(px(28.0).into())
-                        .tab_index(0isize)
-                        .aria_label("Main menu")
-                        .tooltip(Tooltip::text("Main menu"))
-                        .child(ui::zedx::icon(ui::zedx::Icon::Menu, cx))
-                        .on_click(move |_, window, cx| {
-                            if let Some(workspace) = workspace.upgrade() {
-                                window.focus(&workspace.read(cx).focus_handle(cx), cx);
-                            }
-                            window.dispatch_action(
-                                workspace::zedx_actions::SearchActions.boxed_clone(),
-                                cx,
-                            );
-                        }),
+                    div().debug_selector(|| "zedx-main-menu".into()).child(
+                        ui::ButtonLike::new("zedx-main-menu")
+                            .width(px(28.0))
+                            .height(px(28.0).into())
+                            .tab_index(0isize)
+                            .aria_label("Main menu")
+                            .tooltip(Tooltip::text("Main menu"))
+                            .child(ui::zedx::icon(ui::zedx::Icon::Menu, cx))
+                            .on_click(move |_, window, cx| {
+                                if let Some(workspace) = workspace.upgrade() {
+                                    window.focus(&workspace.read(cx).focus_handle(cx), cx);
+                                }
+                                window.dispatch_action(
+                                    workspace::zedx_actions::SearchActions.boxed_clone(),
+                                    cx,
+                                );
+                            }),
+                    ),
                 )
             })
             .child(

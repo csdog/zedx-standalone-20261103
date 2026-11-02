@@ -140,19 +140,46 @@ pub(super) fn highlight_indices(label: &str, query: &str) -> Vec<usize> {
 }
 
 pub(super) fn action_search_text(name: &str, display: &str) -> String {
-    let aliases = match name {
+    let mut aliases = match name {
         "zedx::RestoreDefaultLayout" => "恢复布局 重置布局 默认布局 面板 reset layout",
         "zedx::FindInFiles" => "搜索 查找 全局 内容 Find in Files",
         "zedx::ToggleStructure" => "结构 符号 outline structure",
         "zedx::ToggleProblems" => "问题 诊断 错误 警告 problems diagnostics",
         "zedx::ToggleRun" => "运行 任务 run tasks",
+        "zedx::ToggleBranches" => "分支 切换分支 branches git",
+        "zedx::ShowGitHistory" => "历史 提交记录 日志 log history commits",
         "zedx::ToggleTheme" => "主题 外观 深色 浅色 切换",
         "zed::OpenSettings" => "设置 偏好 配置",
         "pane::DeploySearch" => "搜索 查找 全局 内容",
         "workspace::ToggleLeftDock" => "项目 侧栏 左边栏",
         "terminal_panel::ToggleFocus" => "终端 命令行",
         _ => "",
-    };
+    }
+    .to_string();
+    if name.starts_with("pane::Close") {
+        aliases.push_str(" 关闭 标签");
+    }
+    if name.starts_with("pane::Split") {
+        aliases.push_str(" 拆分 分屏");
+    }
+    if name.starts_with("workspace::Toggle") {
+        aliases.push_str(" 切换 面板");
+    }
+    if name.starts_with("workspace::Save") {
+        aliases.push_str(" 保存");
+    }
+    if name.starts_with("workspace::New") {
+        aliases.push_str(" 新建");
+    }
+    if name.starts_with("workspace::ActivatePane") {
+        aliases.push_str(" 焦点 窗格");
+    }
+    if name.starts_with("multi_workspace::") {
+        aliases.push_str(" 项目 工作区");
+    }
+    if name == "theme::ToggleMode" {
+        aliases.push_str(" 主题 外观");
+    }
     format!("{display} {aliases}")
 }
 
@@ -178,6 +205,24 @@ mod tests {
         assert!(search.contains("主题"));
         assert!(search.starts_with("Zedx: Toggle Theme"));
         assert!(!action_search_text("unknown::Theme", "Other").contains("主题"));
+        let close = action_search_text("pane::CloseActiveItem", "Pane: Close Active Item");
+        assert!(close.starts_with("Pane: Close Active Item"));
+        assert!(close.contains("关闭"));
+        assert!(action_search_text("pane::SplitRight", "Pane: Split Right").contains("拆分"));
+        assert!(
+            action_search_text(
+                "workspace::ToggleBottomDock",
+                "Workspace: Toggle Bottom Dock"
+            )
+            .contains("切换")
+        );
+        assert!(action_search_text("workspace::Save", "Workspace: Save").contains("保存"));
+        let branches = action_search_text("zedx::ToggleBranches", "Zedx: Toggle Branches");
+        assert!(branches.contains("分支") && branches.contains("branches"));
+        let history = action_search_text("zedx::ShowGitHistory", "Zedx: Show Git History");
+        assert!(history.contains("历史") && history.contains("提交记录"));
+        let multi = action_search_text("multi_workspace::CloseAll", "Multi Workspace: Close All");
+        assert!(multi.contains("项目") && multi.contains("工作区"));
     }
 
     #[test]

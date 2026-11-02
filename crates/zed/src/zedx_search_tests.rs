@@ -745,3 +745,278 @@ async fn short_windows_keep_all_three_grouped_results_visible_with_preview(
         }
     }
 }
+
+#[gpui::test]
+async fn text_result_opens_in_right_split(cx: &mut TestAppContext) {
+    use workspace::zedx_actions::SearchEverywhere;
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(SearchEverywhere);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .expect("Search Everywhere should open");
+    workspace.update_in(cx, |workspace, window, cx| {
+        open_category(workspace, Some(Category::Text), window, cx)
+    });
+    modal.update_in(cx, |modal, window, cx| {
+        modal
+            .picker
+            .update(cx, |picker, cx| picker.set_query("fixture", window, cx));
+    });
+    cx.run_until_parked();
+    assert!(
+        modal.read_with(cx, |modal, cx| !modal
+            .picker
+            .read(cx)
+            .delegate
+            .rows
+            .is_empty()),
+        "Text search should produce matches"
+    );
+    cx.simulate_keystrokes("shift-enter");
+    cx.run_until_parked();
+    assert_eq!(
+        workspace.read_with(cx, |workspace, _| workspace.panes().len()),
+        2
+    );
+}
+
+#[gpui::test]
+async fn symbol_search_without_lsp_shows_empty_results(cx: &mut TestAppContext) {
+    use workspace::zedx_actions::SearchEverywhere;
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(SearchEverywhere);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .expect("Search Everywhere should open");
+    workspace.update_in(cx, |workspace, window, cx| {
+        open_category(workspace, Some(Category::Symbols), window, cx)
+    });
+    modal.update_in(cx, |modal, window, cx| {
+        modal
+            .picker
+            .update(cx, |picker, cx| picker.set_query("foo", window, cx));
+    });
+    cx.run_until_parked();
+    let rows = modal.read_with(cx, |modal, cx| modal.picker.read(cx).delegate.rows.len());
+    assert_eq!(rows, 0);
+}
+
+#[gpui::test]
+async fn category_shortcuts_and_scope_toggle(cx: &mut TestAppContext) {
+    use workspace::zedx_actions::SearchEverywhere;
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(SearchEverywhere);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .expect("Search Everywhere should open");
+
+    cx.simulate_keystrokes("ctrl-3");
+    cx.run_until_parked();
+    assert!(modal.read_with(cx, |modal, cx| {
+        matches!(modal.picker.read(cx).delegate.category, Category::Files)
+    }));
+
+    let include_non_project = modal.read_with(cx, |modal, cx| {
+        modal.picker.read(cx).delegate.include_non_project
+    });
+    cx.simulate_keystrokes("alt-n");
+    cx.run_until_parked();
+    assert!(modal.read_with(cx, |modal, cx| {
+        modal.picker.read(cx).delegate.include_non_project != include_non_project
+    }));
+}
+
+#[gpui::test]
+async fn file_rows_show_source_and_icon(cx: &mut TestAppContext) {
+    use workspace::zedx_actions::SearchEverywhere;
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(SearchEverywhere);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .expect("Search Everywhere should open");
+    modal.update_in(cx, |modal, window, cx| {
+        modal
+            .picker
+            .update(cx, |picker, cx| picker.set_query("main", window, cx));
+    });
+    cx.run_until_parked();
+    let (source, has_icon) = modal
+        .read_with(cx, |modal, cx| {
+            modal.picker.read(cx).delegate.rows.iter().find_map(|row| {
+                matches!(row.target, Target::File(_))
+                    .then(|| (row.source.clone(), row.icon.is_some()))
+            })
+        })
+        .expect("a file row");
+    assert!(!source.is_empty());
+    assert!(has_icon);
+}
+
+fn tap_shift(cx: &mut VisualTestContext, hold: Duration, gap: Duration) {
+    cx.simulate_modifiers_change(Modifiers::shift());
+    cx.executor().advance_clock(hold);
+    cx.simulate_modifiers_change(Modifiers::none());
+    cx.executor().advance_clock(gap);
+}
+
+fn search_is_open(workspace: &Entity<Workspace>, cx: &VisualTestContext) -> bool {
+    workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .is_some()
+}
+
+#[gpui::test]
+async fn uppercase_letter_between_taps_does_not_open_search(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.simulate_modifiers_change(Modifiers::shift());
+    cx.executor().advance_clock(Duration::from_millis(20));
+    cx.simulate_keystrokes("shift-a");
+    cx.simulate_modifiers_change(Modifiers::none());
+    cx.executor().advance_clock(Duration::from_millis(40));
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(
+        !search_is_open(&workspace, cx),
+        "typing an uppercase letter must discard the Shift tap before it"
+    );
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(
+        search_is_open(&workspace, cx),
+        "two clean taps after typing must still open Search Everywhere"
+    );
+}
+
+#[gpui::test]
+async fn held_shift_does_not_open_search(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.simulate_modifiers_change(Modifiers::shift());
+    cx.executor().advance_clock(Duration::from_millis(600));
+    cx.simulate_modifiers_change(Modifiers::none());
+    cx.executor().advance_clock(Duration::from_millis(40));
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(!search_is_open(&workspace, cx));
+}
+
+#[gpui::test]
+async fn slow_second_tap_does_not_open_search(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    cx.executor().advance_clock(Duration::from_millis(700));
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(!search_is_open(&workspace, cx));
+}
+
+#[gpui::test]
+async fn modifier_chord_discards_the_earlier_tap(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    cx.simulate_modifiers_change(Modifiers {
+        shift: true,
+        control: true,
+        ..Default::default()
+    });
+    cx.simulate_modifiers_change(Modifiers::control());
+    cx.simulate_modifiers_change(Modifiers::none());
+    cx.executor().advance_clock(Duration::from_millis(20));
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(
+        !search_is_open(&workspace, cx),
+        "a modifier chord between taps must clear the first tap"
+    );
+}
+
+#[gpui::test]
+async fn window_deactivation_clears_the_gesture(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    cx.deactivate_window();
+    cx.update(|window, _| window.activate_window());
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(
+        !search_is_open(&workspace, cx),
+        "the tap recorded before deactivation must not pair with one made after"
+    );
+    tap_shift(cx, Duration::from_millis(20), Duration::from_millis(20));
+    assert!(search_is_open(&workspace, cx));
+}
+
+#[gpui::test]
+async fn double_shift_opens_search_without_a_focused_element(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.update(|window, cx| window.blur(cx));
+    cx.run_until_parked();
+    double_shift(cx);
+    assert!(
+        search_is_open(&workspace, cx),
+        "the gesture must work the way the prototype's window listener does"
+    );
+}
+
+#[gpui::test]
+async fn cmd_enter_transfers_the_text_query_to_find_in_files(cx: &mut TestAppContext) {
+    cx.update(crate::zedx_panels::init);
+    let (workspace, cx) = setup(cx).await;
+    workspace
+        .update_in(cx, |_, window, cx| {
+            cx.spawn_in(window, async move |workspace, cx| {
+                crate::zedx_panels::initialize(workspace, cx.clone()).await
+            })
+        })
+        .await
+        .unwrap();
+    workspace.update_in(cx, |workspace, window, cx| open(workspace, window, cx));
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .unwrap();
+    modal.update_in(cx, |modal, window, cx| {
+        modal
+            .picker
+            .update(cx, |picker, cx| picker.set_query("fixture", window, cx));
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("cmd-enter");
+    cx.run_until_parked();
+    workspace.update_in(cx, |workspace, window, cx| {
+        assert!(workspace.active_modal::<SearchWindow>(cx).is_none());
+        let dock = workspace
+            .dock_at_position(workspace::dock::DockPosition::Left)
+            .read(cx);
+        let panel = dock.active_panel().expect("the Find panel should open");
+        assert_eq!(panel.persistent_name(), "Find");
+        assert_eq!(panel.icon_label(window, cx), Some("2".into()));
+    });
+}
+
+#[gpui::test]
+async fn cmd_enter_does_nothing_for_actions(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    workspace.update_in(cx, |workspace, window, cx| {
+        open_category(workspace, Some(Category::Actions), window, cx)
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("cmd-enter");
+    cx.run_until_parked();
+    assert!(
+        workspace
+            .read_with(cx, |workspace, cx| {
+                workspace.active_modal::<SearchWindow>(cx)
+            })
+            .is_some(),
+        "the palette stays open because Find in Files cannot run an action row"
+    );
+}

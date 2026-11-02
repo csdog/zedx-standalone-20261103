@@ -339,7 +339,9 @@ impl Render for TitleBar {
                                     )
                                 })
                                 .when_some(
-                                    repository.filter(|_| is_git_enabled && window.viewport_size().width >= px(760.0)),
+                                    repository.filter(|_| {
+                                        is_git_enabled && window.viewport_size().width >= px(760.0)
+                                    }),
                                     |title_bar, repository| {
                                         title_bar.children(self.render_worktree_and_branch(
                                             repository,
@@ -1491,5 +1493,77 @@ mod tests {
             }),
             Some("plum-warbler".into())
         );
+    }
+}
+
+#[cfg(test)]
+mod zedx_title_bar_tests {
+    use super::*;
+    use fs::FakeFs;
+    use gpui::{Entity, IntoElement, TestAppContext};
+    use settings::SettingsStore;
+
+    struct TitleBarTestView {
+        title_bar: Entity<TitleBar>,
+    }
+
+    impl TitleBarTestView {
+        fn title_bar(&self) -> Entity<TitleBar> {
+            self.title_bar.clone()
+        }
+    }
+
+    impl Render for TitleBarTestView {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            self.title_bar.clone()
+        }
+    }
+
+    #[gpui::test]
+    async fn project_identity_renders(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            let settings = SettingsStore::test(cx);
+            cx.set_global(settings);
+            theme_settings::init(theme::LoadThemes::JustBase, cx);
+        });
+        let fs = FakeFs::new(cx.executor());
+        let project = Project::test(fs, [], cx).await;
+        let (view, cx) = cx.add_window_view(|window, cx| {
+            let workspace = cx.new(|cx| Workspace::test_new(project.clone(), window, cx));
+            let (client, user_store) = {
+                let workspace = workspace.read(cx);
+                (
+                    workspace.app_state().client.clone(),
+                    workspace.app_state().user_store.clone(),
+                )
+            };
+            call::init(client, user_store, cx);
+            let title_bar = workspace.update(cx, |workspace, cx| {
+                cx.new(|cx| TitleBar::new("titlebar", workspace, None, window, cx))
+            });
+            TitleBarTestView { title_bar }
+        });
+        cx.run_until_parked();
+        cx.simulate_resize(gpui::size(gpui::px(1000.0), gpui::px(700.0)));
+        let title_bar = view.update(cx, |view, _| view.title_bar());
+        title_bar.update(cx, |_, cx| cx.notify());
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        assert!(cx.debug_bounds("zedx-project-identity").is_some());
+        assert!(cx.debug_bounds("zedx-main-menu").is_some());
+        assert!(cx.debug_bounds("zedx-search-label").is_some());
+    }
+
+    #[test]
+    fn project_initials_match_the_prototype() {
+        assert_eq!(
+            super::zedx_project_identity::initials_for(Some("zedx")),
+            "ZE"
+        );
+        assert_eq!(
+            super::zedx_project_identity::initials_for(Some("my project")),
+            "MP"
+        );
+        assert_eq!(super::zedx_project_identity::initials_for(None), "PR");
     }
 }

@@ -287,12 +287,8 @@ impl Render for Find {
                 }
             }))
             .child(
-                h_flex()
-                    .h(px(28.0))
-                    .flex_none()
-                    .px_2()
+                ui::zedx::tool_window_head("find", ui::zedx::Icon::FindTool, "Find in Files", cx)
                     .justify_between()
-                    .child(Label::new("Find in Files").size(LabelSize::Small))
                     .child(
                         ui::zedx::tool_button(
                             "zedx-find-hide",

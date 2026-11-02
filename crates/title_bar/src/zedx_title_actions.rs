@@ -56,12 +56,48 @@ impl TitleBar {
                         button("zedx-debug", ui::zedx::Icon::Debug, "Debug project", action)
                     }),
             )
-            .child(button(
-                "zedx-search",
-                ui::zedx::Icon::Search,
-                "Search Everywhere · Shift Shift",
-                SearchEverywhere.boxed_clone(),
-            ))
+            .child(if compact {
+                button(
+                    "zedx-search",
+                    ui::zedx::Icon::Search,
+                    "Search Everywhere · Shift Shift",
+                    SearchEverywhere.boxed_clone(),
+                )
+                .into_any_element()
+            } else {
+                let action = SearchEverywhere.boxed_clone();
+                let workspace = self.workspace.clone();
+                div()
+                    .debug_selector(|| "zedx-search-label".into())
+                    .child(
+                        ButtonLike::new("zedx-search")
+                            .height(px(28.0).into())
+                            .aria_label("Search Everywhere")
+                            .tooltip(Tooltip::text("Search Everywhere · Shift Shift"))
+                            .child(
+                                h_flex()
+                                    .gap_1()
+                                    .px_2()
+                                    .items_center()
+                                    .child(
+                                        ui::zedx::icon(ui::zedx::Icon::Search, cx).size(px(16.0)),
+                                    )
+                                    .child(Label::new("Search Everywhere").size(LabelSize::XSmall))
+                                    .child(
+                                        Label::new("⇧ ⇧")
+                                            .size(LabelSize::XSmall)
+                                            .color(Color::Muted),
+                                    ),
+                            )
+                            .on_click(move |_, window, cx| {
+                                if let Some(workspace) = workspace.upgrade() {
+                                    window.focus(&workspace.read(cx).focus_handle(cx), cx);
+                                }
+                                window.dispatch_action(action.boxed_clone(), cx);
+                            }),
+                    )
+                    .into_any_element()
+            })
             .child(button(
                 "zedx-theme",
                 ui::zedx::Icon::Sun,

@@ -24,6 +24,245 @@ html{background:#13181e}body{background:radial-gradient(ellipse at 0% 0%,#435b59
 @media(max-width:760px){.palette{width:min(800px,calc(100vw - 24px));max-height:85dvh}.dialog-backdrop{padding:7vh 12px 12px}.palette-top{flex-wrap:wrap;gap:0;min-height:43px;padding:0 7px}.palette-categories{width:100%;flex:none;height:37px;justify-content:space-between}.palette-categories button{height:37px;font-size:11px;padding:0 6px}.palette-scope-controls{margin:0 auto 0 3px;height:32px}.palette-include{font-size:10px}.palette-tools{height:32px}.palette-query-row{padding:5px 7px 6px}.palette-query-hint{font-size:10px}.palette-search input{font-size:12px}.palette-results{min-height:0;max-height:280px}.palette-result{font-size:11px;height:27px;gap:5px;padding:0 6px}.palette-row-main{gap:5px}.palette-row-location{font-size:10px}.palette-row-right{font-size:10px;max-width:20%;margin-left:5px}.palette-section{font-size:10px;padding:0 6px}.palette-foot{padding:0 9px;gap:8px}.palette-location{font-size:9px}.palette-footer-link{font-size:9px}.palette-preview{height:175px}.search-editor-split{width:50%;min-width:100px}.source-preview-line{font-size:10px}.palette-filter{top:70px;right:30px}}
 
 .palette-results:has(.palette-empty){min-height:64px;max-height:120px}.palette-empty{height:64px}
+.tool-menu{position:absolute;left:calc(100% + 7px);bottom:48px;z-index:45;width:218px;max-height:calc(100dvh - 32px);overflow:auto;padding:6px;background:#2b2f36f5;border:1px solid #4d5361;border-radius:8px;box-shadow:0 12px 34px #0006;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);font-size:11px;color:#cbd1dd;scrollbar-width:thin;scrollbar-color:#50545e transparent}
+.tool-menu.hidden{display:none}
+.tool-menu-section{display:flex;align-items:center;height:23px;padding:0 8px;color:#8b93a1;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;user-select:none}
+.tool-menu-item{display:flex;align-items:center;gap:9px;width:100%;height:28px;padding:0 8px;border-radius:4px;color:#cbd1dd;text-align:left;white-space:nowrap}
+.tool-menu-item:hover,.tool-menu-item:focus{background:#ffffff0a;color:#e6ebf5;outline:none}
+.tool-menu-item svg{width:15px;height:15px;color:#a5b0c2;flex:none}
+.tool-menu-item kbd{margin-left:auto;border:0;background:none;padding:0;font-size:10px;color:#818b9a}
+.tool-menu-check{margin-left:auto;color:#8bb79b;font-size:11px;line-height:1}
+.rail{position:relative}
+.rail .tool.dragging{opacity:.6;background:#ffffff12;box-shadow:0 6px 18px #0005}
+.rail .tool.dragging[title]:hover:after,body.rail-dragging .tool[title]:hover:after{display:none}
+body.rail-dragging,body.rail-dragging *{cursor:grabbing!important;user-select:none!important}
+.git-branch{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border-radius:4px;text-align:left;white-space:nowrap;overflow:hidden;font-size:11px;color:#c3c5ce}
+.git-branch:hover{background:var(--raised)}
+.git-branch.selected{background:var(--selected);color:#dce7ff}
+.git-branch svg{width:14px;height:14px;color:#9aa4b4;flex:none}
+.git-branch .branch-state{margin-left:auto;font-size:10px;color:#8eb29a}
+.git-commit{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:7px 8px;border-radius:4px;text-align:left}
+.git-commit:hover{background:var(--raised)}
+.git-subject{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#c9ccd6}
+.git-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:#878a95}
+.git-hash{font:10px 'JetBrains Mono','SFMono-Regular',Consolas,monospace;color:#8fa8da}
+.light .tool-menu{background:#fffffff7;border-color:#d3dbe8;box-shadow:0 12px 32px #39486b28;color:#3e4554}
+.light .tool-menu-section{color:#8b93a1}
+.light .tool-menu-item{color:#3e4554}
+.light .tool-menu-item:hover,.light .tool-menu-item:focus{background:#eef2f9;color:#1f2a3c}
+.light .tool-menu-item svg{color:#697486}
+.light .tool-menu-item kbd{color:#8792a3}
+.light .git-branch{color:#535965}
+.light .git-branch.selected{background:#d9e5fa;color:#254c8d}
+.light .git-branch svg{color:#697486}
+.light .git-subject{color:#4a5465}
+.light .git-meta{color:#7b8494}
+.light .git-hash{color:#466b9e}
+.tool-window{display:flex;flex-direction:column;flex:1;min-height:0}
+.tool-window.hidden{display:none}
+.window-body{flex:1;min-height:0;overflow:auto;padding:10px 14px}
+.rail .tool.hidden{display:none}
+.tool-window-head{height:35px;flex:none;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #ffffff05}
+.tool-window-head>svg{width:14px;height:14px;color:#8f96a3;flex:none}
+.tool-window-title{font-size:11px;font-weight:550;color:#dce0e7}
+.tool-window-meta{font-size:10px;color:#8d98a7}
+.tool-window-head .icon-button{width:24px;height:24px}
+.tool-window-head .icon-button svg{width:13px;height:13px}
+.light .tool-window-head{border-color:#e4e9f1}
+.light .tool-window-head>svg{color:#697486}
+.light .tool-window-title{color:#243754}
+.light .tool-window-meta{color:#737f91}
+.light .tool-window-head .tab-count{background:#dfe3ec;color:#53627a}
+.git-view{flex:1;min-height:0;display:flex;flex-direction:column}
+.git-log{flex:1;min-height:0;display:flex;min-width:0;font-size:11px;color:#c3c5ce}
+.git-branches{flex:0 0 22%;min-width:180px;max-width:260px;display:flex;min-height:0;border-right:1px solid #303136}
+.git-branch-tools{flex:none;width:27px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 0;border-right:1px solid #303136}
+.git-branch-tools .icon-button{width:22px;height:22px}
+.git-branch-tools .icon-button svg{width:13px;height:13px}
+.git-branches-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.git-branch-search{flex:none;display:flex;align-items:center;height:31px;padding:0 6px;border-bottom:1px solid #303136}
+.git-branch-search input{width:100%;min-width:0;height:22px;background:#1e2025;border:1px solid #3d414a;border-radius:4px;padding:0 6px;color:var(--text);font-size:11px;outline:none}
+.git-branch-search input::placeholder{color:#7f8796}
+.git-branch-tree{flex:1;min-height:0;overflow:auto;padding:2px 4px 6px}
+.git-tree-folder{display:flex;align-items:center;gap:5px;height:22px;padding:0 4px;color:#8b93a1;font-size:10px}
+.git-tree-folder svg{width:12px;height:12px;color:#8b93a1;flex:none}
+.git-tree-count{margin-left:auto;color:#6f7785;font-size:9px}
+.git-tree-row{display:flex;align-items:center;gap:6px;width:100%;height:24px;padding:0 4px 0 16px;border-radius:4px;color:#c3c5ce;text-align:left;white-space:nowrap;overflow:hidden}
+.git-tree-row:hover{background:#ffffff07}
+.git-tree-row.selected{background:var(--selected);color:#dce7ff}
+.git-tree-row.current .git-branch-name{font-weight:600}
+.git-tree-row svg{width:13px;height:13px;color:#9aa4b4;flex:none}
+.git-branch-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.git-current{flex:none;font-size:9px;color:#8eb29a}
+.git-commits{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.git-filters{flex:none;height:31px;display:flex;align-items:center;gap:4px;padding:0 6px;border-bottom:1px solid #303136;overflow:hidden}
+.git-show-branches{display:none}
+.git-log.branches-hidden .git-show-branches{display:inline-flex}
+.git-log.branches-hidden .git-branches{display:none}
+.git-show-branches svg{transform:rotate(180deg)}
+.git-log-filter{flex:0 1 170px;min-width:80px;height:22px;background:#1e2025;border:1px solid #3d414a;border-radius:4px;padding:0 7px;color:var(--text);font-size:11px;outline:none}
+.git-log-filter::placeholder{color:#7f8796}
+.git-filter-chip{flex:none;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px;border-radius:4px;color:#969daa;font-size:10px;white-space:nowrap}
+.git-filter-chip.active{background:#ffffff0d}.git-filter-chip span{color:#dce0e7}
+.git-filters .icon-button{width:22px;height:22px;flex:none}
+.git-filters .icon-button svg{width:12px;height:12px}
+.git-spacer{flex:1}
+.git-commit-list{flex:1;min-height:0;overflow:auto}
+.git-commit-row{display:flex;align-items:center;gap:8px;width:100%;min-height:26px;padding:0 8px;text-align:left;white-space:nowrap;color:#c3c5ce}
+.git-commit-row:hover{background:#ffffff07}
+.git-commit-row.selected{background:var(--selected);color:#dce7ff}
+.git-graph{width:26px;height:26px;flex:none}
+.git-graph .g-line{stroke:#43618f;stroke-width:1.4;fill:none}
+.git-graph .g-branch{stroke:#8a6fb5;stroke-width:1.4;fill:none}
+.git-graph .g-dot{fill:#7291d9}
+.git-commit-row .git-subject{flex:1;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.git-commit-row.selected .git-subject{color:#dce7ff}
+.git-refs{flex:none;display:flex;gap:4px;max-width:42%;overflow:hidden}
+.git-ref{display:inline-flex;align-items:center;height:17px;padding:0 5px;border-radius:3px;background:#2f4a74;color:#cfe0ff;font-size:9.5px;white-space:nowrap}
+.git-commit-row .git-author{flex:none;width:64px;overflow:hidden;text-overflow:ellipsis;color:#8f96a3;font-size:10px}
+.git-commit-row .git-date{flex:none;width:48px;color:#8f96a3;font-size:10px}
+.git-commit-row .git-hash{flex:none;width:52px;overflow:hidden}
+.git-details{flex:0 0 26%;min-width:210px;display:flex;flex-direction:column;min-height:0;border-left:1px solid #303136}
+.git-details-files{flex:1 1 58%;min-height:0;display:flex;flex-direction:column;border-bottom:1px solid #303136}
+.git-details-bar{flex:none;height:29px;display:flex;align-items:center;gap:3px;padding:0 5px}
+.git-details-bar .icon-button{width:22px;height:22px}
+.git-details-bar .icon-button svg{width:12px;height:12px}
+.git-details-count{color:#8f96a3;font-size:10px;white-space:nowrap}
+.git-file-list{flex:1;min-height:0;overflow:auto;padding:0 4px 4px}
+.git-file-row{display:flex;align-items:center;gap:6px;width:100%;height:23px;padding:0 4px;border-radius:4px;color:#c3c5ce;text-align:left}
+.git-file-row:hover{background:#ffffff07}
+.git-file-row .file-type{width:13px;height:13px}
+.git-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.git-file-status{flex:none;color:#c9a15f;font-size:10px}
+.git-details-message{flex:1 1 42%;min-height:0;overflow:auto;padding:8px 10px}
+.git-message-subject{color:#dce0e7;font-weight:600;font-size:11px;line-height:1.4;word-break:break-word}
+.git-message-meta{margin-top:6px;color:#8f96a3;font-size:10px;line-height:1.5}
+.git-empty{padding:12px 8px;color:#7f8796;font-size:10px}
+.light .git-log{color:#535965}
+.light .git-branches{border-color:#e4e9f1}
+.light .git-branch-tools{border-color:#e4e9f1}
+.light .git-branch-search,.light .git-filters{border-color:#e4e9f1}
+.light .git-branch-search input,.light .git-log-filter{background:#fff;border-color:#d6dbe4;color:#343d4b}
+.light .git-tree-folder{color:#8b93a1}
+.light .git-tree-row{color:#535965}
+.light .git-tree-row:hover,.light .git-commit-row:hover,.light .git-file-row:hover{background:#e9edf4}
+.light .git-tree-row.selected,.light .git-commit-row.selected{background:#d9e5fa;color:#254c8d}
+.light .git-tree-row svg{color:#697486}
+.light .git-commit-row .git-subject{color:#3b4658}
+.light .git-commit-row.selected .git-subject{color:#254c8d}
+.light .git-commit-row .git-author,.light .git-commit-row .git-date{color:#7b8494}
+.light .git-ref{background:#dbe6fa;color:#31558c}
+.light .git-details,.light .git-details-files{border-color:#e4e9f1}
+.light .git-file-row{color:#535965}
+.light .git-message-subject{color:#243754}
+.light .git-message-meta{color:#7b8494}
+.light .git-filter-chip.active{background:#eef2f9}.light .git-filter-chip span{color:#2b3547}
+@media(max-width:1100px){.git-details{display:none}.git-filter-chip.optional{display:none}}
+@media(max-width:760px){.git-branches{display:none}.git-filter-chip{display:none}}
+.tree-row .node-icon{width:16px;height:16px;flex:none;color:#a5adbd}
+.light .tree-row .node-icon{color:#697486}
+.search-top{justify-content:center;gap:0;padding:0}
+#run-btn,#debug-btn,#search-top,#settings-btn{width:32px;height:34px;border-radius:6px}
+#run-btn svg,#debug-btn svg,#search-top svg,#settings-btn svg{width:20px;height:20px}
+.search-top:hover{background:#ffffff0c;color:var(--strong)}
+.light .search-top:hover{background:#00000006}
+.topbar{padding-right:5px}
+#panel-body.commit-mode{padding:0;overflow:hidden;display:flex}
+.commit-panel{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;font-size:11px;color:#c3c5ce}
+.commit-toolbar{flex:none;min-width:0;height:30px;display:flex;align-items:center;gap:2px;padding:0 6px;border-bottom:1px solid #2c2e34;overflow:hidden}
+.commit-toolbar .icon-button{width:24px;height:24px}
+.commit-toolbar .icon-button svg{width:15px;height:15px}
+.commit-changes{flex:1;min-width:0;min-height:90px;overflow:auto;padding:4px 4px 0}
+.commit-resize{flex:none;height:5px;cursor:row-resize;background:transparent;border-top:1px solid #303136}
+.commit-resize:hover,.commit-resize.dragging{background:#ffffff12}
+.commit-resize:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+body.commit-resizing{cursor:row-resize!important;user-select:none!important}
+.commit-group-row{display:flex;align-items:center;gap:6px;height:26px;padding:0 4px;border-radius:4px}
+.commit-group-row:hover{background:#ffffff07}
+.commit-group-row.selected{background:var(--selected);color:#dce7ff}
+.commit-chevron{width:16px;height:16px;display:grid;place-items:center;color:#8b8e98;flex:none}
+.commit-chevron svg{width:11px;height:11px}
+.commit-check{width:13px;height:13px;flex:none;margin:0;accent-color:#4b7ef1;cursor:pointer}
+.commit-group-name{font-weight:600;color:#dce0e7;white-space:nowrap}
+.commit-group-count{color:#8b93a1;font-size:10px;white-space:nowrap}
+.commit-group-files[hidden]{display:none}
+.commit-file{display:flex;align-items:center;gap:6px;height:25px;padding:0 4px 0 44px;border-radius:4px;white-space:nowrap;overflow:hidden}
+.commit-file:hover{background:#ffffff07}
+.commit-file.selected{background:var(--selected)}
+.commit-status{flex:none;width:14px;font:10px 'JetBrains Mono','SFMono-Regular',monospace;color:#82a7e8}
+.commit-status.unversioned{color:#8eb29a}
+.commit-file-name{flex:0 0 auto;min-width:0;max-width:60%;padding:0;overflow:hidden;text-overflow:ellipsis;color:#9dc0ff;text-align:left;font-size:11px}
+.commit-file-name:hover{text-decoration:underline}
+.commit-file-dir{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#7f8796;font-size:10px;text-align:right}
+.commit-message{flex:0 0 38%;min-width:0;min-height:0;max-height:calc(100% - 120px);display:flex;flex-direction:column;border-top:0}
+.commit-amend{flex:none;height:30px;display:flex;align-items:center;gap:6px;padding:0 8px;white-space:nowrap}
+.commit-amend label{font-size:11px;color:#c3c5ce}
+.commit-amend-detail{font-size:10px;color:#7f8796}
+.commit-amend .icon-button{width:22px;height:22px;margin-left:auto}
+.commit-amend .icon-button svg{width:13px;height:13px}
+.commit-message-input{flex:1;height:auto;min-height:80px;margin:0 8px;padding:6px 8px;background:#1b1d21;border:1px solid #3a3d45;border-radius:4px;resize:none;color:#dce0e7;font:11px/1.6 'JetBrains Mono','SFMono-Regular',monospace;outline:none}
+.commit-message-input::placeholder{color:#7f8796}
+.commit-message-input:focus{border-color:#5a6a8c}
+.commit-inspect{flex:none;padding:2px 10px 0;color:#e06c75;font-size:10px}
+.commit-inspect.hidden{display:none}
+.commit-actions{flex:none;min-width:0;display:flex;align-items:center;gap:6px;padding:8px;white-space:nowrap}
+.commit-submit{flex:none;padding:5px 12px;border-radius:4px;background:#4a6fbf;color:#fff;font-size:11px}
+.commit-submit:hover{background:#5a80d0}
+.commit-submit:disabled{background:#333a48;color:#7f8796;cursor:default}
+.commit-push{flex:1 1 auto;min-width:0;padding:5px 10px;border:1px solid #4a4e58;border-radius:4px;background:#2a2d34;color:#c3c5ce;font-size:11px;overflow:hidden;text-overflow:ellipsis}
+.commit-push:hover{background:#343840}
+.commit-push:disabled{color:#6f7785;border-color:#33363d;background:transparent;cursor:default}
+.commit-actions .spacer{flex:1}
+.commit-actions .icon-button{width:24px;height:24px}
+.commit-actions .icon-button svg{width:14px;height:14px}
+.commit-options{position:absolute;right:8px;bottom:44px;z-index:30;width:220px;padding:8px;background:#2b2f36f5;border:1px solid #4d5361;border-radius:7px;box-shadow:0 10px 28px #0006;font-size:11px}
+.commit-options.hidden{display:none}
+.commit-options-title{color:#8b93a1;font-size:10px;padding:2px 4px 6px}
+.commit-option{display:flex;align-items:center;gap:8px;height:26px;padding:0 4px;border-radius:4px;color:#cbd1dd;font-size:11px}
+.commit-option:hover{background:#ffffff0a}
+.commit-option input{accent-color:#4b7ef1}
+.light .commit-toolbar,.light .commit-message,.light .commit-resize{border-color:#e4e9f1}
+.light .commit-group-row:hover,.light .commit-file:hover{background:#eef2f9}
+.light .commit-group-row.selected,.light .commit-file.selected{background:#d9e5fa;color:#254c8d}
+.light .commit-group-name{color:#243754}
+.light .commit-group-count,.light .commit-file-dir,.light .commit-amend-detail{color:#7b8494}
+.light .commit-file-name{color:#2f65a2}
+.light .commit-message-input{background:#fff;border-color:#d6dbe4;color:#343d4b}
+.light .commit-options{background:#fffffff7;border-color:#d3dbe8;box-shadow:0 10px 28px #39486b28}
+.light .commit-options-title{color:#8b93a1}
+.light .commit-option{color:#3e4554}
+.light .commit-option:hover{background:#eef2f9}
+.light .commit-push{background:#f4f6f9;border-color:#d6dbe4;color:#3b4658}
+.light .commit-push:hover{background:#e9edf4}
+.light .commit-submit{background:#356bc5}
+.light .commit-submit:hover{background:#2f60b0}
+.panel-tabs{display:flex;align-items:stretch;height:100%;min-width:0;overflow:hidden}
+.panel-tabs[hidden]{display:none}
+.panel-tab{position:relative;display:inline-flex;align-items:center;gap:6px;padding:0 9px;color:#9699a3;font-size:11px;white-space:nowrap}
+.panel-tab:hover{color:#dce0e7}
+.panel-tab.active{color:var(--strong)}
+.panel-tab.active:after{content:'';position:absolute;left:6px;right:6px;bottom:0;height:2px;background:var(--blue);border-radius:2px}
+.panel-tab-count{min-width:14px;padding:1px 4px;border-radius:3px;background:#2b2e35;color:#a5adbf;font-size:9px;text-align:center}
+.light .panel-tab{color:#6c7787}
+.light .panel-tab:hover,.light .panel-tab.active{color:#243754}
+.light .panel-tab-count{background:#e4e9f2;color:#53627a}
+.commit-pane{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+.commit-pane[hidden]{display:none}
+.commit-list-toolbar{flex:none;height:30px;display:flex;align-items:center;gap:2px;padding:0 6px;border-bottom:1px solid #2c2e34}
+.commit-list-toolbar .icon-button{width:24px;height:24px}
+.commit-list-toolbar .icon-button svg{width:15px;height:15px}
+.commit-list{flex:1;min-height:0;overflow:auto;padding:4px}
+.commit-list-row{display:flex;align-items:center;gap:8px;width:100%;height:28px;padding:0 6px;border-radius:4px;color:#c3c5ce;text-align:left;white-space:nowrap}
+.commit-list-row:hover{background:#ffffff07}
+.commit-list-row.selected{background:var(--selected)}
+.commit-list-icon{display:inline-flex;flex:none;color:#9aa4b4}
+.commit-list-icon svg{width:14px;height:14px}
+.commit-list-message{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.commit-list-meta{flex:none;color:#7f8796;font-size:10px}
+.light .commit-list-toolbar{border-color:#e4e9f1}
+.light .commit-list-row{color:#535965}
+.light .commit-list-row:hover{background:#eef2f9}
+.light .commit-list-meta{color:#7b8494}
 </style>
 </head>
 <body>
@@ -335,35 +574,67 @@ html{background:#13181e}body{background:radial-gradient(ellipse at 0% 0%,#435b59
 <circle cx="8" cy="8" r="6.5" stroke="currentColor"/>
 <path d="M8 5V8L10.5 9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
 </g></symbol>
+<symbol id="glyph-plus" viewBox="0 0 16 16" fill="none"><g stroke="none"><path d="M8 3.5V12.5M3.5 8H12.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></g></symbol>
+<symbol id="glyph-trash" viewBox="0 0 16 16" fill="none"><g stroke="none"><path d="M3 4.5H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M6.4 2.6H9.6C9.9 2.6 10.1 2.8 10.1 3.1V4.5H5.9V3.1C5.9 2.8 6.1 2.6 6.4 2.6Z" stroke="currentColor" stroke-width="1.2"/><path d="M4.3 4.5L5 13.1C5 13.5 5.3 13.8 5.7 13.8H10.3C10.7 13.8 11 13.5 11 13.1L11.7 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></g></symbol>
+<symbol id="glyph-library" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 6H14C14.5523 6 15 6.44772 15 7V13C15 13.5523 14.5523 14 14 14H3C2.44772 14 2 13.5523 2 13V5C2 4.44772 2.44772 4 3 4H6V3C6 2.44772 6.44772 2 7 2H10C10.5523 2 11 2.44772 11 3V6ZM10 3H7V13H10V3ZM11 7V13H14V7H11ZM6 5V13H3L3 5H6Z" fill="#CED0D6"/><path d="M7 3H10V13H7V3Z" fill="#43454A"/><path d="M11 13V7H14V13H11Z" fill="#43454A"/><path d="M6 13V5H3V13H6Z" fill="#43454A"/></symbol>
+<symbol id="glyph-library-light" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 6H14C14.5523 6 15 6.44772 15 7V13C15 13.5523 14.5523 14 14 14H3C2.44772 14 2 13.5523 2 13V5C2 4.44772 2.44772 4 3 4H6V3C6 2.44772 6.44772 2 7 2H10C10.5523 2 11 2.44772 11 3V6ZM10 3H7V13H10V3ZM11 7V13H14V7H11ZM6 5V13H3L3 5H6Z" fill="#6C707E"/><path d="M7 3H10V13H7V3Z" fill="#EBECF0"/><path d="M11 13V7H14V13H11Z" fill="#EBECF0"/><path d="M6 13V5H3V13H6Z" fill="#EBECF0"/></symbol>
+<symbol id="glyph-scratches" viewBox="0 0 16 16" fill="none"><path d="M8.02746 3H2.5C2.22386 3 2 3.22386 2 3.5C2 3.77614 2.22386 4 2.5 4H8.02746C8.00932 3.83583 8 3.669 8 3.5C8 3.331 8.00932 3.16417 8.02746 3Z" fill="#CED0D6"/><path d="M8.75777 6H2.5C2.22386 6 2 6.22386 2 6.5C2 6.77614 2.22386 7 2.5 7H9.5C9.55047 7 9.59918 6.99252 9.64511 6.97862C9.30367 6.69807 9.00427 6.36824 8.75777 6Z" fill="#CED0D6"/><path d="M2.5 12C2.22386 12 2 12.2239 2 12.5C2 12.7761 2.22386 13 2.5 13H9.5C9.77614 13 10 12.7761 10 12.5C10 12.2239 9.77614 12 9.5 12H2.5Z" fill="#CED0D6"/><path d="M2.5 9C2.22386 9 2 9.22386 2 9.5C2 9.77614 2.22386 10 2.5 10H13.5C13.7761 10 14 9.77614 14 9.5C14 9.22386 13.7761 9 13.5 9H2.5Z" fill="#CED0D6"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12.5 7C14.433 7 16 5.433 16 3.5C16 1.567 14.433 0 12.5 0C10.567 0 9 1.567 9 3.5C9 5.433 10.567 7 12.5 7ZM13 1.5C13 1.22386 12.7761 1 12.5 1C12.2239 1 12 1.22386 12 1.5V3.5C12 3.63261 12.0527 3.75979 12.1464 3.85355L13.5607 5.26777C13.7559 5.46303 14.0725 5.46303 14.2678 5.26777C14.463 5.0725 14.463 4.75592 14.2678 4.56066L13 3.29289V1.5Z" fill="#548AF7"/></symbol>
+<symbol id="glyph-scratches-light" viewBox="0 0 16 16" fill="none"><path d="M8.02746 3H2.5C2.22386 3 2 3.22386 2 3.5C2 3.77614 2.22386 4 2.5 4H8.02746C8.00932 3.83583 8 3.669 8 3.5C8 3.331 8.00932 3.16417 8.02746 3Z" fill="#6C707E"/><path d="M8.75777 6H2.5C2.22386 6 2 6.22386 2 6.5C2 6.77614 2.22386 7 2.5 7H9.5C9.55047 7 9.59918 6.99252 9.64511 6.97862C9.30367 6.69807 9.00427 6.36824 8.75777 6Z" fill="#6C707E"/><path d="M2.5 12C2.22386 12 2 12.2239 2 12.5C2 12.7761 2.22386 13 2.5 13H9.5C9.77614 13 10 12.7761 10 12.5C10 12.2239 9.77614 12 9.5 12H2.5Z" fill="#6C707E"/><path d="M2.5 9C2.22386 9 2 9.22386 2 9.5C2 9.77614 2.22386 10 2.5 10H13.5C13.7761 10 14 9.77614 14 9.5C14 9.22386 13.7761 9 13.5 9H2.5Z" fill="#6C707E"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12.5 7C14.433 7 16 5.433 16 3.5C16 1.567 14.433 0 12.5 0C10.567 0 9 1.567 9 3.5C9 5.433 10.567 7 12.5 7ZM13 1.5C13 1.22386 12.7761 1 12.5 1C12.2239 1 12 1.22386 12 1.5V3.5C12 3.63261 12.0527 3.75979 12.1464 3.85355L13.5607 5.26777C13.7559 5.46303 14.0725 5.46303 14.2678 5.26777C14.463 5.0725 14.463 4.75592 14.2678 4.56066L13 3.29289V1.5Z" fill="#4682FA"/></symbol>
+<symbol id="glyph-undo" viewBox="0 0 16 16" fill="none"><path d="M5.5 4.5L2.5 7.5L5.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 7.5H9.5C11.6 7.5 13.5 9.2 13.5 11.3C13.5 12.1 13.3 12.8 12.9 13.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+<symbol id="glyph-update" viewBox="0 0 16 16" fill="none"><path d="M8 2.5V9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 6.5L8 9.5L11 6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 11.5V12.5C3.5 13.05 3.95 13.5 4.5 13.5H11.5C12.05 13.5 12.5 13.05 12.5 12.5V11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+<symbol id="glyph-eye" viewBox="0 0 16 16" fill="none"><path d="M1.5 8C3.5 4.7 5.8 3.2 8 3.2C10.2 3.2 12.5 4.7 14.5 8C12.5 11.3 10.2 12.8 8 12.8C5.8 12.8 3.5 11.3 1.5 8Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.1" stroke="currentColor" stroke-width="1.2"/></symbol>
+<symbol id="glyph-expand-all" viewBox="0 0 16 16" fill="none"><path d="M4.5 5.5L8 2L11.5 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5L8 14L11.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="glyph-collapse-all" viewBox="0 0 16 16" fill="none"><path d="M4.5 2.5L8 6L11.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 13.5L8 10L11.5 13.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>
 <div class="app">
 <header class="topbar">
 <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
-<button class="icon-button main-menu" id="main-menu" aria-label="主菜单" title="主菜单"><svg><use href="#glyph-menu"/></svg></button>
 <button class="project-switch" id="project-switch" title="项目：zedx · ~/IdeaProjects/zedx" aria-label="项目 zedx"><span class="project-avatar" aria-hidden="true">ZE</span><span>zedx</span><svg><use href="#glyph-down"/></svg></button>
 <button class="branch" id="branch-btn" title="Git 分支"><svg><use href="#glyph-git"/></svg>feat / idea-workbench<svg style="width:10px"><use href="#glyph-down"/></svg></button>
 <div class="spacer"></div><span class="preview">PREVIEW 05</span><div class="sep"></div>
 <button class="run-config" id="config-btn"><svg class="run"><use href="#glyph-code"/></svg>ZedX · Development<svg><use href="#glyph-down"/></svg></button>
 <button class="icon-button run" title="运行 · ⌃R" id="run-btn"><svg><use href="#glyph-play"/></svg></button><button class="icon-button" title="调试" id="debug-btn"><svg><use href="#glyph-debug"/></svg></button>
-<div class="sep"></div><button class="search-top" id="search-top" title="Search Everywhere · 双击 Shift"><svg><use href="#glyph-search"/></svg><span>Search Everywhere</span><kbd>⇧ ⇧</kbd></button><button class="icon-button" id="theme-toggle" title="切换浅色 / 深色主题"><svg><use href="#glyph-sun"/></svg></button>
+<div class="sep"></div><button class="search-top" id="search-top" title="Search Everywhere · 双击 Shift" aria-label="Search Everywhere"><svg><use href="#glyph-search"/></svg></button><button class="icon-button" id="settings-btn" title="设置" aria-label="设置"><svg><use href="#glyph-settings"/></svg></button>
 </header>
 <div class="body">
 <nav class="rail" aria-label="左侧工具窗口">
 <button class="tool active" data-panel="project" title="项目 · ⌘1" aria-label="项目" aria-pressed="true"><svg><use href="#glyph-project"/></svg></button>
-<button class="tool" data-panel="search" title="搜索 · ⌘⇧F" aria-label="搜索" aria-pressed="false"><svg><use href="#glyph-find-tool"/></svg></button>
-<button class="tool" data-panel="git" title="提交 · ⌘0" aria-label="Git 提交" aria-pressed="false"><svg><use href="#glyph-commit"/></svg><span class="badge">3</span></button>
+<button class="tool" data-panel="commit" title="提交 · ⌘0" aria-label="提交" aria-pressed="false"><svg><use href="#glyph-commit"/></svg><span class="badge">3</span></button>
 <button class="tool" data-panel="structure" title="结构 · ⌘7" aria-label="结构" aria-pressed="false"><svg><use href="#glyph-structure"/></svg></button>
-<div class="spacer"></div><button class="tool" data-bottom="run" title="运行" aria-label="运行窗口"><svg><use href="#glyph-run-tool"/></svg></button><button class="tool active" data-bottom="terminal" title="终端 · ⌥F12" aria-label="终端"><svg><use href="#glyph-terminal"/></svg></button><div class="rail-divider"></div><button class="tool" id="settings-btn" title="设置" aria-label="设置"><svg><use href="#glyph-settings"/></svg></button>
+<button class="tool" id="more-tools-btn" title="更多工具窗口" aria-label="更多工具窗口" aria-haspopup="menu" aria-expanded="false"><svg><use href="#glyph-more"/></svg></button>
+<div class="spacer"></div><button class="tool hidden" data-bottom="find" title="查找 · ⌘⇧F" aria-label="查找"><svg><use href="#glyph-find-tool"/></svg></button><button class="tool" data-bottom="git" title="Git · ⌘9" aria-label="Git"><svg><use href="#glyph-git"/></svg></button><button class="tool" data-bottom="run" title="运行" aria-label="运行窗口"><svg><use href="#glyph-run-tool"/></svg></button><button class="tool active" data-bottom="terminal" title="终端 · ⌥F12" aria-label="终端"><svg><use href="#glyph-terminal"/></svg></button><button class="tool" data-bottom="problems" title="问题" aria-label="问题"><svg><use href="#glyph-warning"/></svg><span class="badge">2</span></button>
+<div class="tool-menu hidden" id="more-tools-menu" role="menu" aria-label="更多工具窗口"></div>
 </nav>
-<aside class="sidebar" id="sidebar"><div class="panel-head"><span id="panel-title">Project</span><svg><use href="#glyph-down"/></svg><div class="spacer"></div><button class="icon-button" id="collapse-tree" title="折叠所有文件夹"><svg><use href="#glyph-collapse"/></svg></button><button class="icon-button" id="sidebar-hide" title="隐藏面板"><svg><use href="#glyph-minus"/></svg></button></div><div class="panel-body" id="panel-body"></div><footer class="panel-foot"><span class="dot"></span><span id="panel-footer">Rust workspace</span><span class="spacer"></span><span class="muted">12 crates</span></footer></aside>
+<aside class="sidebar" id="sidebar"><div class="panel-head"><span id="panel-title">Project</span><svg class="panel-chevron"><use href="#glyph-down"/></svg><div class="panel-tabs" id="panel-tabs" role="tablist" aria-label="Commit" hidden></div><div class="spacer"></div><button class="icon-button" id="collapse-tree" title="折叠所有文件夹"><svg><use href="#glyph-collapse"/></svg></button><button class="icon-button" id="sidebar-hide" title="隐藏面板"><svg><use href="#glyph-minus"/></svg></button></div><div class="panel-body" id="panel-body"></div><footer class="panel-foot"><span class="dot"></span><span id="panel-footer">Rust workspace</span><span class="spacer"></span><span class="muted" id="panel-foot-extra">12 crates</span></footer></aside>
 <div class="resize-x" id="resize-x" role="separator" aria-label="调整项目面板宽度" aria-orientation="vertical"></div>
 <main class="workspace">
 <div class="editor-area"><section class="editor" aria-label="代码编辑器"><div class="tabs" id="tabs"></div><div class="breadcrumbs" id="breadcrumbs"></div><div class="codewrap" id="codewrap" tabindex="0" aria-label="源码预览"></div><div class="editor-note"><span><span class="check">✓</span> <span id="file-note">Source preview · Rust</span></span><span>⌘B 跳转定义 <span style="margin:0 10px;color:#484c56">·</span> ⌥↵ 快速操作</span></div></section>
 <aside class="right-panel hidden" id="right-panel"></aside></div>
 <div class="resize-y" id="resize-y" role="separator" aria-label="调整工具窗口高度" aria-orientation="horizontal"></div>
-<section class="bottom" id="bottom" aria-label="底部工具窗口"><header class="bottom-tabs"><button class="bottom-tab active" data-view="terminal"><svg><use href="#glyph-terminal"/></svg>Terminal</button><button class="bottom-tab" data-view="run"><svg><use href="#glyph-play"/></svg>Run</button><button class="bottom-tab" data-view="problems"><svg><use href="#glyph-warning"/></svg>Problems <span class="tab-count">2</span></button><div class="spacer"></div><span class="muted" style="font-size:10px;margin-right:10px" id="terminal-label">Local · zsh</span><button class="icon-button" id="clear-terminal" title="清空终端"><svg><use href="#glyph-refresh"/></svg></button><button class="icon-button" id="bottom-hide" title="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header><div class="terminal" id="terminal"><div class="term-sub">ZedX interface preview · interactive demo terminal</div><div><span class="term-arrow">❯</span><span class="term-path">~/IdeaProjects/zedx</span> <span class="muted">on</span> <span style="color:#b8a1dd">feat/idea-workbench</span></div><div id="terminal-output"><div><span class="muted">$</span> cargo check -p workspace</div><div><span class="green">&nbsp; Finished</span> <span class="term-sub">dev profile [unoptimized + debuginfo] — 示例输出</span></div></div><div class="term-input-row"><span class="term-arrow">❯</span><input class="term-input" id="terminal-input" aria-label="演示终端命令" autocomplete="off" spellcheck="false" placeholder="输入 help 查看演示命令"></div></div><div class="bottom-view hidden" id="run-view"></div><div class="bottom-view hidden" id="problems-view"><div><span style="color:#d5b575">△</span> &nbsp;Unused import: <span class="blue">Context</span> <span class="muted">— workspace.rs:4</span></div><div><span style="color:#d5b575">△</span> &nbsp;Field <span class="blue">active_panel</span> is never read <span class="muted">— sidebar.rs:18</span></div><div class="muted" style="margin-top:7px">示例诊断 · 点击左侧文件可切换代码预览</div></div></section>
+<section class="bottom" id="bottom" aria-label="底部工具窗口">
+<div class="tool-window" data-window="terminal">
+<header class="tool-window-head"><svg><use href="#glyph-terminal"/></svg><span class="tool-window-title">Terminal</span><span class="tool-window-meta" id="terminal-label">Local · zsh</span><div class="spacer"></div><button class="icon-button" id="clear-terminal" title="清空终端" aria-label="清空终端"><svg><use href="#glyph-refresh"/></svg></button><button class="icon-button tool-window-hide" title="隐藏工具窗口" aria-label="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header>
+<div class="terminal" id="terminal"><div class="term-sub">ZedX interface preview · interactive demo terminal</div><div><span class="term-arrow">❯</span><span class="term-path">~/IdeaProjects/zedx</span> <span class="muted">on</span> <span style="color:#b8a1dd">feat/idea-workbench</span></div><div id="terminal-output"><div><span class="muted">$</span> cargo check -p workspace</div><div><span class="green">&nbsp; Finished</span> <span class="term-sub">dev profile [unoptimized + debuginfo] — 示例输出</span></div></div><div class="term-input-row"><span class="term-arrow">❯</span><input class="term-input" id="terminal-input" aria-label="演示终端命令" autocomplete="off" spellcheck="false" placeholder="输入 help 查看演示命令"></div></div>
+</div>
+<div class="tool-window hidden" data-window="run">
+<header class="tool-window-head"><svg><use href="#glyph-play"/></svg><span class="tool-window-title">Run</span><span class="tool-window-meta" id="run-label">ZedX · Development</span><div class="spacer"></div><button class="icon-button tool-window-hide" title="隐藏工具窗口" aria-label="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header>
+<div class="bottom-view" id="run-view"></div>
+</div>
+<div class="tool-window hidden" data-window="problems">
+<header class="tool-window-head"><svg><use href="#glyph-warning"/></svg><span class="tool-window-title">Problems</span><span class="tab-count">2</span><div class="spacer"></div><button class="icon-button tool-window-hide" title="隐藏工具窗口" aria-label="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header>
+<div class="bottom-view" id="problems-view"><div><span style="color:#d5b575">△</span> &nbsp;Unused import: <span class="blue">Context</span> <span class="muted">— workspace.rs:4</span></div><div><span style="color:#d5b575">△</span> &nbsp;Field <span class="blue">active_panel</span> is never read <span class="muted">— sidebar.rs:18</span></div><div class="muted" style="margin-top:7px">示例诊断 · 点击左侧文件可切换代码预览</div></div>
+</div>
+<div class="tool-window hidden" data-window="find">
+<header class="tool-window-head"><svg><use href="#glyph-find-tool"/></svg><span class="tool-window-title">Find</span><span class="tool-window-meta">Project</span><div class="spacer"></div><button class="icon-button tool-window-hide" title="隐藏工具窗口" aria-label="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header>
+<div class="window-body"><div class="search-field"><input id="find-input" value="ToolWindowBar" placeholder="搜索项目代码" aria-label="搜索项目代码"></div><div class="muted" style="font-size:10px;padding:0 2px 8px" id="find-summary">In Project</div><div id="find-results"></div></div>
+</div>
+<div class="tool-window hidden" data-window="git">
+<header class="tool-window-head"><svg><use href="#glyph-git"/></svg><span class="tool-window-title">Git</span><span class="tool-window-meta">feat/idea-workbench</span><div class="spacer"></div><button class="icon-button tool-window-hide" title="隐藏工具窗口" aria-label="隐藏工具窗口"><svg><use href="#glyph-minus"/></svg></button></header>
+<div class="git-view" id="git-view"></div>
+</div>
+</section>
 </main>
-<nav class="rail right" aria-label="右侧工具窗口"><button class="tool" data-right="agent" title="AI 助手" aria-label="AI 助手"><svg><use href="#glyph-spark"/></svg></button><button class="tool" data-right="outline" title="文件大纲" aria-label="文件大纲"><svg><use href="#glyph-structure"/></svg></button><button class="tool" id="database-btn" title="数据库" aria-label="数据库"><svg><use href="#glyph-database"/></svg></button><div class="spacer"></div><button class="tool" id="notification-btn" title="通知" aria-label="通知"><svg><use href="#glyph-bell"/></svg></button></nav>
+<nav class="rail right" aria-label="右侧工具窗口"><button class="tool" id="notification-btn" title="通知" aria-label="通知"><svg><use href="#glyph-bell"/></svg></button><button class="tool" data-right="agent" title="AI 助手" aria-label="AI 助手"><svg><use href="#glyph-spark"/></svg></button><button class="tool" data-right="outline" title="文件大纲" aria-label="文件大纲"><svg><use href="#glyph-structure"/></svg></button><button class="tool" id="database-btn" title="数据库" aria-label="数据库"><svg><use href="#glyph-database"/></svg></button><div class="spacer"></div></nav>
 </div>
 <footer class="statusbar"><span class="status-item"><svg><use href="#glyph-git"/></svg>feat/idea-workbench</span><span class="status-item optional"><svg class="green"><use href="#glyph-check"/></svg>All changes saved</span><div class="spacer"></div><span id="cursor-pos">22:9</span><span class="status-encoding">LF</span><span class="status-encoding">UTF-8</span><button id="indent-btn">4 spaces</button><span id="language-status">Rust</span><span style="color:#81899d">HTML 原型</span></footer>
 </div>
@@ -379,7 +650,7 @@ html{background:#13181e}body{background:radial-gradient(ellipse at 0% 0%,#435b59
 </section></div>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 <script>
-const LIGHT_ICONS=new Set(["project", "find-tool", "commit", "git", "structure", "folder", "search", "play", "run-tool", "debug", "settings", "chevron", "down", "more", "minus", "check", "database", "bell", "split", "refresh", "sun", "arrow-up", "history", "warning", "file-rust", "file-toml", "file-markdown", "file-cargo", "collapse", "close", "menu", "search-preview", "search-filter", "search-find", "search-class", "search-history"]);
+const LIGHT_ICONS=new Set(["project", "find-tool", "commit", "git", "structure", "folder", "search", "play", "run-tool", "debug", "settings", "chevron", "down", "more", "minus", "check", "database", "bell", "split", "refresh", "sun", "arrow-up", "history", "warning", "file-rust", "file-toml", "file-markdown", "file-cargo", "collapse", "close", "menu", "search-preview", "search-filter", "search-find", "search-class", "search-history", "library", "scratches"]);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],icon=(n,c='')=>`<svg class="${c}" aria-hidden="true"><use href="#glyph-${n}${document.body.classList.contains('light')&&LIGHT_ICONS.has(n)?'-light':''}"/></svg>`,esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fileIcon=n=>icon(n.endsWith('.rs')?'file-rust':n.endsWith('.toml')?'file-cargo':'file-markdown','file-type');
 const files={
@@ -544,20 +815,273 @@ let includeNonProject=false,searchPreview=false;const SEARCH_KINDS=['All','Class
 function toast(message){$('#toast').textContent=message;$('#toast').classList.remove('hidden');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.add('hidden'),3000)}
 function highlight(line){const re=/(\/\/.*$|#.*$|"(?:[^"\\]|\\.)*"|'static\b|\b(?:use|pub|struct|impl|fn|let|mut|self|Self|for|move|if|else|enum|trait|Some|None|return|true|false)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*(?=\())/g;let out='',last=0;for(const m of line.matchAll(re)){out+=esc(line.slice(last,m.index));let t=m[0],cls=t.startsWith('//')||t.startsWith('#')?'comment':t.startsWith('"')?'str':/^\d/.test(t)?'number':/^(use|pub|struct|impl|fn|let|mut|self|Self|for|move|if|else|enum|trait|Some|None|return|true|false|'static)$/.test(t)?'kw':'fn';out+=`<span class="${cls}">${esc(t)}</span>`;last=m.index+t.length}return out+esc(line.slice(last))}
 function openFile(name){if(!files[name])return;if(!openTabs.includes(name))openTabs.push(name);current=name;renderEditor();if(innerWidth<560)hideSidebar();}
-function renderEditor(){let f=files[current];$('#tabs').innerHTML=openTabs.map(n=>`<button class="tab ${n===current?'active':''}" data-file="${n}" aria-label="打开 ${n}" aria-selected="${n===current}">${fileIcon(n)}${n}${n==='sidebar.rs'?'<span class="modified"></span>':''}<span class="close-tab" data-close="${n}" aria-label="关闭 ${n}">${icon('close')}</span></button>`).join('')+`<div class="tab-spacer"><button class="icon-button" id="split-btn" title="拆分编辑器">${icon('split')}</button></div>`;if(!f){$('#codewrap').innerHTML='<div class="empty-editor"><h2>ZedX</h2><span>打开左侧文件，开始探索</span><span>⌘P 搜索文件</span></div>';$('#breadcrumbs').textContent='';return}$('#breadcrumbs').innerHTML=f.path.split(' / ').map((p,i)=>`${i?icon('chevron'):''}<span class="${i===3?'crumb-current':''}">${esc(p)}</span>`).join('')+(current.endsWith('.rs')?`${icon('chevron')}<span class="crumb-icon">S</span><span class="crumb-current">${current==='sidebar.rs'?'ToolWindowBar':current==='workspace.rs'?'Workspace':'Dock'}</span>`:'');$('#codewrap').innerHTML=f.code.split('\n').map((line,i)=>`<div class="code-line ${i===21?'current':''} ${i>=14&&i<=22?'changed':''}" data-line="${i+1}"><span class="gutter"><span class="line-no">${i+1}</span><span class="fold">${/[{}]\s*$/.test(line)&&line.trim().endsWith('{')?'⌄':''}</span><span class="change"></span></span><span class="code-text">${highlight(line)||' '}</span></div>`).join('');$('#language-status').textContent=f.lang;$('#cursor-pos').textContent=current==='sidebar.rs'?'22:9':'1:1';$$('[data-tree-file]').forEach(el=>el.classList.toggle('selected',el.dataset.treeFile===current));$('#tabs').querySelectorAll('[data-file]').forEach(el=>el.onclick=e=>{if(e.target.closest('[data-close]')){let closeName=e.target.closest('[data-close]').dataset.close;openTabs=openTabs.filter(n=>n!==closeName);if(current===closeName)current=openTabs.at(-1);renderEditor()}else openFile(el.dataset.file)});$('#split-btn').onclick=()=>toggleRight('outline');$('#codewrap').scrollTop=0;}
+function renderEditor(){let f=files[current];$('#tabs').innerHTML=openTabs.map(n=>`<button class="tab ${n===current?'active':''}" data-file="${n}" aria-label="打开 ${n}" aria-selected="${n===current}">${fileIcon(n)}${n}${n==='sidebar.rs'?'<span class="modified"></span>':''}<span class="close-tab" data-close="${n}" aria-label="关闭 ${n}">${icon('close')}</span></button>`).join('')+`<div class="tab-spacer"><button class="icon-button" id="split-btn" title="拆分编辑器">${icon('split')}</button></div>`;if(!f){$('#codewrap').innerHTML='<div class="empty-editor"><h2>ZedX</h2><span>打开左侧文件，开始探索</span><span>⌘P 搜索文件</span></div>';$('#breadcrumbs').textContent='';return}$('#breadcrumbs').innerHTML=f.path.split(' / ').map((p,i)=>`${i?icon('chevron'):''}<span class="${i===3?'crumb-current':''}">${esc(p)}</span>`).join('')+(current.endsWith('.rs')?`${icon('chevron')}<span class="crumb-icon">S</span><span class="crumb-current">${current==='sidebar.rs'?'ToolWindowBar':current==='workspace.rs'?'Workspace':'Dock'}</span>`:'');$('#codewrap').innerHTML=f.code.split('\n').map((line,i)=>`<div class="code-line ${i===21?'current':''} ${i>=14&&i<=22?'changed':''}" data-line="${i+1}"><span class="gutter"><span class="line-no">${i+1}</span><span class="fold">${/[{}]\s*$/.test(line)&&line.trim().endsWith('{')?'⌄':''}</span><span class="change"></span></span><span class="code-text">${highlight(line)||' '}</span></div>`).join('');$('#language-status').textContent=f.lang;$('#cursor-pos').textContent=current==='sidebar.rs'?'22:9':'1:1';$$('[data-tree-file]').forEach(el=>el.classList.toggle('selected',el.dataset.treeFile===current));$('#tabs').querySelectorAll('[data-file]').forEach(el=>el.onclick=e=>{if(e.target.closest('[data-close]')){let closeName=e.target.closest('[data-close]').dataset.close;openTabs=openTabs.filter(n=>n!==closeName);if(current===closeName)current=openTabs.at(-1);renderEditor()}else openFile(el.dataset.file)});$('#split-btn').onclick=toggleEditorSplit;$('#codewrap').scrollTop=0;}
 function fileRow(name,depth=2,status=''){return `<button class="tree-row ${name===current?'selected':''}" data-tree-file="${name}" style="padding-left:${8+depth*17}px">${fileIcon(name)}${name}<small>${status}</small></button>`}
 function folderRow(name,id,depth=0,expanded=true){return `<button class="tree-row" data-folder="${id}" aria-expanded="${expanded}" style="padding-left:${7+depth*17}px">${icon(expanded?'down':'chevron','chev')}${icon('folder','folder')}<span>${name}</span></button>`}
-function projectHtml(){return `<button class="tree-row root-row" data-folder="root" aria-expanded="true">${icon('down','chev')}${icon('folder','folder')}zedx <span class="root-path">~/IdeaProjects/zedx</span></button><div class="tree-group" id="group-root">${folderRow('.github','github',1,false)}<div class="tree-group" id="group-github" hidden><div class="tree-row" style="padding-left:58px">workflows</div></div>${folderRow('assets','assets',1,false)}<div class="tree-group" id="group-assets" hidden><div class="tree-row" style="padding-left:58px">icons</div></div>${folderRow('crates','crates',1)}<div class="tree-group" id="group-crates">${folderRow('editor','editor',2,false)}<div class="tree-group" id="group-editor" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('gpui','gpui',2,false)}<div class="tree-group" id="group-gpui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('ui','ui',2,false)}<div class="tree-group" id="group-ui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('workspace','workspace',2)}<div class="tree-group" id="group-workspace">${folderRow('src','src',3)}<div class="tree-group" id="group-src">${fileRow('dock.rs',4)}${fileRow('sidebar.rs',4,'M')}${fileRow('workspace.rs',4,'M')}</div>${fileRow('Cargo.toml',3)}</div>${folderRow('zed','zed',2,false)}<div class="tree-group" id="group-zed" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div></div>${folderRow('docs','docs',1,false)}<div class="tree-group" id="group-docs" hidden><div class="tree-row muted" style="padding-left:58px">PLAN.md</div></div>${fileRow('Cargo.toml',1,'M')}${fileRow('README.md',1)}</div><div class="section-label">${icon('chevron','chev')}External Libraries</div><div class="section-label">${icon('chevron','chev')}Scratches and Consoles</div>`}
+function projectHtml(){return `<button class="tree-row root-row" data-folder="root" aria-expanded="true">${icon('down','chev')}${icon('folder','folder')}zedx <span class="root-path">~/IdeaProjects/zedx</span></button><div class="tree-group" id="group-root">${folderRow('.github','github',1,false)}<div class="tree-group" id="group-github" hidden><div class="tree-row" style="padding-left:58px">workflows</div></div>${folderRow('assets','assets',1,false)}<div class="tree-group" id="group-assets" hidden><div class="tree-row" style="padding-left:58px">icons</div></div>${folderRow('crates','crates',1)}<div class="tree-group" id="group-crates">${folderRow('editor','editor',2,false)}<div class="tree-group" id="group-editor" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('gpui','gpui',2,false)}<div class="tree-group" id="group-gpui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('ui','ui',2,false)}<div class="tree-group" id="group-ui" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div>${folderRow('workspace','workspace',2)}<div class="tree-group" id="group-workspace">${folderRow('src','src',3)}<div class="tree-group" id="group-src">${fileRow('dock.rs',4)}${fileRow('sidebar.rs',4,'M')}${fileRow('workspace.rs',4,'M')}</div>${fileRow('Cargo.toml',3)}</div>${folderRow('zed','zed',2,false)}<div class="tree-group" id="group-zed" hidden><div class="tree-row muted" style="padding-left:75px">src</div></div></div>${folderRow('docs','docs',1,false)}<div class="tree-group" id="group-docs" hidden><div class="tree-row muted" style="padding-left:58px">PLAN.md</div></div>${fileRow('Cargo.toml',1,'M')}${fileRow('README.md',1)}</div><button class="tree-row" data-folder="libs" aria-expanded="false">${icon('chevron','chev')}${icon('library','node-icon')}<span>External Libraries</span></button><div class="tree-group" id="group-libs" hidden><button class="tree-row" data-folder="lib-rust" aria-expanded="false" style="padding-left:24px">${icon('chevron','chev')}${icon('file-rust','file-type')}<span>&lt; Rust 1.83.0 (rustc) &gt;</span></button><div class="tree-group" id="group-lib-rust" hidden><div class="tree-row muted" style="padding-left:41px">${icon('folder','folder')}stdlib</div></div><button class="tree-row" data-folder="lib-cargo" aria-expanded="false" style="padding-left:24px">${icon('chevron','chev')}${icon('file-cargo','file-type')}<span>&lt; Cargo &gt;</span></button><div class="tree-group" id="group-lib-cargo" hidden><div class="tree-row muted" style="padding-left:41px">${icon('folder','folder')}registry</div></div></div><button class="tree-row" data-folder="scratches" aria-expanded="false">${icon('chevron','chev')}${icon('scratches','node-icon')}<span>Scratches and Consoles</span></button><div class="tree-group" id="group-scratches" hidden><div class="tree-row muted" style="padding-left:24px">${icon('scratches','node-icon')}Scratches</div><div class="tree-row muted" style="padding-left:24px">${icon('terminal','node-icon')}Consoles</div></div>`}
 function showPanel(name){if(panel===name&&!$('#sidebar').classList.contains('hidden'))return hideSidebar();panel=name;$('#sidebar').classList.remove('hidden');$('#resize-x').style.display='';$$('[data-panel]').forEach(el=>{el.classList.toggle('active',el.dataset.panel===name);el.setAttribute('aria-pressed',el.dataset.panel===name)});renderPanel()}
 function hideSidebar(){$('#sidebar').classList.add('hidden');$('#resize-x').style.display='none';$$('[data-panel]').forEach(el=>{el.classList.remove('active');el.setAttribute('aria-pressed','false')})}
-function renderPanel(){$('#panel-title').textContent={project:'Project',search:'Find in Files',git:'Commit',structure:'Structure'}[panel];$('#panel-footer').textContent={project:'Rust workspace',search:'Project scope',git:'3 modified files',structure:'Current file'}[panel];let b=$('#panel-body');b.innerHTML=panel==='project'?projectHtml():panel==='search'?`<div class="search-field"><input id="find-input" value="ToolWindowBar" placeholder="搜索项目代码" aria-label="搜索项目代码"></div><div class="muted" style="font-size:10px;padding:0 7px 7px">In Project · 3 matches in 2 files</div><div id="find-results"></div>`:panel==='git'?`<div class="git-title">Changes <span>3 files</span></div>${['sidebar.rs','workspace.rs','Cargo.toml'].map(n=>`<div class="git-file" data-tree-file="${n}"><input type="checkbox" checked aria-label="暂存 ${n}"><span>${esc(n)}</span><span>M</span></div>`).join('')}<div class="commit-box"><textarea aria-label="提交信息" placeholder="Commit message">feat: add IDEA-style tool window bar</textarea><button class="primary" id="commit-btn">Commit 3 files</button><div class="muted" style="font-size:10px;margin-top:8px">界面演示，不会操作真实仓库</div></div>`:`<div class="muted" style="padding:3px 8px 12px;font-size:10px">${esc(current||'sidebar.rs')}</div>${outlineHtml()}`;b.querySelectorAll('[data-tree-file]').forEach(el=>el.onclick=e=>{if(e.target.type!=='checkbox')openFile(el.dataset.treeFile)});b.querySelectorAll('[data-folder]').forEach(el=>el.onclick=()=>{let g=$('#group-'+el.dataset.folder);if(!g)return;g.hidden=!g.hidden;el.setAttribute('aria-expanded',!g.hidden);el.querySelector('use').setAttribute('href',g.hidden?'#glyph-chevron':'#glyph-down')});if(panel==='search'){$('#find-input').oninput=renderSearch;renderSearch()}if(panel==='git')$('#commit-btn').onclick=()=>toast('提交预览已准备好 · 当前为 HTML 交互演示');b.querySelectorAll('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine))}
-function renderSearch(){let q=$('#find-input').value.trim();let matches=[];if(q)for(const [name,file]of Object.entries(files)){let rows=file.code.split('\n').map((text,i)=>({text,line:i+1})).filter(l=>l.text.toLowerCase().includes(q.toLowerCase()));if(rows.length)matches.push(`<div class="result-file">${esc(name)} <span class="muted">${rows.length}</span></div>`+rows.map(l=>`<div class="result-line" data-search-file="${name}" data-search-line="${l.line}">${l.line}&nbsp; ${esc(l.text.trim()).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<mark>${m}</mark>`)}</div>`).join(''))}$('#find-results').innerHTML=matches.join('')||'<div class="muted" style="padding:10px 7px">'+(q?'没有匹配结果':'输入关键字以搜索')+'</div>';$$('[data-search-file]').forEach(el=>el.onclick=()=>{openFile(el.dataset.searchFile);goLine(+el.dataset.searchLine)})}
+const COMMIT_CHANGES=[
+  {name:'sidebar.rs',dir:'crates/workspace/src',status:'M',kind:'modified'},
+  {name:'workspace.rs',dir:'crates/workspace/src',status:'M',kind:'modified'},
+  {name:'Cargo.toml',dir:'zedx',status:'M',kind:'modified'}
+];
+const COMMIT_UNVERSIONED=[
+  {name:'.env.local',dir:'zedx',status:'?',kind:'unversioned'},
+  {name:'notes.md',dir:'zedx',status:'?',kind:'unversioned'}
+];
+let commitIncluded=new Set(['sidebar.rs','workspace.rs','Cargo.toml']);
+let commitAmend=false,commitMessage='feat: add IDEA-style tool window bar';
+let commitGroups={changes:true,unversioned:false},commitMessageHeight=null;
+const COMMIT_STASHES=[
+  {message:'WIP: tool window parity',files:2,age:'1h ago'},
+  {message:'experiment: dock sizes',files:1,age:'2d ago'}
+];
+const COMMIT_SHELVES=[
+  {message:'shelf: search palette polish',files:3,age:'3d ago'}
+];
+let commitTab='commit';
+function commitFileRow(file){
+  const included=commitIncluded.has(file.name);
+  const openAttr=file.kind==='unversioned'?'data-commit-unversioned':'data-commit-open';
+  return `<div class="commit-file" data-commit-file="${esc(file.name)}"><input type="checkbox" class="commit-check" data-commit-check="${esc(file.name)}" ${included?'checked':''} aria-label="Include ${esc(file.name)}"><span class="commit-status ${file.kind}">${file.status}</span><button class="commit-file-name" ${openAttr}="${esc(file.name)}" title="${esc(file.name)}">${esc(file.name)}</button><span class="commit-file-dir">${esc(file.dir)}</span></div>`;
+}
+function commitGroupHtml(id,label,files,expanded){
+  const all=files.every(file=>commitIncluded.has(file.name));
+  const some=files.some(file=>commitIncluded.has(file.name));
+  return `<div class="commit-group-row" data-commit-group-row="${id}"><button class="commit-chevron" data-commit-group-toggle="${id}" aria-expanded="${expanded}" aria-label="${expanded?'Collapse':'Expand'} ${label}">${icon(expanded?'down':'chevron')}</button><input type="checkbox" class="commit-check" data-commit-group-check="${id}" ${all?'checked':''} ${some&&!all?'data-indeterminate="true"':''} aria-label="Include ${label}"><span class="commit-group-name">${label}</span><span class="commit-group-count">${files.length} file${files.length===1?'':'s'}</span></div><div class="commit-group-files" data-commit-group-files="${id}" ${expanded?'':'hidden'}>${files.map(commitFileRow).join('')}</div>`;
+}
+function commitStashPaneHtml(){
+  return `<div class="commit-list-toolbar" role="toolbar" aria-label="Stashes"><button class="icon-button" data-stash-action="refresh" title="Refresh">${icon('refresh')}</button><button class="icon-button" data-stash-action="apply" title="Apply Stash">${icon('update')}</button><button class="icon-button" data-stash-action="drop" title="Drop Stash">${icon('trash')}</button></div><div class="commit-list" role="listbox" aria-label="Stashes">${COMMIT_STASHES.map(stash=>`<button class="commit-list-row" data-stash-row="${esc(stash.message)}"><span class="commit-list-icon">${icon('git')}</span><span class="commit-list-message">${esc(stash.message)}</span><span class="commit-list-meta">${stash.files} files · ${esc(stash.age)}</span></button>`).join('')}</div>`;
+}
+function commitShelfPaneHtml(){
+  return `<div class="commit-list-toolbar" role="toolbar" aria-label="Shelf"><button class="icon-button" data-shelf-action="refresh" title="Refresh">${icon('refresh')}</button><button class="icon-button" data-shelf-action="apply" title="Apply Shelved Changes">${icon('update')}</button><button class="icon-button" data-shelf-action="drop" title="Delete Shelved Changes">${icon('trash')}</button></div><div class="commit-list" role="listbox" aria-label="Shelf">${COMMIT_SHELVES.map(shelf=>`<button class="commit-list-row" data-shelf-row="${esc(shelf.message)}"><span class="commit-list-icon">${icon('library')}</span><span class="commit-list-message">${esc(shelf.message)}</span><span class="commit-list-meta">${shelf.files} files · ${esc(shelf.age)}</span></button>`).join('')}</div>`;
+}
+function renderCommitTabs(){
+  const tabs=document.querySelector('#panel-tabs');
+  if(!tabs)return;
+  const tab=(id,label,count)=>`<button class="panel-tab${commitTab===id?' active':''}" data-commit-tab="${id}" role="tab" aria-selected="${commitTab===id}">${label}<span class="panel-tab-count">${count}</span></button>`;
+  tabs.innerHTML=tab('commit','Commit',COMMIT_CHANGES.length)+tab('stash','Stash',COMMIT_STASHES.length)+tab('shelf','Shelf',COMMIT_SHELVES.length);
+}
+function commitPanelHtml(){
+  const included=commitIncluded.size;
+  const commitPane=`<div class="commit-toolbar" role="toolbar" aria-label="Changes"><button class="icon-button" data-commit-action="refresh" title="Refresh">${icon('refresh')}</button><button class="icon-button" data-commit-action="rollback" title="Rollback">${icon('undo')}</button><button class="icon-button" data-commit-action="update" title="Update Project">${icon('update')}</button><button class="icon-button" data-commit-action="view-options" title="View Options">${icon('eye')}</button><button class="icon-button" data-commit-action="expand" title="Expand All">${icon('expand-all')}</button><button class="icon-button" data-commit-action="collapse" title="Collapse All">${icon('collapse-all')}</button></div><div class="commit-changes" id="commit-changes">${commitGroupHtml('changes','Changes',COMMIT_CHANGES,commitGroups.changes)}${commitGroupHtml('unversioned','Unversioned Files',COMMIT_UNVERSIONED,commitGroups.unversioned)}</div><div class="commit-resize" id="commit-resize" role="separator" aria-orientation="horizontal" aria-label="调整提交信息高度" tabindex="0"></div><div class="commit-message"${commitMessageHeight?` style="flex:0 0 ${commitMessageHeight}px"`:''}><div class="commit-amend"><input type="checkbox" class="commit-check" id="commit-amend" ${commitAmend?'checked':''}><label for="commit-amend">Amend</label><span class="commit-amend-detail">last commit</span><span class="spacer"></span><button class="icon-button" data-commit-action="history" title="Commit Message History">${icon('history')}</button></div><textarea class="commit-message-input" id="commit-message-input" placeholder="Commit Message" spellcheck="true">${esc(commitMessage)}</textarea><div class="commit-inspect hidden" id="commit-inspect" role="alert">Specify commit message</div><div class="commit-actions"><button class="commit-submit" id="commit-btn" ${included?'':'disabled'}>Commit</button><button class="commit-push" id="commit-push-btn" ${included?'':'disabled'}>Commit and Push…</button><span class="spacer"></span><button class="icon-button" id="commit-options-btn" title="Commit Options">${icon('settings')}</button></div><div class="commit-options hidden" id="commit-options" role="dialog" aria-label="Commit Options"><div class="commit-options-title">Commit Options</div><label class="commit-option"><input type="checkbox" checked>Run code analysis before commit</label><label class="commit-option"><input type="checkbox">Sign-off commit</label><label class="commit-option"><input type="checkbox">Commit and Push…</label></div></div>`;
+  const pane=(id,content)=>`<div class="commit-pane" data-commit-pane="${id}"${commitTab===id?'':' hidden'}>${content}</div>`;
+  return `<div class="commit-panel">${pane('commit',commitPane)}${pane('stash',commitStashPaneHtml())}${pane('shelf',commitShelfPaneHtml())}</div>`;
+}
+function bindCommitPanel(){
+  const panel=document.querySelector('.commit-panel');
+  if(!panel)return;
+  const refreshState=()=>{
+    const included=commitIncluded.size;
+    const submit=document.querySelector('#commit-btn'),push=document.querySelector('#commit-push-btn');
+    if(submit)submit.disabled=included===0;
+    if(push)push.disabled=included===0;
+    for(const [groupId,files] of [['changes',COMMIT_CHANGES],['unversioned',COMMIT_UNVERSIONED]]){
+      const box=panel.querySelector(`[data-commit-group-check="${groupId}"]`);
+      if(!box)continue;
+      const count=files.filter(file=>commitIncluded.has(file.name)).length;
+      box.checked=count===files.length;
+      box.indeterminate=count>0&&count<files.length;
+    }
+  };
+  panel.querySelectorAll('[data-indeterminate="true"]').forEach(el=>{el.indeterminate=true;el.removeAttribute('data-indeterminate')});
+  refreshState();
+  const message=panel.querySelector('.commit-message'),resizeHandle=panel.querySelector('#commit-resize');
+  if(message&&resizeHandle){
+    const applyMessageHeight=height=>{
+      const panelHeight=panel.getBoundingClientRect().height;
+      const next=Math.max(170,Math.min(height,panelHeight-120));
+      commitMessageHeight=next;message.style.flex=`0 0 ${next}px`;
+    };
+    if(commitMessageHeight)applyMessageHeight(commitMessageHeight);
+    resizeHandle.addEventListener('pointerdown',event=>{
+      event.preventDefault();
+      const panelRect=panel.getBoundingClientRect();
+      resizeHandle.classList.add('dragging');document.body.classList.add('commit-resizing');
+      const move=moveEvent=>applyMessageHeight(panelRect.bottom-moveEvent.clientY);
+      const stop=()=>{resizeHandle.classList.remove('dragging');document.body.classList.remove('commit-resizing');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',stop)};
+      window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop);window.addEventListener('pointercancel',stop);
+    });
+    resizeHandle.addEventListener('keydown',event=>{
+      if(event.key!=='ArrowUp'&&event.key!=='ArrowDown')return;
+      event.preventDefault();
+      applyMessageHeight(message.getBoundingClientRect().height+(event.key==='ArrowUp'?16:-16));
+    });
+    resizeHandle.addEventListener('dblclick',()=>{commitMessageHeight=null;message.style.flex=''});
+  }
+  const selectRow=row=>{panel.querySelectorAll('.commit-file.selected,.commit-group-row.selected').forEach(el=>el.classList.remove('selected'));row.classList.add('selected')};
+  const setGroup=(groupId,expanded)=>{
+    commitGroups[groupId]=expanded;
+    const files=panel.querySelector(`[data-commit-group-files="${groupId}"]`);
+    const toggle=panel.querySelector(`[data-commit-group-toggle="${groupId}"]`);
+    if(files)files.hidden=!expanded;
+    if(toggle){toggle.setAttribute('aria-expanded',String(expanded));toggle.innerHTML=icon(expanded?'down':'chevron')}
+  };
+  const doCommit=push=>{
+    const input=document.querySelector('#commit-message-input');
+    if(!input)return;
+    if(!input.value.trim()){document.querySelector('#commit-inspect')?.classList.remove('hidden');input.focus();return}
+    if(commitIncluded.size===0)return;
+    toast(`原型演示：${push?'提交并推送':'提交'} ${commitIncluded.size} 个文件`);
+  };
+  panel.addEventListener('change',event=>{
+    const fileCheck=event.target.closest('[data-commit-check]');
+    if(fileCheck){const name=fileCheck.dataset.commitCheck;fileCheck.checked?commitIncluded.add(name):commitIncluded.delete(name);refreshState();return}
+    const groupCheck=event.target.closest('[data-commit-group-check]');
+    if(groupCheck){const groupId=groupCheck.dataset.commitGroupCheck;const files=groupId==='changes'?COMMIT_CHANGES:COMMIT_UNVERSIONED;for(const file of files){groupCheck.checked?commitIncluded.add(file.name):commitIncluded.delete(file.name)}panel.querySelectorAll('[data-commit-check]').forEach(box=>{if(files.some(file=>file.name===box.dataset.commitCheck))box.checked=groupCheck.checked});refreshState();return}
+    if(event.target.id==='commit-amend')commitAmend=event.target.checked;
+  });
+  panel.addEventListener('click',event=>{
+    const stashAction=event.target.closest('[data-stash-action]');
+    if(stashAction){toast('原型演示：Stash 操作');return}
+    const shelfAction=event.target.closest('[data-shelf-action]');
+    if(shelfAction){toast('原型演示：Shelf 操作');return}
+    const stashRow=event.target.closest('[data-stash-row]');
+    if(stashRow){panel.querySelectorAll('.commit-list-row.selected').forEach(el=>el.classList.remove('selected'));stashRow.classList.add('selected');toast('原型演示：不会应用 stash');return}
+    const shelfRow=event.target.closest('[data-shelf-row]');
+    if(shelfRow){panel.querySelectorAll('.commit-list-row.selected').forEach(el=>el.classList.remove('selected'));shelfRow.classList.add('selected');toast('原型演示：不会应用 shelved changes');return}
+    const toggle=event.target.closest('[data-commit-group-toggle]');
+    if(toggle){const groupId=toggle.dataset.commitGroupToggle;setGroup(groupId,!commitGroups[groupId]);return}
+    const action=event.target.closest('[data-commit-action]');
+    if(action){const kind=action.dataset.commitAction;if(kind==='expand'){setGroup('changes',true);setGroup('unversioned',true)}else if(kind==='collapse'){setGroup('changes',false);setGroup('unversioned',false)}else if(kind==='refresh')toast('原型演示：已刷新更改');else if(kind==='rollback')toast('原型演示：不会回滚更改');else if(kind==='update')toast('原型演示：不会更新项目');else if(kind==='view-options')toast('原型演示：更改视图选项');else if(kind==='history')toast('原型演示：提交信息历史');return}
+    const open=event.target.closest('[data-commit-open]');
+    if(open){const row=open.closest('.commit-file');if(row)selectRow(row);openFile(open.dataset.commitOpen);return}
+    const unversioned=event.target.closest('[data-commit-unversioned]');
+    if(unversioned){const row=unversioned.closest('.commit-file');if(row)selectRow(row);toast('原型演示：未版本化文件不会提交');return}
+    const row=event.target.closest('[data-commit-file]');
+    if(row){selectRow(row);return}
+    const groupRow=event.target.closest('[data-commit-group-row]');
+    if(groupRow){selectRow(groupRow);return}
+    if(event.target.closest('#commit-btn')){doCommit(false);return}
+    if(event.target.closest('#commit-push-btn')){doCommit(true);return}
+    if(event.target.closest('#commit-options-btn')){event.stopPropagation();document.querySelector('#commit-options')?.classList.toggle('hidden');return}
+    if(!event.target.closest('#commit-options'))document.querySelector('#commit-options')?.classList.add('hidden');
+  });
+  const input=document.querySelector('#commit-message-input');
+  if(input)input.oninput=()=>{commitMessage=input.value;document.querySelector('#commit-inspect')?.classList.add('hidden')};
+}
+function renderPanel(){$('#panel-title').textContent={project:'Project',commit:'Commit',structure:'Structure'}[panel];$('#panel-footer').textContent={project:'Rust workspace',commit:'3 modified files',structure:'Current file'}[panel];let b=$('#panel-body');b.classList.toggle('commit-mode',panel==='commit');$('#collapse-tree').style.display=panel==='project'?'':'none';document.querySelector('.panel-chevron').style.display=panel==='project'?'':'none';$('#panel-foot-extra').style.display=panel==='project'?'':'none';$('#panel-title').style.display=panel==='commit'?'none':'';$('#panel-tabs').hidden=panel!=='commit';if(panel==='commit')renderCommitTabs();b.innerHTML=panel==='project'?projectHtml():panel==='commit'?commitPanelHtml():`<div class="muted" style="padding:3px 8px 12px;font-size:10px">${esc(current||'sidebar.rs')}</div>${outlineHtml()}`;b.querySelectorAll('[data-tree-file]').forEach(el=>el.onclick=e=>{if(e.target.type!=='checkbox')openFile(el.dataset.treeFile)});b.querySelectorAll('[data-folder]').forEach(el=>el.onclick=()=>{let g=$('#group-'+el.dataset.folder);if(!g)return;g.hidden=!g.hidden;el.setAttribute('aria-expanded',!g.hidden);el.querySelector('use').setAttribute('href',g.hidden?'#glyph-chevron':'#glyph-down')});if(panel==='commit')bindCommitPanel();b.querySelectorAll('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine))}
+function renderSearch(){let q=$('#find-input').value.trim();let matches=[],total=0,filesWith=0;if(q)for(const [name,file]of Object.entries(files)){let rows=file.code.split('\n').map((text,i)=>({text,line:i+1})).filter(l=>l.text.toLowerCase().includes(q.toLowerCase()));if(rows.length){filesWith++;total+=rows.length;matches.push(`<div class="result-file">${esc(name)} <span class="muted">${rows.length}</span></div>`+rows.map(l=>`<div class="result-line" data-search-file="${name}" data-search-line="${l.line}">${l.line}&nbsp; ${esc(l.text.trim()).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<mark>${m}</mark>`)}</div>`).join(''))}}$('#find-summary').textContent=q?`In Project · ${total} matches in ${filesWith} files`:'In Project';$('#find-results').innerHTML=matches.join('')||'<div class="muted" style="padding:10px 7px">'+(q?'没有匹配结果':'输入关键字以搜索')+'</div>';$$('[data-search-file]').forEach(el=>el.onclick=()=>{openFile(el.dataset.searchFile);goLine(+el.dataset.searchLine)})}
 function goLine(n){let el=$(`[data-line="${n}"]`);if(!el)return;$$('.code-line.current').forEach(x=>x.classList.remove('current'));el.classList.add('current');el.scrollIntoView({block:'center'});$('#cursor-pos').textContent=n+':1'}
 function outlineHtml(){return `<div class="outline"><div class="outline-row" data-goto-line="7"><span class="sym">S</span>ToolWindowBar</div>${[['new',15],['render_panel_button',24],['render',41],['toggle_panel',32]].map(([n,l])=>`<button class="outline-row method" data-goto-line="${l}"><span class="sym" style="color:#80a9d4">m</span>${n}()</button>`).join('')}</div>`}
-function toggleRight(name){if(rightView===name){rightView=null;$('#right-panel').classList.add('hidden')}else{rightView=name;$('#right-panel').classList.remove('hidden');$('#right-panel').innerHTML=`<div class="panel-head">${name==='agent'?'Assistant':'Structure'}<span class="spacer"></span><button class="icon-button" id="right-close" title="关闭面板">${icon('minus')}</button></div>`+(name==='outline'?outlineHtml():`<div class="agent-content"><div class="agent-label">ZEDX ASSISTANT</div><strong>在代码旁边，保持专注。</strong><p class="muted">讨论当前文件、理解项目结构，或一起完成下一次改动。</p><div class="agent-card">当前上下文<br><span class="blue">${esc(current||'sidebar.rs')}</span><br><span class="muted">crates / workspace</span></div></div><div class="agent-compose"><textarea id="agent-input" placeholder="描述你想完成的改动…" aria-label="发送给助手的消息"></textarea><footer><span>Agent · Auto</span><button class="agent-send" id="agent-send" title="发送">${icon('arrow-up')}</button></footer></div>`);$('#right-close').onclick=()=>toggleRight(name);$$('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine));if(name==='agent')$('#agent-send').onclick=()=>toast('这是界面原型，尚未连接 AI 服务')}$$('[data-right]').forEach(el=>el.classList.toggle('active',el.dataset.right===rightView))}
-function showBottom(view,toggle=false){if(toggle&&bottomView===view&&!$('#bottom').classList.contains('hidden')){hideBottom();return}bottomView=view;$('#bottom').classList.remove('hidden');$('#resize-y').classList.remove('hidden');$$('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===view));$('#terminal').classList.toggle('hidden',view!=='terminal');$('#terminal').style.display=view==='terminal'?'':'none';$('#run-view').classList.toggle('hidden',view!=='run');$('#problems-view').classList.toggle('hidden',view!=='problems');$$('[data-bottom]').forEach(el=>el.classList.toggle('active',el.dataset.bottom===view));$('#terminal-label').textContent=view==='terminal'?'Local · zsh':view==='run'?'Development · demo':'Workspace diagnostics';if(view==='run'&&!$('#run-view').innerHTML)$('#run-view').innerHTML='<div class="muted">选择顶部运行按钮，预览运行流程。</div>'}
+const GIT_BRANCH_GROUPS=[
+  {name:'Local',branches:[{name:'feat/idea-workbench',current:true},{name:'main'},{name:'preview'}]},
+  {name:'Remote',branches:[{name:'origin/main'},{name:'origin/preview'}]}
+];
+const GIT_COMMITS=[
+  {hash:'1a2b3c4',subject:'feat: add IDEA-style tool window bar',author:'cscs',age:'2h ago',refs:[{name:'feat/idea-workbench',current:true}],files:[['sidebar.rs','M'],['workspace.rs','M'],['Cargo.toml','M']]},
+  {hash:'7d8e9f0',subject:'feat: keep tool windows within reach',author:'cscs',age:'6h ago',refs:[],files:[['dock.rs','M']]},
+  {hash:'3c4d5e6',subject:'fix: restore dock sizes after restart',author:'cscs',age:'1d ago',refs:[],files:[['Cargo.toml','M']]},
+  {hash:'9e8d7c6',subject:'refactor: share tool window header',author:'cscs',age:'2d ago',refs:[],files:[['workspace.rs','M']]},
+  {hash:'5b4a3c2',subject:'chore: bump gpui preview',author:'cscs',age:'3d ago',refs:[],files:[['Cargo.toml','M']]}
+];
+let gitSelectedCommit=GIT_COMMITS[0].hash,gitSelectedBranch='feat/idea-workbench',gitBranchQuery='',gitCommitQuery='';
+function gitBranchesHtml(){
+  const query=gitBranchQuery.trim().toLowerCase();
+  return GIT_BRANCH_GROUPS.map(group=>{
+    const branches=group.branches.filter(branch=>!query||branch.name.toLowerCase().includes(query));
+    if(!branches.length)return '';
+    return `<div class="git-tree-folder">${icon('down')}${icon('folder')}<span>${group.name}</span><span class="git-tree-count">${branches.length}</span></div>`+branches.map(branch=>`<button class="git-tree-row ${branch.name===gitSelectedBranch?'selected':''} ${branch.current?'current':''}" data-branch="${esc(branch.name)}" role="treeitem" aria-selected="${branch.name===gitSelectedBranch}">${icon('git')}<span class="git-branch-name">${esc(branch.name)}</span>${branch.current?'<span class="git-current">current</span>':''}</button>`).join('');
+  }).join('')||'<div class="git-empty">No branches match</div>';
+}
+function gitGraphHtml(commit){
+  const head=commit.refs.some(ref=>ref.current);
+  return `<svg class="git-graph" viewBox="0 0 26 26" aria-hidden="true"><path class="g-line" d="M8 -4V30"/>${head?'<path class="g-branch" d="M18 -4C18 7 8 8 8 13"/>':''}<circle class="g-dot" cx="8" cy="13" r="3"/></svg>`;
+}
+function gitCommitsHtml(){
+  const query=gitCommitQuery.trim().toLowerCase();
+  const commits=GIT_COMMITS.filter(commit=>!query||commit.subject.toLowerCase().includes(query)||commit.hash.includes(query));
+  if(!commits.length)return '<div class="git-empty">No commits match the filters</div>';
+  return commits.map(commit=>`<button class="git-commit-row ${commit.hash===gitSelectedCommit?'selected':''}" data-commit="${commit.hash}" role="option" aria-selected="${commit.hash===gitSelectedCommit}">${gitGraphHtml(commit)}<span class="git-subject">${esc(commit.subject)}</span><span class="git-refs">${commit.refs.map(ref=>`<span class="git-ref">${esc(ref.name)}</span>`).join('')}</span><span class="git-author">${esc(commit.author)}</span><span class="git-date">${esc(commit.age)}</span><span class="git-hash">${commit.hash}</span></button>`).join('');
+}
+function gitDetailsHtml(){
+  const commit=GIT_COMMITS.find(item=>item.hash===gitSelectedCommit)||GIT_COMMITS[0];
+  return `<div class="git-details-files"><div class="git-details-bar" role="toolbar" aria-label="Changed files"><button class="icon-button" data-git-action="diff" title="Show Diff">${icon('split')}</button><button class="icon-button" data-git-action="revert" title="Revert Selected Changes">${icon('refresh')}</button><span class="git-details-count">${commit.files.length} file${commit.files.length===1?'':'s'}</span><span class="git-spacer"></span><button class="icon-button" data-git-action="expand" title="Expand All">${icon('down')}</button></div><div class="git-file-list">${commit.files.map(([name,status])=>`<button class="git-file-row" data-git-file="${esc(name)}">${fileIcon(name)}<span class="git-file-name">${esc(name)}</span><span class="git-file-status">${status}</span></button>`).join('')}</div></div><div class="git-details-message"><div class="git-message-subject">${esc(commit.subject)}</div><div class="git-message-meta">${esc(commit.author)} · ${esc(commit.age)} · <span class="git-hash">${commit.hash}</span></div></div>`;
+}
+function renderGitBranches(){$('#git-branch-tree').innerHTML=gitBranchesHtml()}
+function renderGitCommits(){$('#git-commit-list').innerHTML=gitCommitsHtml()}
+function renderGitDetails(){$('#git-details').innerHTML=gitDetailsHtml()}
+function renderGitWindow(){
+  const view=$('#git-view');
+  view.innerHTML=`<div class="git-log"><section class="git-branches" aria-label="Branches"><div class="git-branch-tools" role="toolbar" aria-orientation="vertical" aria-label="Branches"><button class="icon-button" data-git-action="hide-branches" title="Hide Branches">${icon('collapse')}</button><button class="icon-button" data-git-action="new-branch" title="New Branch…">${icon('plus')}</button><button class="icon-button" data-git-action="delete-branch" title="Delete Branch">${icon('trash')}</button><button class="icon-button" data-git-action="refresh" title="Refresh">${icon('refresh')}</button></div><div class="git-branches-main"><div class="git-branch-search"><input id="git-branch-filter" placeholder="Branch or tag" aria-label="Filter branches and tags" autocomplete="off" spellcheck="false"></div><div class="git-branch-tree" id="git-branch-tree" role="tree" aria-label="Branches"></div></div></section><section class="git-commits" aria-label="Log"><div class="git-filters" role="toolbar" aria-label="Log filters"><button class="icon-button git-show-branches" data-git-action="show-branches" title="Show Branches">${icon('chevron')}</button><input class="git-log-filter" id="git-log-filter" placeholder="Text or hash" aria-label="Filter by message" autocomplete="off" spellcheck="false"><span class="git-filter-chip active">Branch: <span id="git-branch-chip">feat/idea-workbench</span></span><span class="git-filter-chip optional">User</span><span class="git-filter-chip optional">Date</span><span class="git-filter-chip optional">Paths</span><span class="git-spacer"></span><button class="icon-button" data-git-action="refresh" title="Refresh">${icon('refresh')}</button><button class="icon-button" data-git-action="options" title="View Options">${icon('more')}</button></div><div class="git-commit-list" id="git-commit-list" role="listbox" aria-label="Commits"></div></section><section class="git-details" id="git-details" aria-label="Commit details"></section></div>`;
+  renderGitBranches();renderGitCommits();renderGitDetails();
+  $('#git-branch-filter').oninput=event=>{gitBranchQuery=event.target.value;renderGitBranches()};
+  $('#git-log-filter').oninput=event=>{gitCommitQuery=event.target.value;renderGitCommits()};
+  view.onclick=event=>{
+    const action=event.target.closest('[data-git-action]');
+    if(action){
+      const kind=action.dataset.gitAction,log=view.querySelector('.git-log');
+      if(kind==='hide-branches')log.classList.add('branches-hidden');
+      else if(kind==='show-branches')log.classList.remove('branches-hidden');
+      else if(kind==='refresh'){renderGitBranches();renderGitCommits();renderGitDetails();toast('原型演示：已刷新 Git 日志')}
+      else if(kind==='new-branch')toast('原型演示：不会新建分支');
+      else if(kind==='delete-branch')toast('原型演示：不会删除分支');
+      else if(kind==='diff')toast('原型演示：不会打开差异');
+      else if(kind==='revert')toast('原型演示：不会撤销更改');
+      else if(kind==='expand')toast('原型演示：不会展开文件树');
+      else if(kind==='options')toast('原型演示：Git 视图选项');
+      return;
+    }
+    const branch=event.target.closest('[data-branch]');
+    if(branch){gitSelectedBranch=branch.dataset.branch;renderGitBranches();return}
+    const commit=event.target.closest('[data-commit]');
+    if(commit){gitSelectedCommit=commit.dataset.commit;renderGitCommits();renderGitDetails();return}
+    const file=event.target.closest('[data-git-file]');
+    if(file)openFile(file.dataset.gitFile);
+  };
+}
+const TOOL_WINDOWS=[
+  {group:'左侧',items:[{kind:'panel',id:'project',label:'Project',icon:'project',key:'⌘1'},{kind:'panel',id:'commit',label:'Commit',icon:'commit',key:'⌘0'},{kind:'panel',id:'structure',label:'Structure',icon:'structure',key:'⌘7'}]},
+  {group:'底部',items:[{kind:'bottom',id:'find',label:'Find',icon:'find-tool',key:'⌘⇧F'},{kind:'bottom',id:'git',label:'Git',icon:'git',key:'⌘9'},{kind:'bottom',id:'run',label:'Run',icon:'play',key:''},{kind:'bottom',id:'terminal',label:'Terminal',icon:'terminal',key:'⌥F12'},{kind:'bottom',id:'problems',label:'Problems',icon:'warning',key:''}]},
+  {group:'右侧',items:[{kind:'toast',id:'notifications',label:'Notifications',icon:'bell',key:'',message:'ZedX Preview 05 · 工作台界面原型已就绪'},{kind:'right',id:'agent',label:'AI Assistant',icon:'spark',key:''},{kind:'right',id:'outline',label:'Outline',icon:'structure',key:''},{kind:'toast',id:'database',label:'Database',icon:'database',key:'',message:'数据库工具窗口 · 留作后续设计'}]}
+];
+function toolMenuItems(){return TOOL_WINDOWS.flatMap(group=>group.items)}
+function toolWindowActive(item){if(item.kind==='panel')return panel===item.id&&!$('#sidebar').classList.contains('hidden');if(item.kind==='bottom')return bottomView===item.id&&!$('#bottom').classList.contains('hidden');if(item.kind==='right')return rightView===item.id;return false}
+function renderToolMenu(){$('#more-tools-menu').innerHTML=TOOL_WINDOWS.map(group=>`<div class="tool-menu-section">${group.group}</div>`+group.items.map(item=>`<button class="tool-menu-item" role="menuitem" data-tool-kind="${item.kind}" data-tool-id="${item.id}">${icon(item.icon)}<span>${item.label}</span>${toolWindowActive(item)?'<span class="tool-menu-check" aria-hidden="true">✓</span>':item.key?`<kbd>${item.key}</kbd>`:''}</button>`).join('')).join('')}
+function openToolMenu(){
+  const menu=$('#more-tools-menu'),button=$('#more-tools-btn'),rail=button.closest('.rail');
+  renderToolMenu();
+  menu.classList.remove('hidden');
+  const railRect=rail.getBoundingClientRect(),buttonRect=button.getBoundingClientRect(),appRect=$('.app').getBoundingClientRect(),height=menu.offsetHeight;
+  const top=Math.max(appRect.top+8,Math.min(buttonRect.top<railRect.top+railRect.height/2?buttonRect.top:buttonRect.bottom-height,appRect.bottom-8-height));
+  menu.style.top=(top-railRect.top)+'px';menu.style.bottom='auto';
+  button.setAttribute('aria-expanded','true');
+  menu.querySelector('.tool-menu-item')?.focus({preventScroll:true});
+}
+function closeToolMenu(){const menu=$('#more-tools-menu'),button=$('#more-tools-btn');if(menu.classList.contains('hidden'))return;menu.classList.add('hidden');button.setAttribute('aria-expanded','false')}
+function toggleToolMenu(){if($('#more-tools-menu').classList.contains('hidden'))openToolMenu();else closeToolMenu()}
+function runToolMenuItem(kind,id){const item=toolMenuItems().find(entry=>entry.kind===kind&&entry.id===id);closeToolMenu();if(!item)return;if(kind==='panel')showPanel(id);else if(kind==='bottom')showBottom(id);else if(kind==='right'){if(rightView!==id)toggleRight(id)}else toast(item.message)}
+function handleToolMenuKey(event){if(event.key==='Escape'){event.preventDefault();closeToolMenu();$('#more-tools-btn').focus({preventScroll:true});return}if(event.key!=='ArrowDown'&&event.key!=='ArrowUp')return;event.preventDefault();const items=$$('#more-tools-menu .tool-menu-item'),index=items.indexOf(document.activeElement);if(index<0){items[event.key==='ArrowDown'?0:items.length-1]?.focus();return}items[(index+(event.key==='ArrowDown'?1:items.length-1))%items.length]?.focus()}
+let railClickSuppressedUntil=0;
+function initRailDrag(){$$('.rail').forEach(rail=>{rail.querySelectorAll(':scope > .tool').forEach(tool=>{if(tool.matches('[data-panel],[data-right],#database-btn'))tool.addEventListener('pointerdown',event=>startRailDrag(event,tool,rail))})})}
+function draggableRailTool(el){return !!el&&el.classList.contains('tool')&&(el.dataset.panel||el.dataset.right||el.id==='database-btn')}
+function startRailDrag(event,tool,rail){
+  if(event.button!==0)return;
+  const startY=event.clientY;let dragging=false;
+  const move=moveEvent=>{
+    if(!dragging&&Math.abs(moveEvent.clientY-startY)<4)return;
+    if(!dragging){dragging=true;tool.classList.add('dragging');document.body.classList.add('rail-dragging')}
+    moveEvent.preventDefault();
+    const previous=tool.previousElementSibling,next=tool.nextElementSibling;
+    if(draggableRailTool(previous)){const rect=previous.getBoundingClientRect();if(moveEvent.clientY<rect.top+rect.height/2)rail.insertBefore(tool,previous)}
+    if(draggableRailTool(next)){const rect=next.getBoundingClientRect();if(moveEvent.clientY>rect.top+rect.height/2)rail.insertBefore(tool,next.nextElementSibling)}
+  };
+  const stop=()=>{
+    window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',stop);
+    if(!dragging)return;
+    railClickSuppressedUntil=performance.now()+250;
+    tool.classList.remove('dragging');document.body.classList.remove('rail-dragging');savePreferences();
+  };
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop);window.addEventListener('pointercancel',stop);
+}
+function railToolIds(rail){return [...rail.children].filter(el=>el.classList.contains('tool')&&(el.dataset.panel||el.dataset.right||el.id==='database-btn')).map(el=>el.dataset.panel||el.dataset.right||el.id)}
+function applyToolOrder(rail,order){if(!Array.isArray(order))return;const anchor=rail.querySelector('#more-tools-btn')||rail.querySelector('.spacer');if(!anchor)return;order.forEach(id=>{const tool=rail.querySelector(`[data-panel="${id}"],[data-right="${id}"],#${id}`);if(tool&&tool.parentElement===rail)rail.insertBefore(tool,anchor)})}
+function resetToolOrder(){applyToolOrder($('.rail:not(.right)'),['project','commit','structure']);applyToolOrder($('.rail.right'),['agent','outline','database-btn'])}
+function toggleRight(name){if(rightView===name){rightView=null;$('#right-panel').classList.add('hidden')}else{rightView=name;$('#right-panel').classList.remove('hidden');const title=name==='outline'?'Structure':'Assistant';const body=name==='outline'?outlineHtml():`<div class="agent-content"><div class="agent-label">ZEDX ASSISTANT</div><strong>在代码旁边，保持专注。</strong><p class="muted">讨论当前文件、理解项目结构，或一起完成下一次改动。</p><div class="agent-card">当前上下文<br><span class="blue">${esc(current||'sidebar.rs')}</span><br><span class="muted">crates / workspace</span></div></div><div class="agent-compose"><textarea id="agent-input" placeholder="描述你想完成的改动…" aria-label="发送给助手的消息"></textarea><footer><span>Agent · Auto</span><button class="agent-send" id="agent-send" title="发送">${icon('arrow-up')}</button></footer></div>`;$('#right-panel').innerHTML=`<div class="panel-head">${title}<span class="spacer"></span><button class="icon-button" id="right-close" title="关闭面板">${icon('minus')}</button></div>`+body;$('#right-close').onclick=()=>toggleRight(name);if(name==='outline')$('#right-panel').querySelectorAll('[data-goto-line]').forEach(el=>el.onclick=()=>goLine(+el.dataset.gotoLine));else $('#agent-send').onclick=()=>toast('这是界面原型，尚未连接 AI 服务')}$$('[data-right]').forEach(el=>el.classList.toggle('active',el.dataset.right===rightView))}
+function showBottom(view,toggle=false){if(toggle&&bottomView===view&&!$('#bottom').classList.contains('hidden')){hideBottom();return}bottomView=view;$('#bottom').classList.remove('hidden');$('#resize-y').classList.remove('hidden');$$('.tool-window').forEach(el=>el.classList.toggle('hidden',el.dataset.window!==view));$$('[data-bottom]').forEach(el=>{if(el.dataset.bottom===view)el.classList.remove('hidden');el.classList.toggle('active',el.dataset.bottom===view)});if(view==='find'){if(!$('#find-results').innerHTML)renderSearch();$('#find-input')?.focus({preventScroll:true})}if(view==='run'&&!$('#run-view').innerHTML)$('#run-view').innerHTML='<div class="muted">选择顶部运行按钮，预览运行流程。</div>'}
 function hideBottom(){$('#bottom').classList.add('hidden');$('#resize-y').classList.add('hidden');$$('[data-bottom]').forEach(el=>el.classList.remove('active'))}
-function runDemo(debug=false){showBottom('run');$('#run-view').innerHTML=`<div class="muted">${debug?'Debugger attached':'Starting'} · ZedX Development <span class="muted">（演示）</span></div><div><span class="success">✓</span> Workspace initialized</div><div><span class="success">✓</span> Tool windows registered: Project, Search, Git, Structure</div><div><span class="success">✓</span> Workbench ready</div><div style="margin-top:6px;color:#8fa8da">Process finished with exit code 0</div>`;toast(debug?'已展示调试流程示例':'已展示运行流程示例')}
+function runDemo(debug=false){showBottom('run');$('#run-view').innerHTML=`<div class="muted">${debug?'Debugger attached':'Starting'} · ZedX Development <span class="muted">（演示）</span></div><div><span class="success">✓</span> Workspace initialized</div><div><span class="success">✓</span> Tool windows registered: Project, Search, Commit, Git, Structure</div><div><span class="success">✓</span> Workbench ready</div><div style="margin-top:6px;color:#8fa8da">Process finished with exit code 0</div>`;toast(debug?'已展示调试流程示例':'已展示运行流程示例')}
 function setPaletteKind(kind){
   paletteKind=kind;paletteIndex=0;$('#palette-filter').classList.add('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded','false');
   $$('.palette-categories [data-kind]').forEach(el=>{const active=el.dataset.kind===kind;el.classList.toggle('active',active);el.setAttribute('aria-selected',String(active));el.tabIndex=active?0:-1});
@@ -600,8 +1124,9 @@ function paletteItems(){
   const actions=[
     {id:'action:terminal',icon:'terminal',label:'Terminal',alias:'toggle terminal 终端',detail:'⌥F12',location:'View | Tool Windows',run:()=>showBottom('terminal',true),kind:'Actions'},
     {id:'action:project',icon:'project',label:'Project',alias:'toggle project panel 项目 文件树',detail:'⌘1',location:'View | Tool Windows',run:()=>showPanel('project'),kind:'Actions'},
-    {id:'action:search',icon:'search',label:'Find in Files…',alias:'全局搜索 查找',detail:'⌘⇧F',location:'Edit | Find',run:()=>{showPanel('search');$('#find-input')?.focus()},kind:'Actions'},
-    {id:'action:git',icon:'commit',label:'Commit…',alias:'show commit 提交 Git',detail:'⌘0',location:'Git',run:()=>showPanel('git'),kind:'Actions'},
+    {id:'action:search',icon:'search',label:'Find in Files…',alias:'全局搜索 查找',detail:'⌘⇧F',location:'Edit | Find',run:()=>{showBottom('find');$('#find-input')?.focus()},kind:'Actions'},
+    {id:'action:git',icon:'commit',label:'Commit…',alias:'show commit 提交 Git 更改',detail:'⌘0',location:'Git',run:()=>showPanel('commit'),kind:'Actions'},
+    {id:'action:branches',icon:'git',label:'Git',alias:'show git 分支 提交历史 branches',detail:'⌘9',location:'View | Tool Windows',run:()=>showBottom('git'),kind:'Actions'},
     {id:'action:theme',icon:'sun',label:'Switch Color Theme',alias:'主题 深色 浅色',detail:'',location:'View | Appearance',run:toggleTheme,kind:'Actions'},
     {id:'action:layout',icon:'refresh',label:'Restore Default Layout',alias:'reset window layout 重置 布局 面板',detail:'',location:'Window | Layouts',run:resetLayout,kind:'Actions'}
   ];
@@ -666,25 +1191,28 @@ function fitPaletteHeight(){
   results.style.height=Math.min(Math.max(64,content),cap)+'px';results.style.maxHeight=cap+'px';
 }
 window.addEventListener('resize',fitPaletteHeight);
-function openSearchSplit(){
-  const item=paletteItems()[paletteIndex];if(!item?.file)return;closePalette();$('.search-editor-split')?.remove();
+function showEditorSplit(file,line=1){
+  if(!files[file])return;
+  $('.search-editor-split')?.remove();
   const split=document.createElement('section');split.className='search-editor-split';split.setAttribute('aria-label','右侧拆分编辑器');
-  split.innerHTML=`<div class="search-split-title">${fileIcon(item.file)}<span>${esc(item.file)}</span><button class="icon-button" aria-label="关闭拆分编辑器">${icon('close')}</button></div><div class="search-split-code" tabindex="0">${files[item.file].code.split('\n').map((line,i)=>`<div class="source-preview-line ${i+1===(item.line||1)?'at-target':''}"><span>${i+1}</span><code>${highlight(line)||' '}</code></div>`).join('')}</div>`;
+  split.innerHTML=`<div class="search-split-title">${fileIcon(file)}<span>${esc(file)}</span><button class="icon-button" aria-label="关闭拆分编辑器">${icon('close')}</button></div><div class="search-split-code" tabindex="0">${files[file].code.split('\n').map((text,i)=>`<div class="source-preview-line ${i+1===line?'at-target':''}"><span>${i+1}</span><code>${highlight(text)||' '}</code></div>`).join('')}</div>`;
   $('.editor-area').append(split);split.querySelector('button').onclick=()=>split.remove();split.querySelector('.at-target')?.scrollIntoView({block:'center'});split.querySelector('.search-split-code').focus();
 }
+function toggleEditorSplit(){if($('.search-editor-split')){$('.search-editor-split').remove();return}showEditorSplit(current)}
+function openSearchSplit(){const item=paletteItems()[paletteIndex];if(!item?.file)return;closePalette();showEditorSplit(item.file,item.line||1)}
 function setSearchScope(value){includeNonProject=value;$('#palette-include').checked=value;$('#palette-scope').value=value?'all':'project';renderPalette();$('#palette-input').focus()}
 function resetLayout(){
   document.documentElement.style.removeProperty('--panel-width');document.documentElement.style.removeProperty('--bottom-height');
-  if(rightView)toggleRight(rightView);hideSidebar();showPanel('project');showBottom('terminal');savePreferences();toast('已恢复默认工作台布局');
+  if(rightView)toggleRight(rightView);hideSidebar();showPanel('project');showBottom('terminal');resetToolOrder();savePreferences();toast('已恢复默认工作台布局');
 }
-function savePreferences(){try{localStorage.setItem('zedx.preview.preferences',JSON.stringify({theme:document.body.classList.contains('light')?'light':'dark',panelWidth:document.documentElement.style.getPropertyValue('--panel-width'),bottomHeight:document.documentElement.style.getPropertyValue('--bottom-height')}))}catch{}}
+function savePreferences(){try{localStorage.setItem('zedx.preview.preferences',JSON.stringify({theme:document.body.classList.contains('light')?'light':'dark',panelWidth:document.documentElement.style.getPropertyValue('--panel-width'),bottomHeight:document.documentElement.style.getPropertyValue('--bottom-height'),toolOrder:{left:railToolIds($('.rail:not(.right)')),right:railToolIds($('.rail.right'))}}))}catch{}}
 function applyIconTheme(){
   const light=document.body.classList.contains('light');
   $$('use[href^="#glyph-"]').forEach(use=>{const key=use.getAttribute('href').slice(7).replace(/-light$/,'');if(LIGHT_ICONS.has(key))use.setAttribute('href','#glyph-'+key+(light?'-light':''))});
 }
 function toggleTheme(){document.body.classList.toggle('light');applyIconTheme();savePreferences()}
-function restorePreferences(){try{const saved=JSON.parse(localStorage.getItem('zedx.preview.preferences')||'{}');document.body.classList.toggle('light',saved.theme==='light');if(/^\d+(?:\.\d+)?px$/.test(saved.panelWidth||''))document.documentElement.style.setProperty('--panel-width',saved.panelWidth);if(/^\d+(?:\.\d+)?px$/.test(saved.bottomHeight||''))document.documentElement.style.setProperty('--bottom-height',saved.bottomHeight)}catch{}}
-$$('[data-panel]').forEach(el=>el.onclick=()=>showPanel(el.dataset.panel));$$('[data-bottom]').forEach(el=>el.onclick=()=>showBottom(el.dataset.bottom,true));$$('[data-view]').forEach(el=>el.onclick=()=>showBottom(el.dataset.view));$$('[data-right]').forEach(el=>el.onclick=()=>toggleRight(el.dataset.right));$('#sidebar-hide').onclick=hideSidebar;$('#bottom-hide').onclick=hideBottom;$('#search-top').onclick=()=>openPalette();$('#project-switch').onclick=()=>openPalette('Files');$('#run-btn').onclick=()=>runDemo();$('#debug-btn').onclick=()=>runDemo(true);$('#theme-toggle').onclick=toggleTheme;$('#branch-btn').onclick=()=>showPanel('git');$('#config-btn').onclick=()=>toast('运行配置：ZedX · Development（原型示例）');$('#main-menu').onclick=()=>openPalette('Actions');$('#settings-btn').onclick=()=>{openPalette('Actions');$('#palette-input').value='Switch';renderPalette()};$('#database-btn').onclick=()=>toast('数据库工具窗口 · 留作后续设计');$('#notification-btn').onclick=()=>toast('ZedX Preview 05 · 工作台界面原型已就绪');$('#indent-btn').onclick=()=>toast('缩进：4 个空格');$('#collapse-tree').onclick=()=>{if(panel!=='project'){panel='project';renderPanel()}$$('.tree-group').forEach(el=>el.hidden=true);$$('[data-folder]').forEach(el=>{el.setAttribute('aria-expanded','false');el.querySelector('use')?.setAttribute('href','#glyph-chevron')})};$('#clear-terminal').onclick=()=>$('#terminal-output').innerHTML='';$('#palette-input').oninput=()=>{paletteIndex=0;renderPalette()};$('#palette-backdrop').onclick=e=>{if(e.target===$('#palette-backdrop'))closePalette()};$$('.palette-top [data-kind]').forEach(el=>el.onclick=()=>setPaletteKind(el.dataset.kind));$('#palette-clear').onclick=()=>{$('#palette-input').value='';paletteIndex=0;renderPalette();$('#palette-input').focus()};$('#palette-preview-toggle').onclick=()=>{searchPreview=!searchPreview;$('#palette-preview-toggle').setAttribute('aria-pressed',String(searchPreview));renderPalette();$('#palette-input').focus()};$('#palette-include').onchange=e=>setSearchScope(e.target.checked);$('#palette-scope').onchange=e=>setSearchScope(e.target.value==='all');$('#palette-filter-toggle').onclick=()=>{let open=$('#palette-filter').classList.toggle('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded',String(!open))};$$('#palette-filter input').forEach(el=>el.onchange=()=>{el.checked?searchFileTypes.add(el.value):searchFileTypes.delete(el.value);paletteIndex=0;renderPalette()});$('#palette-find').onclick=()=>{if(paletteKind==='Actions')return;const query=$('#palette-input').value.trim();closePalette();if(panel!=='search'||$('#sidebar').classList.contains('hidden'))showPanel('search');$('#find-input').value=query;renderSearch();$('#find-input').focus()};$('#palette-split').onclick=openSearchSplit;
+function restorePreferences(){try{const saved=JSON.parse(localStorage.getItem('zedx.preview.preferences')||'{}');document.body.classList.toggle('light',saved.theme==='light');if(/^\d+(?:\.\d+)?px$/.test(saved.panelWidth||''))document.documentElement.style.setProperty('--panel-width',saved.panelWidth);if(/^\d+(?:\.\d+)?px$/.test(saved.bottomHeight||''))document.documentElement.style.setProperty('--bottom-height',saved.bottomHeight);if(saved.toolOrder){applyToolOrder($('.rail:not(.right)'),saved.toolOrder.left);applyToolOrder($('.rail.right'),saved.toolOrder.right)}}catch{}}
+$$('[data-panel]').forEach(el=>el.onclick=()=>showPanel(el.dataset.panel));$$('[data-bottom]').forEach(el=>el.onclick=()=>showBottom(el.dataset.bottom,true));$$('[data-right]').forEach(el=>el.onclick=()=>toggleRight(el.dataset.right));$('#sidebar-hide').onclick=hideSidebar;$$('.tool-window-hide').forEach(el=>el.onclick=hideBottom);$('#search-top').onclick=()=>openPalette();$('#project-switch').onclick=()=>openPalette('Files');$('#run-btn').onclick=()=>runDemo();$('#debug-btn').onclick=()=>runDemo(true);$('#branch-btn').onclick=()=>showBottom('git');$('#config-btn').onclick=()=>toast('运行配置：ZedX · Development（原型示例）');$('#settings-btn').onclick=()=>openPalette('Actions');$('#database-btn').onclick=()=>toast('数据库工具窗口 · 留作后续设计');$('#notification-btn').onclick=()=>toast('ZedX Preview 05 · 工作台界面原型已就绪');$('#more-tools-btn').onclick=event=>{event.stopPropagation();toggleToolMenu()};$('#more-tools-menu').addEventListener('click',event=>{const item=event.target.closest('[data-tool-id]');if(item)runToolMenuItem(item.dataset.toolKind,item.dataset.toolId)});$('#more-tools-menu').addEventListener('keydown',handleToolMenuKey);$('#panel-tabs').addEventListener('click',event=>{const tab=event.target.closest('[data-commit-tab]');if(!tab)return;commitTab=tab.dataset.commitTab;renderCommitTabs();document.querySelectorAll('[data-commit-pane]').forEach(pane=>{pane.hidden=pane.dataset.commitPane!==commitTab})});document.addEventListener('click',event=>{const menu=$('#more-tools-menu');if(menu.classList.contains('hidden'))return;if(event.target.closest('#more-tools-menu,#more-tools-btn'))return;closeToolMenu()});document.addEventListener('click',event=>{if(performance.now()<railClickSuppressedUntil&&event.target.closest('.rail .tool')){event.stopPropagation();event.preventDefault()}},true);initRailDrag();$('#indent-btn').onclick=()=>toast('缩进：4 个空格');$('#collapse-tree').onclick=()=>{if(panel!=='project'){panel='project';renderPanel()}$$('.tree-group').forEach(el=>el.hidden=true);$$('[data-folder]').forEach(el=>{el.setAttribute('aria-expanded','false');el.querySelector('use')?.setAttribute('href','#glyph-chevron')})};$('#clear-terminal').onclick=()=>$('#terminal-output').innerHTML='';$('#palette-input').oninput=()=>{paletteIndex=0;renderPalette()};$('#palette-backdrop').onclick=e=>{if(e.target===$('#palette-backdrop'))closePalette()};$$('.palette-top [data-kind]').forEach(el=>el.onclick=()=>setPaletteKind(el.dataset.kind));$('#palette-clear').onclick=()=>{$('#palette-input').value='';paletteIndex=0;renderPalette();$('#palette-input').focus()};$('#palette-preview-toggle').onclick=()=>{searchPreview=!searchPreview;$('#palette-preview-toggle').setAttribute('aria-pressed',String(searchPreview));renderPalette();$('#palette-input').focus()};$('#palette-include').onchange=e=>setSearchScope(e.target.checked);$('#palette-scope').onchange=e=>setSearchScope(e.target.value==='all');$('#palette-filter-toggle').onclick=()=>{let open=$('#palette-filter').classList.toggle('hidden');$('#palette-filter-toggle').setAttribute('aria-expanded',String(!open))};$$('#palette-filter input').forEach(el=>el.onchange=()=>{el.checked?searchFileTypes.add(el.value):searchFileTypes.delete(el.value);paletteIndex=0;renderPalette()});$('#palette-find').onclick=()=>{if(paletteKind==='Actions')return;const query=$('#palette-input').value.trim();closePalette();showBottom('find');$('#find-input').value=query;renderSearch();$('#find-input').focus()};$('#palette-split').onclick=openSearchSplit;
 $('#terminal-input').onkeydown=e=>{if(e.key!=='Enter')return;let command=e.target.value.trim();if(!command)return;let output=$('#terminal-output');let row=document.createElement('div');row.textContent='$ '+command;output.append(row);let answer=document.createElement('div');answer.className='term-sub';if(command==='clear'){output.innerHTML=''}else if(command==='help'){answer.textContent='演示命令：help · pwd · ls · cargo check · cargo test · clear';output.append(answer)}else{answer.textContent=command==='pwd'?'~/IdeaProjects/zedx':command==='ls'?'crates/   assets/   docs/   Cargo.toml   README.md':command.startsWith('cargo')?'✓ 示例执行完成。此终端不执行系统命令。':'这是演示终端，输入 help 查看可用命令。';output.append(answer)}e.target.value='';$('#terminal').scrollTop=$('#terminal').scrollHeight};
 let shiftTapAt=0,shiftDownAt=0,shiftTapCandidate=false;
 function clearShiftGesture(){shiftTapAt=0;shiftDownAt=0;shiftTapCandidate=false}
@@ -717,8 +1245,9 @@ document.addEventListener('keydown',e=>{
   if(e.isComposing)return;
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='p'){e.preventDefault();openPalette('Files')}
   if((e.metaKey||e.ctrlKey)&&e.key==='1'){e.preventDefault();showPanel('project')}
-  if((e.metaKey||e.ctrlKey)&&e.key==='0'){e.preventDefault();showPanel('git')}
-  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();showPanel('search')}
+  if((e.metaKey||e.ctrlKey)&&e.key==='0'){e.preventDefault();showPanel('commit')}
+  if((e.metaKey||e.ctrlKey)&&e.key==='9'){e.preventDefault();showBottom('git')}
+  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();showBottom('find')}
   if(e.altKey&&e.key==='F12'){e.preventDefault();showBottom('terminal',true)}
 });
 function resize(handle,axis){
@@ -743,7 +1272,7 @@ function resize(handle,axis){
     handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',stop);handle.addEventListener('pointercancel',stop);
   };
 }
-resize($('#resize-x'),'x');resize($('#resize-y'),'y');restorePreferences();applyIconTheme();
+resize($('#resize-x'),'x');resize($('#resize-y'),'y');restorePreferences();applyIconTheme();renderGitWindow();$('#find-input').oninput=renderSearch;
 renderPanel();renderEditor();if(innerWidth<560)hideSidebar();
 </script>
 </body></html>

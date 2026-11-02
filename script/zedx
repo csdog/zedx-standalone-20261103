@@ -10,6 +10,10 @@ case "$zedx_command" in
   check) exec rustup run "$zedx_toolchain" cargo check -p zed --bin zedx --locked "$@" ;;
   build) exec rustup run "$zedx_toolchain" cargo build -p zed --bin zedx --locked "$@" ;;
   run) exec rustup run "$zedx_toolchain" cargo run -p zed --bin zedx --locked -- "$@" ;;
+  bundle)
+    rustup run "$zedx_toolchain" cargo build -p zed --bin zedx --locked
+    exec python3 zedx/dev_bundle.py
+    ;;
   app)
     rustup run "$zedx_toolchain" cargo build -p zed --bin zedx --locked
     python3 zedx/dev_bundle.py
@@ -17,7 +21,10 @@ case "$zedx_command" in
     ;;
   upstream-ui) export ZEDX_UPSTREAM_UI=1; exec rustup run "$zedx_toolchain" cargo run -p zed --bin zedx --locked -- "$@" ;;
   assets-test) exec python3 -m unittest discover -s zedx/tests -v "$@" ;;
-  integration-test) exec rustup run "$zedx_toolchain" cargo test -p zed --bin zedx zedx_ --locked "$@" ;;
+  integration-test)
+    rustup run "$zedx_toolchain" cargo test -p zed --bin zedx zedx_ --locked "$@"
+    exec rustup run "$zedx_toolchain" cargo test -p title_bar zedx_title_bar_tests --locked "$@"
+    ;;
   search-test)
     zedx_test_dir=$(mktemp -d)
     trap 'rm -rf "$zedx_test_dir"' EXIT
@@ -34,5 +41,5 @@ case "$zedx_command" in
     rustup run "$zedx_toolchain" rustc --edition 2024 --test "$zedx_test_dir/main.rs" -o "$zedx_test_dir/tests"
     "$zedx_test_dir/tests" "$@"
     ;;
-  *) echo "Usage: script/zedx {check|build|run|app|upstream-ui|assets-test|gesture-test|search-test|integration-test} [arguments]" >&2; exit 2 ;;
+  *) echo "Usage: script/zedx {check|build|run|bundle|app|upstream-ui|assets-test|gesture-test|search-test|integration-test} [arguments]" >&2; exit 2 ;;
 esac

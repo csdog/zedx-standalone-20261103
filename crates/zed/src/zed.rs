@@ -632,7 +632,8 @@ pub fn initialize_workspace(app_state: Arc<AppState>, cx: &mut App) {
         let git_blame_status = cx.new(|_| git_ui::GitBlameStatus::default());
         let merge_conflict_indicator =
             cx.new(|cx| git_ui::MergeConflictIndicator::new(workspace, cx));
-        let zedx_project_state = cx.new(|cx| crate::zedx_status_bar::ProjectState::new(workspace, cx));
+        let zedx_project_state =
+            cx.new(|cx| crate::zedx_status_bar::ProjectState::new(workspace, cx));
         let zedx_indentation = cx.new(|_| crate::zedx_status_bar::Indentation::new(workspace));
         workspace.status_bar().update(cx, |status_bar, cx| {
             status_bar.add_left_item(zedx_project_state, window, cx);

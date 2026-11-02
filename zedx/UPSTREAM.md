@@ -116,3 +116,76 @@ The first slice was not the finished redesign. Subsequent icon/material work is 
 - Final checks for this continuation: `script/zedx check`, `build`, `integration-test` (30), `assets-test` (5), `gesture-test` (5, already included in Rust total), strict `script/clippy -p zed -p workspace --locked` and `git diff --check` passed.
 - Final native ~392px follow-up: Project/Git -> right Outline -> Project switches show one overlay at a time. Single-click README preview closes Project; Right moves the real editor cursor 1:1 -> 1:2, verifying keyboard focus. Database and Notifications messages render fully above Project and auto-hide. Native status shows real symbolic HEAD branch changes.
 - Remaining concrete layout differences include Project header controls, dedicated left Find presentation, panel relocation on layout reset and task hide/reveal edge cases, alongside the remaining prototype acceptance matrix. Goal remains in progress.
+
+## Prototype parity completion (2026-11-02)
+
+- Bottom tabs render tool icons, a Problems count badge and a `Local` label for the active terminal.
+- The project panel gained a footer with the real visible-worktree count; Restore Default Layout validates the target dock and defers size/visibility reset until panel settings settle.
+- Search rows carry per-file ZedX icons and a worktree/External source column; Actions uses the prototype's `Include disabled actions` label; the footer exposes `Open in Right Split`; `Alt+N` and `Ctrl+1–6` select scope and category.
+- The desktop top bar shows the labelled `Search Everywhere` entry with the ⇧⇧ hint; compact keeps the icon button. Left and right rails use the prototype's 44px and 42px widths, including compact overlay offsets and dock-drag math.
+- Added GPUI regressions for identity/main-menu/search-label rendering, the project footer, panel relocation, bottom-tab rendering, search source/icons, category shortcuts and rail widths. `integration-test` now also runs the `title_bar` tests.
+- Validation: `check`, `build`, 52 zed + 2 title_bar + 6 policy + 5 asset + 5 gesture tests. Clippy passes for zed/title_bar; workspace passes with the pre-existing upstream deprecations allowed.
+
+## Tool window menu and search shortcuts (2026-11-02)
+
+- The left rail gained the prototype's `More tool windows` menu: `zedx_workbench::zedx_tool_window_entries` collects every enabled panel from the left, bottom and right docks, and the popover groups them under Left/Bottom/Right headings, checking the active one and toggling through each panel's own `toggle_action`. Reuses `ui::PopoverMenu`/`ContextMenu`; no upstream seam.
+- Search Everywhere binds Cmd/Ctrl+Enter to the same Find in Files path as the toolbar button. The handler defers the dispatch because the workspace is already leased by the running action; `SearchWindow::find_in_files_request` builds the request so both callers share it.
+- Added GPUI regressions for the menu (opens from the rail, lists a bottom-dock panel, activates Structure) and for Cmd+Enter (transfers the query, leaves Actions untouched). Both were validated by mutation: dropping the bottom dock from the listing, and removing the key-reset wiring, each fail the intended test.
+
+## Git history tool window (2026-11-02)
+
+- `workspace::zedx_actions::ShowGitHistory` backs a left-rail `Git history` button. It focuses the upstream `GitPanel` and switches it to the History tab, so the prototype's Git tool window reuses the existing commit log instead of a new view.
+- Upstream seams: `GitPanel::show_history` is a public wrapper over the private `set_active_tab`, because `ActivateHistoryTab` is handled on a rendered node and therefore only fires when focus has already reached the panel; `showing_history_tab` is a `test-support` accessor; `git_ui` joins the `zed` dev-dependencies with `call` and `test-support` features so the regression can assert the tab.
+- Remaining prototype gap: the branch sidebar (`.git-branches` tree with remote branches and its search box) has no native counterpart. The History tab lists commits only.
+- Validation: `integration-test` 63 zed + 2 title_bar tests; the new test was mutation-checked by dropping the `show_history` call, which fails the "must land on the History tab" assertion. Clippy passes for `workspace` and `git_ui` libs.
+
+## Branches tool window (2026-11-02)
+
+- New `Branches` panel (`zedx_panels::Branches`, `workspace::zedx_actions::ToggleBranches`) puts the prototype's branch sidebar in the left dock by embedding the upstream `git_ui::branch_picker::BranchList` in embedded mode. No upstream seam: it only calls the public `create_embedded`.
+- `Branches` rebuilds its list on `GitStoreEvent::{RepositoryAdded, RepositoryRemoved, ActiveRepositoryChanged, RepositoryUpdated}`, so a repository discovered after the window opened is listed. The alternative — capturing the repository once at panel creation — leaves the panel permanently empty in that case (the git status item had the same defect earlier).
+- Validation: a GPUI regression asserts the list is empty without a repository, becomes populated after a fake `.git` is added and scanned, and that `ToggleBranches` opens the panel in the left dock. Mutation-checked by making the rebuild a no-op, which fails that assertion.
+
+## Shared tool window head (2026-11-02)
+
+- `ui::zedx::tool_window_head(id, glyph, title, cx)` renders the prototype's `.tool-window-head`: a debug-selectable 35px row with the ZedX glyph, a small title and a bottom border, leaving room for a caller-supplied meta label and hide control.
+- `Structure`, `Find`, `Problems` and `Branches` use it. Problems adds its row count and both windows hide through `PanelEvent::Close`, which the dock turns into `set_open(false)` (`dock.rs:779`).
+- Validation: `tool_window_heads_render_and_hide_their_panel` asserts all four heads render (`zedx-head-structure`, `zedx-head-find`, `zedx-head-branches`, `zedx-head-problems`) and that the Branches and Problems hide controls close their dock. Mutation-checked on the Branches handler only — note that an earlier attempt patched `Structure`'s identical one-line handler instead and produced a false pass, so the mutation was re-targeted.
+- Also asserted that the `Branches` window appears in the `More tool windows` menu, which was previously inferred rather than tested.
+
+## Branch tools and compact behaviour (2026-11-02)
+
+- `Branches` now creates its embedded `BranchList` with `show_footer: true`, which is the same mode `git_picker` uses for embedded branch lists. That surfaces upstream's footer controls — create from the default branch, delete, switch — which are the prototype's branch tools. Testability limit: those buttons carry no `debug_selector`, so the regression cannot assert them directly; it asserts the list still populates and the panel still lays out.
+- Added `branches_panel_becomes_an_overlay_in_compact_mode`: at 390px wide the left dock (with Branches active) must become the 235px overlay and leave the editor starting at 44px; restoring 1280px must remove the overlay. Mutation-checked by shrinking the overlay width constant, which fails the width assertion.
+
+## One ordering source for rail and menu (2026-11-02)
+
+- The IDEA order previously lived inline in `PanelButtons::render_zedx`. It is now `zedx_panel_priority(dock, name)` in `workspace/src/zedx_tool_window_bar.rs` (module made `pub(crate)`), and both the rail and `More tool windows` use it, so a panel cannot appear at different positions in the two lists.
+- Validation honesty: `more_tools_menu_follows_the_rail_order` asserts `Run` above `Problems` in the menu. Swapping their priorities fails the test, but **removing the new menu sort does not fail it** — the dock's own insertion order already satisfies this pair in the fixture, so the sort is a consistency guarantee the fixture cannot isolate. Treat the test as a guard on the priority map, not as proof that the sort matters.
+
+## Rail order state (2026-11-02)
+
+- New `workspace/src/zedx_rail_order.rs`: a `RailOrder` GPUI global holding per-dock panel order (the prototype's `toolOrder`), with `rank`/`nudge` and JSON load/save. `zedx_rail_sort_key` is now the single ordering definition used by the rail, the `More tool windows` menu and reordering itself.
+- Persistence is opt-in: only `workspace::zedx_rail_order::init_global(cx)` (called from `crates/zed/src/main.rs`) enables reading/writing `$CONFIG/zedx-rail-order.json`, so test binaries neither inherit a developer's saved order nor overwrite it.
+- Trigger added: `workspace::zedx_actions::MoveToolWindow { name, delta }` → `Workspace::move_zedx_tool_window` → `PanelButtons::move_panel`. Pointer dragging is **not** implemented yet; this is the programmatic entry point the drag will call.
+- Bug found by mutation testing: `nudge` originally materialised the starting order from the dock's internal `panel_handles()` order, which is activation-priority order and differs from what the rail displays, so a no-op move still appeared to reorder. Fixed by materialising the *visible* order through `zedx_rail_sort_key`; the regression now fails when `nudge` is a no-op.
+- `crates/workspace/Cargo.toml` gains `paths.workspace = true` for the config directory; `Cargo.lock` records the new edge.
+- Validation: 68 zed + 2 title_bar integration tests, 4 new `zedx_rail_order` unit tests, clippy clean on `workspace` lib.
+
+## Rail drag reordering (2026-11-02)
+
+- Rail icons are now drag sources and drop targets: the icon div is made stateful (`.id(..)`) and gets `on_drag(RailDrag { name })` plus `on_drag_move::<RailDrag>`. Hovering a sibling moves the dragged panel to that slot through `RailOrder::move_to`, then notifies the dock so the rail and `More tool windows` repaint.
+- Because the trigger closure only receives `&mut App`, the handler works from a cloned `Entity<Dock>` instead of `Context<Self>`; that also avoided borrowing `self` across the closure (`E0521`).
+- Testability limit: the pointer drag itself is not simulated — upstream drag tests call the drop handler directly, and this code does the equivalent through `RailOrder::move_to`, which has unit coverage (`move_to_targets_an_index_and_clamps`, mutation-checked). The GPUI-level guarantee is that the workbench still renders and the programmatic reorder path still passes.
+- Removed a `PanelButtons::move_panel_to` helper that became dead once the drag handler went through the order directly; clippy with `-D warnings` caught it.
+- Validation: 68 zed + 2 title_bar integration tests, 5 `zedx_rail_order` unit tests, clippy clean on `workspace` lib.
+
+## Restore Default Layout resets the rail order (2026-11-02)
+
+- The prototype's `resetLayout()` ends with `resetToolOrder()`; the native reset only restored docks and sizes, so a custom rail order survived. `RailOrder::reset` clears every dock slot (and persists), and `restore_zedx_layout` now calls it.
+- Validation: `restore_default_layout_forgets_the_custom_rail_order` moves Branches to the front, checks the menu reflects it, dispatches `RestoreDefaultLayout`, and requires the default order back. Mutation-checked by dropping the `order.reset()` call, which fails the test.
+
+## Git history in the tool window menu (2026-11-02)
+
+- The prototype's tool menu lists tool windows *and* the Git log entry. The `More tool windows` menu now ends with a separator and a `Git history` entry that dispatches `ShowGitHistory`, so the Git log is reachable without the dedicated rail icon.
+- The existing Git-history regression now drives that entry by clicking it instead of dispatching the action directly, which also proves the menu handler dispatches: mutation-checked by replacing the handler with a no-op, which fails the test.
+- Remaining Git-window gaps are now precisely recorded rather than vaguely: upstream `BranchList` offers `BranchFilter` plus `ShowLocalBranches`/`ShowRemoteBranches` actions, but the embedded Branches window does not surface them, and the prototype's grouped local/remote tree, log filter chips and commit-details pane have no native counterpart.

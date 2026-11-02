@@ -29,10 +29,11 @@ pub mod welcome;
 pub mod workspace_error;
 mod workspace_settings;
 pub mod zedx_actions;
-mod zedx_workbench;
-mod zedx_layout;
-mod zedx_compact;
 mod zedx_bottom_bar;
+mod zedx_compact;
+mod zedx_layout;
+pub mod zedx_rail_order;
+mod zedx_workbench;
 
 pub use dock::Panel;
 pub use multi_workspace::{
@@ -9767,7 +9768,7 @@ impl Render for Workspace {
                                                     workspace.resize_left_dock(
                                                         e.event.position.x
                                                             - workspace.bounds.left()
-                                                            - zedx_workbench::rail_offset(),
+                                                            - zedx_workbench::left_rail_offset(),
                                                         window,
                                                         cx,
                                                     );
@@ -9776,7 +9777,7 @@ impl Render for Workspace {
                                                     workspace.resize_right_dock(
                                                         workspace.bounds.right()
                                                             - e.event.position.x
-                                                            - zedx_workbench::rail_offset(),
+                                                            - zedx_workbench::right_rail_offset(),
                                                         window,
                                                         cx,
                                                     );

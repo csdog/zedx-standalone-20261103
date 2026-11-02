@@ -7558,6 +7558,12 @@ impl GitPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.show_history(window, cx);
+    }
+
+    /// Switches to the History tab. Callers outside this crate use this instead of the action,
+    /// which is handled on a rendered node and therefore depends on focus reaching the panel.
+    pub fn show_history(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.set_active_tab(GitPanelTab::History, window, cx);
     }
 
@@ -9489,6 +9495,10 @@ impl GitPanel {
 
     pub fn active_repository(&self) -> Option<&Entity<Repository>> {
         self.active_repository.as_ref()
+    }
+
+    pub fn showing_history_tab(&self) -> bool {
+        self.active_tab == GitPanelTab::History
     }
 }
 

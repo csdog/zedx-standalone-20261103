@@ -549,6 +549,13 @@ impl Dock {
             .map(|entry| &entry.panel)
     }
 
+    pub(crate) fn panel_handles(&self) -> Vec<Arc<dyn PanelHandle>> {
+        self.panel_entries
+            .iter()
+            .map(|entry| entry.panel.clone())
+            .collect()
+    }
+
     pub fn first_enabled_panel_idx(&mut self, cx: &mut Context<Self>) -> anyhow::Result<usize> {
         self.panel_entries
             .iter()
@@ -1357,13 +1364,12 @@ impl Render for Dock {
                             Axis::Horizontal => this.w_full().h_full(),
                             Axis::Vertical => this.h_full().w_full(),
                         })
-                        .child(
-                            self.render_zedx_panel(&entry.panel, cx),
-                        ),
+                        .child(self.render_zedx_panel(&entry.panel, cx)),
                 )
-                .when(self.resizable(cx) && !crate::zedx_workbench::enabled(), |this| {
-                    this.child(create_resize_handle())
-                })
+                .when(
+                    self.resizable(cx) && !crate::zedx_workbench::enabled(),
+                    |this| this.child(create_resize_handle()),
+                )
         } else {
             div()
                 .id("dock-panel")
@@ -1385,7 +1391,7 @@ impl PanelButtons {
 }
 
 #[path = "zedx_tool_window_bar.rs"]
-mod zedx_tool_window_bar;
+pub(crate) mod zedx_tool_window_bar;
 
 impl Render for PanelButtons {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
