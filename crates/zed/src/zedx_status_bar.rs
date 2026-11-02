@@ -118,7 +118,7 @@ impl Render for ProjectState {
                         },
                     ),
                 )
-                .label_size(LabelSize::Small)
+                .label_size(ui::zedx::caption_size())
                 .start_icon(Icon::new(IconName::GitBranch).size(IconSize::Small))
                 .tooltip(Tooltip::text(branch))
                 .on_click(move |_, window, cx| {
@@ -152,7 +152,7 @@ impl Render for ProjectState {
                             } else {
                                 "All changes saved"
                             })
-                            .size(LabelSize::Small)
+                            .size(ui::zedx::caption_size())
                             .color(Color::Muted),
                         ),
                 )
@@ -206,7 +206,7 @@ impl Render for Indentation {
         div().when_some(self.label(cx), |row, label| {
             row.child(
                 Button::new("zedx-indentation", label.clone())
-                    .label_size(LabelSize::Small)
+                    .label_size(ui::zedx::caption_size())
                     .tab_index(0isize)
                     .tooltip(Tooltip::text("Current file indentation"))
                     .on_click(cx.listener(move |this, _, _, cx| {

@@ -104,6 +104,9 @@ use workspace::{
     item::{ItemEvent, ItemHandle},
 };
 
+#[path = "zedx_assistant.rs"]
+mod zedx_assistant;
+
 const AGENT_PANEL_KEY: &str = "agent_panel";
 const MIN_PANEL_WIDTH: Pixels = px(300.);
 const LAST_USED_AGENT_KEY: &str = "agent_panel__last_used_external_agent";
@@ -1114,6 +1117,8 @@ impl BaseView {
 }
 
 pub struct AgentPanel {
+    zedx_assistant: Option<Entity<zedx_assistant::ZedxAssistant>>,
+    _zedx_model_observation: Subscription,
     workspace: WeakEntity<Workspace>,
     /// Workspace id is used as a database key
     workspace_id: Option<WorkspaceId>,
@@ -1536,6 +1541,17 @@ impl AgentPanel {
         .detach();
 
         let panel = Self {
+            zedx_assistant: None,
+            _zedx_model_observation: cx.observe_in(
+                &LanguageModelRegistry::global(cx),
+                _window,
+                |this, _, window, cx| {
+                    if this.is_active && !this.show_zedx_assistant(cx) {
+                        this.ensure_thread_initialized(window, cx);
+                    }
+                    cx.notify();
+                },
+            ),
             workspace_id,
             base_view,
             last_created_entry_kind: AgentPanelEntryKind::Thread,
@@ -5046,6 +5062,13 @@ impl Panel for AgentPanel {
     }
 
     fn activation_focus_handle(&self, cx: &App) -> FocusHandle {
+        if self.show_zedx_assistant(cx) {
+            return self
+                .zedx_assistant
+                .as_ref()
+                .map(|assistant| assistant.focus_handle(cx))
+                .unwrap_or_else(|| self.focus_handle.clone());
+        }
         match self.visible_surface() {
             VisibleSurface::Uninitialized => self.focus_handle.clone(),
             VisibleSurface::AgentThread(conversation_view) => {
@@ -5112,7 +5135,14 @@ impl Panel for AgentPanel {
     fn set_active(&mut self, active: bool, window: &mut Window, cx: &mut Context<Self>) {
         self.is_active = active;
         if active {
-            self.ensure_thread_initialized(window, cx);
+            if self.show_zedx_assistant(cx) {
+                let workspace = self.workspace.clone();
+                self.zedx_assistant.get_or_insert_with(|| {
+                    cx.new(|cx| zedx_assistant::ZedxAssistant::new(workspace, window, cx))
+                });
+            } else {
+                self.ensure_thread_initialized(window, cx);
+            }
         }
     }
 
@@ -6602,6 +6632,20 @@ impl AgentPanel {
 
 impl Render for AgentPanel {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.show_zedx_assistant(cx) {
+            let workspace = self.workspace.clone();
+            let assistant = self
+                .zedx_assistant
+                .get_or_insert_with(|| {
+                    cx.new(|cx| zedx_assistant::ZedxAssistant::new(workspace, window, cx))
+                })
+                .clone();
+            return div()
+                .size_full()
+                .track_focus(&self.focus_handle)
+                .child(assistant)
+                .into_any_element();
+        }
         // WARNING: Changes to this element hierarchy can have
         // non-obvious implications to the layout of children.
         //
@@ -6708,6 +6752,7 @@ impl Render for AgentPanel {
             }
             _ => content.into_any(),
         }
+        .into_any_element()
     }
 }
 
@@ -14152,7 +14197,7 @@ mod tests {
         }
     }
 
-    async fn setup_workspace_panel(
+    pub(super) async fn setup_workspace_panel(
         cx: &mut TestAppContext,
     ) -> (Entity<Workspace>, Entity<AgentPanel>, VisualTestContext) {
         init_test(cx);

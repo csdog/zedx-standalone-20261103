@@ -13,6 +13,9 @@ actions!(
         RestoreDefaultLayout,
         ShowDatabase,
         ShowGitHistory,
+        ToggleCommit,
+        ToggleRightAssistant,
+        ToggleRightOutline,
         ShowNotifications,
         ToggleBranches,
         ToggleStructure,
@@ -55,6 +58,13 @@ pub fn init(cx: &mut App) {
             if let Some(window) = window {
                 workspace.observe_zedx_compact_docks(window, cx);
             }
+            workspace.observe_zedx_right_sidebar(cx);
+            workspace.register_action(|workspace, _: &ToggleRightAssistant, window, cx| {
+                workspace.toggle_zedx_right_panel("AgentPanel", window, cx)
+            });
+            workspace.register_action(|workspace, _: &ToggleRightOutline, window, cx| {
+                workspace.toggle_zedx_right_panel("Outline Panel", window, cx)
+            });
             workspace.register_action(Workspace::restore_zedx_layout);
             workspace.register_action(|workspace, _: &ShowDatabase, _, cx| {
                 workspace.show_toast(

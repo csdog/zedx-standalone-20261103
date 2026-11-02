@@ -1,3 +1,11 @@
+#[path = "zedx_git_graph_details.rs"]
+mod zedx_details;
+#[path = "zedx_git_graph_filter.rs"]
+mod zedx_filter;
+#[path = "zedx_filtered_graph.rs"]
+mod zedx_filtered_graph;
+#[path = "zedx_git_graph_toolbar.rs"]
+mod zedx_toolbar;
 pub use crate::commit_context_menu::{CopyCommitSha, CopyCommitTag, OpenCommitView};
 use crate::{
     commit_context_menu::{
@@ -49,6 +57,7 @@ use zed_actions::{
     buffer_search,
     search::{SelectNextMatch, SelectPreviousMatch, ToggleCaseSensitive},
 };
+pub use zedx_toolbar::{RefreshZedxBranches, ToggleZedxBranches};
 
 use theme::AccentColors;
 use time::{OffsetDateTime, UtcOffset, format_description::BorrowedFormatItem};
@@ -1452,6 +1461,8 @@ struct DetailPanelCommitMessage {
 }
 
 pub struct GitGraph {
+    zedx_toolbar: Option<Pixels>,
+    zedx_filter: zedx_filter::FilterState,
     focus_handle: FocusHandle,
     search_state: SearchState,
     graph_data: GraphData,
@@ -1713,6 +1724,8 @@ impl GitGraph {
         .detach();
 
         let mut this = GitGraph {
+            zedx_toolbar: None,
+            zedx_filter: Default::default(),
             focus_handle,
             git_store,
             search_state: SearchState {
@@ -2164,10 +2177,16 @@ impl GitGraph {
     }
 
     fn select_first(&mut self, _: &SelectFirst, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.navigate_zedx_filter(zedx_filter::Navigation::First, cx) {
+            return;
+        }
         self.select_entry(0, ScrollStrategy::Nearest, cx);
     }
 
     fn select_prev(&mut self, _: &SelectPrevious, window: &mut Window, cx: &mut Context<Self>) {
+        if self.navigate_zedx_filter(zedx_filter::Navigation::Offset(-1), cx) {
+            return;
+        }
         if let Some(selected_entry_idx) = &self.selected_entry_idx {
             self.select_entry(
                 selected_entry_idx.saturating_sub(1),
@@ -2180,6 +2199,9 @@ impl GitGraph {
     }
 
     fn select_next(&mut self, _: &SelectNext, window: &mut Window, cx: &mut Context<Self>) {
+        if self.navigate_zedx_filter(zedx_filter::Navigation::Offset(1), cx) {
+            return;
+        }
         if let Some(selected_entry_idx) = &self.selected_entry_idx {
             self.select_entry(
                 selected_entry_idx
@@ -2194,6 +2216,9 @@ impl GitGraph {
     }
 
     fn select_last(&mut self, _: &SelectLast, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.navigate_zedx_filter(zedx_filter::Navigation::Last, cx) {
+            return;
+        }
         self.select_entry(
             self.graph_data.commits.len().saturating_sub(1),
             ScrollStrategy::Nearest,
@@ -2202,6 +2227,11 @@ impl GitGraph {
     }
 
     fn scroll_up(&mut self, _: &ScrollUp, window: &mut Window, cx: &mut Context<Self>) {
+        if self.zedx_filter_active() {
+            let step = (self.visible_row_count(window, cx) / 2).max(1) as isize;
+            self.navigate_zedx_filter(zedx_filter::Navigation::Offset(-step), cx);
+            return;
+        }
         let step = (self.visible_row_count(window, cx) / 2).max(1);
         let target_idx = self.selected_entry_idx.unwrap_or(0).saturating_sub(step);
 
@@ -2209,6 +2239,11 @@ impl GitGraph {
     }
 
     fn scroll_down(&mut self, _: &ScrollDown, window: &mut Window, cx: &mut Context<Self>) {
+        if self.zedx_filter_active() {
+            let step = (self.visible_row_count(window, cx) / 2).max(1) as isize;
+            self.navigate_zedx_filter(zedx_filter::Navigation::Offset(step), cx);
+            return;
+        }
         let Some(last_entry_idx) = self.graph_data.commits.len().checked_sub(1) else {
             return;
         };
@@ -2240,6 +2275,10 @@ impl GitGraph {
     }
 
     fn search(&mut self, query: SharedString, cx: &mut Context<Self>) {
+        if self.zedx_toolbar.is_some() {
+            self.search_zedx_commits(query, cx);
+            return;
+        }
         let Some(repo) = self.get_repository(cx) else {
             return;
         };
@@ -2365,8 +2404,11 @@ impl GitGraph {
         self.changed_files_expanded_dirs.clear();
         self.changed_files_scroll_handle
             .scroll_to_item(0, ScrollStrategy::Top);
+        let scroll_index = self.zedx_filtered_row_index(idx).unwrap_or(idx);
         self.table_interaction_state.update(cx, |state, cx| {
-            state.scroll_handle.scroll_to_item(idx, scroll_strategy);
+            state
+                .scroll_handle
+                .scroll_to_item(scroll_index, scroll_strategy);
             cx.notify();
         });
 
@@ -4315,7 +4357,9 @@ impl Render for GitGraph {
                 .and_then(|data| data.error.clone())
         });
 
-        let content = if commit_count == 0 {
+        let content = if self.zedx_filter_active() {
+            self.render_zedx_filtered_log(window, cx)
+        } else if commit_count == 0 {
             let message = if let Some(error) = &error {
                 format!("Error loading: {}", error)
             } else if is_loading {
@@ -4335,6 +4379,7 @@ impl Render for GitGraph {
                 .when(is_loading && error.is_none(), |this| {
                     this.child(self.render_loading_spinner(cx))
                 })
+                .into_any_element()
         } else {
             let is_path_history = matches!(self.log_source, LogSource::Path(_));
             let header_resize_info =
@@ -4667,10 +4712,14 @@ impl Render for GitGraph {
                         state.commit_ratio();
                     });
                 }))
-                .when(self.selected_entry_idx.is_some(), |this| {
+                .when(self.selected_entry_idx.is_some() && (self.zedx_toolbar.is_none() || window.viewport_size().width >= px(1100.0)), |this| {
                     this.child(self.render_commit_view_resize_handle(window, cx))
-                        .child(self.render_commit_detail_panel(window, cx))
-                })
+                        .child(if self.zedx_toolbar.is_some() {
+                            self.render_zedx_commit_details(window, cx)
+                        } else {
+                            self.render_commit_detail_panel(window, cx).into_any_element()
+                        })
+                }).into_any_element()
         };
 
         div()
@@ -4715,7 +4764,11 @@ impl Render for GitGraph {
             .child(
                 v_flex()
                     .size_full()
-                    .child(self.render_search_bar(cx))
+                    .child(if self.zedx_toolbar.is_some() {
+                        self.render_zedx_toolbar(window, cx)
+                    } else {
+                        self.render_search_bar(cx).into_any_element()
+                    })
                     .child(div().flex_1().child(content)),
             )
             .children(self.context_menu.as_ref().map(|context_menu| {

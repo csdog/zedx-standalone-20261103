@@ -353,7 +353,7 @@ impl Render for Find {
                                     .count()
                             )
                         })
-                        .size(LabelSize::XSmall)
+                        .size(ui::zedx::caption_size())
                         .color(Color::Muted),
                     )
                     .child(
@@ -365,7 +365,7 @@ impl Render for Find {
                                 "Project"
                             },
                         )
-                        .label_size(LabelSize::XSmall)
+                        .label_size(ui::zedx::caption_size())
                         .tooltip(Tooltip::text("Toggle ignored files"))
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.include_ignored = !this.include_ignored;
@@ -384,7 +384,7 @@ impl Render for Find {
                         } else {
                             "No matches"
                         })
-                        .size(LabelSize::Small)
+                        .size(ui::zedx::label_size())
                         .color(Color::Muted),
                     ),
                 )
@@ -409,11 +409,13 @@ impl Render for Find {
                                                     .color(Color::Muted),
                                             )
                                             .child(
-                                                Label::new(path).size(LabelSize::Small).truncate(),
+                                                Label::new(path)
+                                                    .size(ui::zedx::label_size())
+                                                    .truncate(),
                                             )
                                             .child(
                                                 Label::new(count.to_string())
-                                                    .size(LabelSize::XSmall)
+                                                    .size(ui::zedx::caption_size())
                                                     .color(Color::Muted),
                                             )
                                             .into_any_element(),
@@ -433,7 +435,7 @@ impl Render for Find {
                                                             Label::new(
                                                                 (row.point.row + 1).to_string(),
                                                             )
-                                                            .size(LabelSize::XSmall)
+                                                            .size(ui::zedx::caption_size())
                                                             .color(Color::Muted),
                                                         )
                                                         .child(
@@ -441,7 +443,7 @@ impl Render for Find {
                                                                 row.text.clone(),
                                                                 vec![row.highlight.clone()],
                                                             )
-                                                            .size(LabelSize::Small)
+                                                            .size(ui::zedx::label_size())
                                                             .truncate(),
                                                         ),
                                                 )

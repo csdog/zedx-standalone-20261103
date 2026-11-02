@@ -25,6 +25,10 @@ use ui::{Checkbox, ContextMenu, ListItem, ListItemSpacing, PopoverMenu, Tooltip,
 use util::{ResultExt, rel_path::RelPath};
 use workspace::{ModalView, Workspace};
 
+#[path = "zedx_search_drag.rs"]
+mod drag;
+#[path = "zedx_search_commands.rs"]
+mod commands;
 #[path = "zedx_gesture.rs"]
 mod gesture;
 #[path = "zedx_search_paths.rs"]
@@ -72,6 +76,7 @@ impl Category {
 }
 
 pub(crate) fn bind_keys(cx: &mut App) {
+    crate::zedx_panels::bind_keys(cx);
     cx.bind_keys([
         KeyBinding::new(
             "cmd-shift-f",
@@ -299,7 +304,8 @@ fn open_category(
                 if let Some(category) = category {
                     picker.delegate.category = category;
                 } else {
-                    picker.delegate.include_non_project = !picker.delegate.include_non_project;
+                    let include = !picker.delegate.scope_includes_extra();
+                    picker.delegate.set_scope_includes_extra(include);
                 }
                 picker.update_matches(picker.query(cx), window, cx);
             });
@@ -315,13 +321,7 @@ fn open_category(
         .map(|(path, _)| path)
         .collect();
     let previous_focus = window.focused(cx);
-    let filter = CommandPaletteFilter::try_global(cx);
-    let actions = window
-        .available_actions(cx)
-        .into_iter()
-        .filter(|action| !filter.is_some_and(|filter| filter.is_hidden(&**action)))
-        .map(|action| (command_palette::humanize_action_name(action.name()), action))
-        .collect();
+    let (actions, disabled_actions) = commands::collect_actions(window, cx);
     let workspace_handle = cx.entity().downgrade();
     workspace.toggle_modal(window, cx, move |window, cx| {
         let delegate = SearchDelegate {
@@ -329,6 +329,8 @@ fn open_category(
             project: project.clone(),
             recent,
             actions,
+            disabled_actions,
+            include_disabled_actions: false,
             previous_focus,
             category: category.unwrap_or_default(),
             include_non_project: false,
@@ -352,12 +354,13 @@ fn open_category(
         cx.subscribe(&picker, |_, _, _: &DismissEvent, cx| cx.emit(DismissEvent))
             .detach();
         cx.observe(&picker, |_, _, cx| cx.notify()).detach();
-        SearchWindow { picker }
+        SearchWindow { picker, placement: drag::Placement::default() }
     });
 }
 
 struct SearchWindow {
     picker: Entity<Picker<SearchDelegate>>,
+    placement: drag::Placement,
 }
 impl ModalView for SearchWindow {
     fn render_bare(&self) -> bool {
@@ -439,6 +442,8 @@ struct SearchDelegate {
     project: Entity<Project>,
     recent: Vec<ProjectPath>,
     actions: Vec<(String, Box<dyn Action>)>,
+    disabled_actions: collections::HashSet<usize>,
+    include_disabled_actions: bool,
     previous_focus: Option<FocusHandle>,
     category: Category,
     include_non_project: bool,
@@ -743,7 +748,11 @@ impl PickerDelegate for SearchDelegate {
             Target::Action(index) => {
                 let (name, _) = self.actions.get(*index)?;
                 let mut message = picker::HighlightedTextBuilder::default();
-                message.push_plain(format!("Run {name}"));
+                message.push_plain(if self.disabled_actions.contains(index) {
+                    format!("{name} · Unavailable in current context")
+                } else {
+                    format!("Run {name}")
+                });
                 Some(PreviewUpdate::message(message.build()))
             }
         }
@@ -752,6 +761,9 @@ impl PickerDelegate for SearchDelegate {
         let Some(row) = self.rows.get(self.selected).cloned() else {
             return;
         };
+        if self.action_is_disabled(&row.target) {
+            return;
+        }
         cx.emit(DismissEvent);
         match row.target {
             Target::File(path) => {
@@ -873,12 +885,16 @@ impl PickerDelegate for SearchDelegate {
         )
         .then(|| {
             self.project
-                .update(cx, |project, cx| project.symbols(&query, cx))
+                .update(cx, |project, cx| project.symbols_with_errors(&query, cx))
         });
         let commands = if matches!(category, Category::All | Category::Actions) {
             self.actions
                 .iter()
                 .enumerate()
+                .filter(|(index, _)| {
+                    !self.disabled_actions.contains(index)
+                        || (self.category == Category::Actions && self.include_disabled_actions)
+                })
                 .map(|(index, (name, action))| {
                     fuzzy_nucleo::StringMatchCandidate::new(
                         index,
@@ -947,7 +963,15 @@ impl PickerDelegate for SearchDelegate {
                         let (label, _) = picker.delegate.actions.get(command.candidate_id)?;
                         Some(Row {
                             label: label.clone(),
-                            detail: String::new(),
+                            detail: if picker
+                                .delegate
+                                .disabled_actions
+                                .contains(&command.candidate_id)
+                            {
+                                "Unavailable in current context".into()
+                            } else {
+                                String::new()
+                            },
                             source: "Action".to_string(),
                             icon: None,
                             target: Target::Action(command.candidate_id),
@@ -1069,3 +1093,11 @@ impl PickerDelegate for SearchDelegate {
 #[cfg(test)]
 #[path = "zedx_search_tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "zedx_search_lsp_tests.rs"]
+mod lsp_tests;
+
+#[cfg(test)]
+#[path = "zedx_search_drag_tests.rs"]
+mod drag_tests;

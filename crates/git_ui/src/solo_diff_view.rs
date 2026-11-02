@@ -1,3 +1,6 @@
+#[path = "zedx_source_diff.rs"]
+pub(crate) mod zedx_source_diff;
+
 use crate::{git_panel::GitStatusEntry, git_panel_settings::GitPanelSettings, git_status_icon};
 use anyhow::{Context as _, Result};
 use buffer_diff::DiffHunkSecondaryStatus;

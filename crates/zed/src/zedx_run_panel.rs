@@ -187,12 +187,12 @@ impl Render for Run {
                         .h(px(25.0))
                         .px_2()
                         .gap_2()
-                        .child(Label::new(name).size(LabelSize::Small).truncate())
-                        .child(Label::new(state).size(LabelSize::XSmall).color(if failed {
-                            Color::Error
-                        } else {
-                            Color::Muted
-                        })),
+                        .child(Label::new(name).size(ui::zedx::label_size()).truncate())
+                        .child(
+                            Label::new(state)
+                                .size(ui::zedx::caption_size())
+                                .color(if failed { Color::Error } else { Color::Muted }),
+                        ),
                 )
             })
             .when_some(self.current.clone(), |column, view| {

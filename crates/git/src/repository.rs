@@ -3496,6 +3496,7 @@ impl GitRepository for RealGitRepository {
             let mut command = git.build_command(&args);
             command.stdout(Stdio::piped());
             command.stderr(Stdio::null());
+            command.kill_on_drop(true);
 
             let mut child = command.spawn()?;
             let stdout = child.stdout.take().context("failed to get stdout")?;
@@ -3505,7 +3506,12 @@ impl GitRepository for RealGitRepository {
 
             loop {
                 line_buffer.clear();
-                let bytes_read = reader.read_line(&mut line_buffer).await?;
+                // A replaced query can close its receiver while Git is still
+                // traversing history, including when no matching line is ready.
+                let bytes_read = select_biased! {
+                    _ = request_tx.closed().fuse() => return Ok(()),
+                    result = reader.read_line(&mut line_buffer).fuse() => result?,
+                };
 
                 if bytes_read == 0 {
                     break;
@@ -3521,7 +3527,7 @@ impl GitRepository for RealGitRepository {
                 if let Ok(oid) = Oid::from_str(sha)
                     && request_tx.send(oid).await.is_err()
                 {
-                    break;
+                    return Ok(());
                 }
             }
 
@@ -7092,3 +7098,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "zedx_commit_search_tests.rs"]
+mod zedx_commit_search_tests;

@@ -15,10 +15,85 @@ use workspace::{
     zedx_actions::{ToggleBranches, ToggleProblems, ToggleStructure},
 };
 
+pub(crate) fn bind_keys(cx: &mut App) {
+    git_ui::bind_zedx_source_diff_keys(cx);
+    let modifier = if cfg!(target_os = "macos") {
+        "cmd"
+    } else {
+        "ctrl"
+    };
+    for context in [
+        "Workspace",
+        "Workspace > Pane",
+        "Workspace > Editor",
+        "Workspace > Terminal",
+    ] {
+        cx.bind_keys([
+            gpui::KeyBinding::new(
+                &format!("{modifier}-1"),
+                zed_actions::project_panel::ToggleFocus,
+                Some(context),
+            ),
+            gpui::KeyBinding::new(
+                &format!("{modifier}-0"),
+                workspace::zedx_actions::ToggleCommit,
+                Some(context),
+            ),
+            gpui::KeyBinding::new(&format!("{modifier}-7"), ToggleStructure, Some(context)),
+            gpui::KeyBinding::new(
+                &format!("{modifier}-9"),
+                workspace::zedx_actions::ShowGitHistory,
+                Some(context),
+            ),
+            gpui::KeyBinding::new(
+                &format!("{modifier}-4"),
+                workspace::zedx_actions::ToggleRun,
+                Some(context),
+            ),
+            gpui::KeyBinding::new(&format!("{modifier}-6"), ToggleProblems, Some(context)),
+            gpui::KeyBinding::new(
+                "alt-f12",
+                terminal_view::terminal_panel::ToggleFocus,
+                Some(context),
+            ),
+        ]);
+    }
+}
+
+fn toggle_tool_window<T: Panel>(
+    workspace: &mut Workspace,
+    window: &mut Window,
+    cx: &mut Context<Workspace>,
+) -> bool {
+    let open = workspace.all_docks().iter().any(|dock| {
+        let dock = dock.read(cx);
+        dock.is_open()
+            && dock
+                .active_panel()
+                .is_some_and(|panel| panel.persistent_name() == T::persistent_name())
+    });
+    if open {
+        workspace.close_panel::<T>(window, cx);
+        false
+    } else {
+        workspace.focus_panel::<T>(window, cx);
+        true
+    }
+}
+
 pub(crate) fn init(cx: &mut App) {
     find::bind_keys(cx);
     cx.observe_new(|workspace: &mut Workspace, _, _| {
         workspace.register_action(open_find);
+        workspace.register_action(
+            |workspace, _: &workspace::zedx_actions::ToggleCommit, window, cx| {
+                if toggle_tool_window::<git_ui::git_panel::GitPanel>(workspace, window, cx) {
+                    if let Some(panel) = workspace.panel::<git_ui::git_panel::GitPanel>(cx) {
+                        panel.update(cx, |panel, cx| panel.show_changes(window, cx));
+                    }
+                }
+            },
+        );
         workspace.register_action(
             |workspace, _: &workspace::zedx_actions::ToggleRun, window, cx| {
                 workspace.toggle_panel_focus::<Run>(window, cx);
@@ -37,10 +112,7 @@ pub(crate) fn init(cx: &mut App) {
         });
         workspace.register_action(
             |workspace, _: &workspace::zedx_actions::ShowGitHistory, window, cx| {
-                workspace.focus_panel::<git_ui::git_panel::GitPanel>(window, cx);
-                if let Some(panel) = workspace.panel::<git_ui::git_panel::GitPanel>(cx) {
-                    panel.update(cx, |panel, cx| panel.show_history(window, cx));
-                }
+                toggle_tool_window::<GitHistory>(workspace, window, cx);
             },
         );
     })
@@ -78,6 +150,8 @@ pub(crate) async fn initialize(
         workspace.add_panel(run, window, cx);
         let branches = cx.new(|cx| Branches::new(workspace, window, cx));
         workspace.add_panel(branches, window, cx);
+        let history = cx.new(|cx| GitHistory::new(workspace, window, cx));
+        workspace.add_panel(history, window, cx);
     })?;
     Ok(())
 }
@@ -124,7 +198,8 @@ macro_rules! fixed_panel {
                 cx.notify();
             }
             fn activation_priority(&self) -> u32 {
-                $priority
+                // Upstream panels reserve the low priorities, including movable panels.
+                100 + $priority
             }
             fn icon_label(&self, _: &Window, cx: &App) -> Option<String> {
                 self.badge(cx)
@@ -145,6 +220,9 @@ use run::Run;
 #[path = "zedx_find_panel.rs"]
 mod find;
 use find::Find;
+#[path = "zedx_git_history.rs"]
+mod git_history;
+use git_history::GitHistory;
 
 pub(crate) fn open_find(
     workspace: &mut Workspace,
@@ -194,6 +272,13 @@ impl Render for Structure {
             .track_focus(&self.focus)
             .child(
                 ui::zedx::tool_window_head("structure", ui::zedx::Icon::Structure, "Structure", cx)
+                    .id("zedx-structure-drag-header")
+                    .on_drag(
+                        workspace::dock::zedx_split::PanelDrag {
+                            name: "Structure".into(),
+                        },
+                        |_, _, _, cx| cx.new(|_| StructureDragPreview),
+                    )
                     .justify_between()
                     .child(
                         h_flex()
@@ -216,13 +301,17 @@ impl Render for Structure {
                                 )),
                             )
                             .child(
-                                ui::zedx::tool_button(
-                                    "structure-hide",
-                                    ui::zedx::Icon::Minus,
-                                    "Hide Structure",
-                                    cx,
-                                )
-                                .on_click(cx.listener(|_, _, _, cx| cx.emit(PanelEvent::Close))),
+                                div().debug_selector(|| "zedx-structure-hide".into()).child(
+                                    ui::zedx::tool_button(
+                                        "structure-hide",
+                                        ui::zedx::Icon::Minus,
+                                        "Hide Structure",
+                                        cx,
+                                    )
+                                    .on_click(
+                                        cx.listener(|_, _, _, cx| cx.emit(PanelEvent::Close)),
+                                    ),
+                                ),
                             ),
                     ),
             )
@@ -408,7 +497,7 @@ impl Render for Problems {
                             .gap_2()
                             .child(
                                 Label::new(self.rows.len().to_string())
-                                    .size(LabelSize::XSmall)
+                                    .size(ui::zedx::caption_size())
                                     .color(Color::Muted),
                             )
                             .child(
@@ -471,12 +560,12 @@ impl Render for Problems {
                                                     )
                                                     .child(
                                                         Label::new(row.message.clone())
-                                                            .size(LabelSize::Small)
+                                                            .size(ui::zedx::label_size())
                                                             .truncate(),
                                                     )
                                                     .child(
                                                         Label::new(row.location.clone())
-                                                            .size(LabelSize::XSmall)
+                                                            .size(ui::zedx::caption_size())
                                                             .color(Color::Muted)
                                                             .truncate(),
                                                     ),
@@ -622,3 +711,27 @@ impl Render for Branches {
 #[cfg(test)]
 #[path = "zedx_panels_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "zedx_right_sidebar_tests.rs"]
+mod right_sidebar_tests;
+
+#[cfg(test)]
+#[path = "zedx_rail_drag_tests.rs"]
+mod rail_drag_tests;
+
+struct StructureDragPreview;
+impl Render for StructureDragPreview {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .px_2()
+            .py_1()
+            .rounded_md()
+            .bg(cx.theme().colors().element_background)
+            .child(Label::new("Structure"))
+    }
+}
+
+#[cfg(test)]
+#[path = "zedx_split_tests.rs"]
+mod split_tests;

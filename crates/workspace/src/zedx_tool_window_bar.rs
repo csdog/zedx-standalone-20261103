@@ -1,6 +1,11 @@
 use super::*;
 use gpui::{InteractiveElement, StatefulInteractiveElement};
+use std::{cell::Cell, rc::Rc};
 use ui::{ButtonLike, ButtonSize};
+
+#[path = "zedx_rail_drag.rs"]
+mod rail_drag;
+use rail_drag::RailDropTarget;
 
 /// Rail order shared by the tool window bar and the `More tool windows` menu, so one panel cannot
 /// sit in different positions in the two lists.
@@ -8,13 +13,13 @@ pub(crate) fn zedx_panel_priority(dock: DockPosition, name: &str) -> u8 {
     match (dock, name) {
         (DockPosition::Left, "Project Panel")
         | (DockPosition::Right, "AgentPanel")
-        | (DockPosition::Bottom, "Run") => 0,
-        (DockPosition::Left, "Find")
+        | (DockPosition::Bottom, "Git history") => 0,
+        (DockPosition::Left, "GitPanel")
         | (DockPosition::Right, "Outline Panel")
-        | (DockPosition::Bottom, "TerminalPanel") => 1,
-        (DockPosition::Left, "GitPanel") | (DockPosition::Bottom, "Problems") => 2,
-        (DockPosition::Left, "Structure") => 3,
-        (DockPosition::Bottom, "DebugPanel") => 3,
+        | (DockPosition::Bottom, "Run") => 1,
+        (DockPosition::Left, "Structure") | (DockPosition::Bottom, "TerminalPanel") => 2,
+        (DockPosition::Bottom, "Problems") => 3,
+        (DockPosition::Bottom, "DebugPanel") => 4,
         _ => 4,
     }
 }
@@ -31,6 +36,42 @@ pub(crate) fn zedx_rail_sort_key(
         .unwrap_or(zedx_panel_priority(dock, name) as usize + 100)
 }
 
+fn zedx_panel_is_pinned(
+    order: Option<&crate::zedx_rail_order::RailOrder>,
+    dock: DockPosition,
+    name: &str,
+) -> bool {
+    if matches!(name, "AgentPanel" | "Outline Panel") {
+        return false;
+    }
+    matches!(
+        name,
+        "Project Panel"
+            | "Git history"
+            | "GitPanel"
+            | "Structure"
+            | "Run"
+            | "TerminalPanel"
+            | "Problems"
+    ) || order.and_then(|order| order.rank(dock, name)).is_some()
+}
+
+pub(crate) fn zedx_toggle_action(
+    panel: &dyn PanelHandle,
+    window: &Window,
+    cx: &App,
+) -> Box<dyn gpui::Action> {
+    if panel.persistent_name() == "AgentPanel" {
+        Box::new(crate::zedx_actions::ToggleRightAssistant)
+    } else if panel.persistent_name() == "Outline Panel" {
+        Box::new(crate::zedx_actions::ToggleRightOutline)
+    } else if panel.persistent_name() == "GitPanel" {
+        Box::new(crate::zedx_actions::ToggleCommit)
+    } else {
+        panel.toggle_action(window, cx)
+    }
+}
+
 impl PanelButtons {
     pub(super) fn render_zedx(
         &self,
@@ -39,8 +80,6 @@ impl PanelButtons {
     ) -> impl IntoElement {
         let dock_entity = self.dock.clone();
         let dock = self.dock.read(cx);
-        let active_index = dock.active_panel_index;
-        let is_open = dock.is_open;
         let dock_position = dock.position;
         let mut entries = dock.panel_entries.iter().enumerate().collect::<Vec<_>>();
         let order = cx
@@ -52,15 +91,24 @@ impl PanelButtons {
         let buttons = entries
             .into_iter()
             .filter(|(_, entry)| entry.panel.enabled(cx))
+            .filter(|(_, entry)| {
+                zedx_panel_is_pinned(order.as_ref(), dock_position, entry.panel.persistent_name())
+            })
             .filter_map(|(index, entry)| {
                 let icon = entry.panel.icon(window, cx)?;
-                let title = entry.panel.icon_tooltip(window, cx)?;
+                let title = match entry.panel.persistent_name() {
+                    "GitPanel" => "Commit",
+                    "Project Panel" => "Project",
+                    "Outline Panel" => "Outline",
+                    "AgentPanel" => "AI Assistant",
+                    _ => entry.panel.icon_tooltip(window, cx)?,
+                };
                 let panel = entry.panel.clone();
-                let active = is_open && active_index == Some(index);
+                let active = dock.zedx_panel_visible(entry.panel.as_ref());
                 let action = if active {
                     dock.toggle_action()
                 } else {
-                    panel.toggle_action(window, cx)
+                    zedx_toggle_action(panel.as_ref(), window, cx)
                 };
                 let click_action = action.boxed_clone();
                 let panel_name = panel.persistent_name();
@@ -69,6 +117,8 @@ impl PanelButtons {
                     .icon_label(window, cx)
                     .and_then(|label| label.parse::<usize>().ok());
                 let dock_for_drag = dock_entity.clone();
+                let dock_for_click = dock_entity.clone();
+                let panel_id = entry.panel.panel_id();
                 Some(
                     right_click_menu(panel.persistent_name())
                         .anchor(if dock_position == DockPosition::Right {
@@ -105,10 +155,19 @@ impl PanelButtons {
                             })
                         })
                         .trigger(move |_, _, cx| {
-                            let drop_name = panel_name.to_string();
+                            let target = Rc::new(RailDropTarget {
+                                dock: dock_for_drag.clone(),
+                                position: dock_position,
+                                name: panel_name.to_string(),
+                            });
+                            let bounds = Rc::new(Cell::new(None));
                             div()
                                 .relative()
                                 .debug_selector(move || format!("zedx-tool-{panel_name}"))
+                                .on_children_prepainted({
+                                    let bounds = bounds.clone();
+                                    move |children, _, _| bounds.set(children.first().copied())
+                                })
                                 .id(("zedx-tool-drag", index))
                                 .on_drag(
                                     RailDrag {
@@ -121,51 +180,80 @@ impl PanelButtons {
                                     },
                                 )
                                 .on_drag_move::<RailDrag>({
-                                    let dock = dock_for_drag.clone();
-                                    move |event, _, cx| {
+                                    let target = target.clone();
+                                    move |event, window, cx| {
                                         let dragged = event.drag(cx).name.clone();
-                                        if dragged == drop_name {
-                                            return;
-                                        }
-                                        let visible = {
-                                            let dock = dock.read(cx);
-                                            let order = cx
-                                                .try_global::<crate::zedx_rail_order::RailOrder>();
-                                            let mut names = dock
-                                                .panel_handles()
-                                                .iter()
-                                                .map(|panel| panel.persistent_name().to_string())
-                                                .collect::<Vec<_>>();
-                                            names.sort_by_key(|name| {
-                                                zedx_rail_sort_key(order, dock_position, name)
-                                            });
-                                            names
-                                        };
-                                        let Some(index) =
-                                            visible.iter().position(|name| name == &drop_name)
-                                        else {
-                                            return;
-                                        };
-                                        let after =
-                                            event.event.position.y > event.bounds.center().y;
-                                        let target = if after { index + 1 } else { index };
-                                        let mut order = cx
-                                            .try_global::<crate::zedx_rail_order::RailOrder>()
-                                            .cloned()
-                                            .unwrap_or_default();
-                                        order.move_to(dock_position, &visible, &dragged, target);
-                                        cx.set_global(order);
-                                        dock.update(cx, |_, cx| cx.notify());
+                                        target.reorder(
+                                            &dragged,
+                                            event.bounds,
+                                            event.event.position,
+                                            window,
+                                            cx,
+                                        )
                                     }
+                                })
+                                // A single move can start the drag immediately before mouse-up.
+                                .on_drop::<RailDrag>(move |drag, window, cx| {
+                                    if let Some(bounds) = bounds.get() {
+                                        target.reorder(
+                                            &drag.name,
+                                            bounds,
+                                            window.mouse_position(),
+                                            window,
+                                            cx,
+                                        );
+                                    }
+                                })
+                                .when(active, |this| {
+                                    this.child(
+                                        div()
+                                            .debug_selector(move || {
+                                                format!("zedx-selected-tool-{panel_name}")
+                                            })
+                                            .absolute()
+                                            .inset_0()
+                                            .rounded(px(6.0))
+                                            .bg(if cx.theme().appearance().is_light() {
+                                                gpui::rgb(0xcfdaea)
+                                            } else {
+                                                gpui::rgb(0x3c4c65)
+                                            }),
+                                    )
                                 })
                                 .child(
                                     ButtonLike::new(("zedx-tool", index))
                                         .width(px(32.0))
-                                        .height(px(32.0).into())
-                                        .size(ButtonSize::Large)
+                                        .height(px(34.0).into())
+                                        .size(ButtonSize::None)
+                                        .when(active, |button| {
+                                            button.style(ui::ButtonStyle::Transparent)
+                                        })
                                         .child(match ui::zedx::tool_window_icon(panel_name) {
                                             Some(icon) => {
-                                                ui::zedx::icon(icon, cx).into_any_element()
+                                                if active {
+                                                    let appearance =
+                                                        if cx.theme().appearance().is_light() {
+                                                            "light"
+                                                        } else {
+                                                            "dark"
+                                                        };
+                                                    gpui::svg()
+                                                        .path(format!(
+                                                            "icons/zedx/{}-{appearance}.svg",
+                                                            icon.as_ref()
+                                                        ))
+                                                        .size(px(20.0))
+                                                        .text_color(
+                                                            if cx.theme().appearance().is_light() {
+                                                                gpui::rgb(0x3b5f91)
+                                                            } else {
+                                                                gpui::rgb(0xdae6fa)
+                                                            },
+                                                        )
+                                                        .into_any_element()
+                                                } else {
+                                                    ui::zedx::icon(icon, cx).into_any_element()
+                                                }
                                             }
                                             None => Icon::new(icon)
                                                 .size(IconSize::Small)
@@ -181,13 +269,19 @@ impl PanelButtons {
                                         .on_click({
                                             let action = click_action.boxed_clone();
                                             let focus_handle = focus_handle.clone();
+                                            let dock = dock_for_click.clone();
                                             move |_, window, cx| {
+                                                if dock.update(cx, |dock, cx| {
+                                                    dock.toggle_zedx_split_pin(panel_id, window, cx)
+                                                }) {
+                                                    return;
+                                                }
                                                 window.focus(&focus_handle, cx);
                                                 window.dispatch_action(action.boxed_clone(), cx);
                                             }
                                         }),
                                 )
-                                .when_some(badge.filter(|_| !active), |this, count| {
+                                .when_some(badge.filter(|count| *count > 0), |this, count| {
                                     this.child(CountBadge::new(count))
                                 })
                         }),
@@ -208,10 +302,80 @@ impl Dock {
         let content = panel
             .to_any()
             .cached(StyleRefinement::default().v_flex().size_full());
+        if crate::zedx_workbench::enabled()
+            && matches!(panel.persistent_name(), "AgentPanel" | "Outline Panel")
+        {
+            let assistant = panel.persistent_name() == "AgentPanel";
+            return v_flex()
+                .size_full()
+                .min_h_0()
+                .child(
+                    ui::zedx::tool_window_head(
+                        if assistant {
+                            "assistant"
+                        } else {
+                            "right-outline"
+                        },
+                        if assistant {
+                            ui::zedx::Icon::Spark
+                        } else {
+                            ui::zedx::Icon::Structure
+                        },
+                        if assistant { "Assistant" } else { "Structure" },
+                        cx,
+                    )
+                    .child(div().flex_1())
+                    .child(
+                        div()
+                            .debug_selector(move || {
+                                if assistant {
+                                    "zedx-assistant-hide".into()
+                                } else {
+                                    "zedx-right-outline-hide".into()
+                                }
+                            })
+                            .child(
+                                ui::zedx::tool_button(
+                                    if assistant {
+                                        "zedx-assistant-hide"
+                                    } else {
+                                        "zedx-right-outline-hide"
+                                    },
+                                    ui::zedx::Icon::Minus,
+                                    "Hide tool window",
+                                    cx,
+                                )
+                                .on_click(cx.listener(
+                                    |dock, _, window, cx| {
+                                        dock.set_open(false, window, cx);
+                                        let workspace = dock.workspace.clone();
+                                        window.defer(cx, move |window, cx| {
+                                            workspace
+                                                .update(cx, |workspace, cx| {
+                                                    window.focus(
+                                                        &workspace
+                                                            .active_pane()
+                                                            .read(cx)
+                                                            .focus_handle(cx),
+                                                        cx,
+                                                    );
+                                                    workspace.serialize_workspace(window, cx);
+                                                })
+                                                .log_err();
+                                        });
+                                    },
+                                )),
+                            ),
+                    ),
+                )
+                .child(div().flex_1().min_h_0().child(content))
+                .into_any_element();
+        }
         if !crate::zedx_workbench::enabled() || panel.persistent_name() != "Project Panel" {
             return content.into_any_element();
         }
         let focus = panel.activation_focus_handle(cx);
+        let project_id = panel.panel_id();
         let worktree_count = self
             .workspace
             .upgrade()
@@ -233,7 +397,11 @@ impl Dock {
                     .flex_none()
                     .px_2()
                     .justify_between()
-                    .child(Label::new("Project").size(LabelSize::Small))
+                    .child(
+                        Label::new("Project")
+                            .size(ui::zedx::label_size())
+                            .weight(gpui::FontWeight::MEDIUM),
+                    )
                     .child(
                         h_flex()
                             .gap_1()
@@ -272,7 +440,10 @@ impl Dock {
                                         cx,
                                     )
                                     .on_click(cx.listener(
-                                        |dock, _, window, cx| {
+                                        move |dock, _, window, cx| {
+                                            if dock.close_zedx_split_panel(project_id, window, cx) {
+                                                return;
+                                            }
                                             dock.set_open(false, window, cx);
                                             let workspace = dock.workspace.clone();
                                             window.defer(cx, move |window, cx| {
@@ -301,13 +472,13 @@ impl Dock {
                     .border_color(cx.theme().colors().border)
                     .child(
                         Label::new("Workspace")
-                            .size(LabelSize::XSmall)
+                            .size(ui::zedx::caption_size())
                             .color(Color::Muted),
                     )
                     .child(div().flex_1())
                     .child(
                         Label::new(format!("{worktree_count} worktrees"))
-                            .size(LabelSize::XSmall)
+                            .size(ui::zedx::caption_size())
                             .color(Color::Muted),
                     ),
             )
@@ -339,30 +510,6 @@ impl Dock {
                 .log_err();
         });
         cx.notify();
-    }
-}
-
-impl Dock {
-    pub(crate) fn zedx_tabs(&self, cx: &App) -> Vec<(usize, &'static str, bool)> {
-        self.panel_entries
-            .iter()
-            .enumerate()
-            .filter(|(_, entry)| entry.panel.enabled(cx))
-            .filter_map(|(index, entry)| {
-                let label = match entry.panel.persistent_name() {
-                    "TerminalPanel" => "Terminal",
-                    "Run" => "Run",
-                    "Problems" => "Problems",
-                    "DebugPanel" => "Debug",
-                    _ => return None,
-                };
-                Some((
-                    index,
-                    label,
-                    self.is_open && self.active_panel_index == Some(index),
-                ))
-            })
-            .collect()
     }
 }
 
@@ -398,10 +545,7 @@ impl PanelButtons {
 }
 
 /// Payload carried while a rail icon is dragged.
-#[derive(Clone)]
-pub(crate) struct RailDrag {
-    pub name: String,
-}
+pub(crate) use crate::dock::zedx_split::PanelDrag as RailDrag;
 
 struct RailDragPreview {
     name: String,

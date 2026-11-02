@@ -53,6 +53,7 @@ pub struct PlatformTitleBar {
     platform_style: PlatformStyle,
     children: SmallVec<[AnyElement; 2]>,
     should_move: bool,
+    content_height: Option<gpui::Pixels>,
     system_window_tabs: Entity<SystemWindowTabs>,
     button_layout: Option<WindowButtonLayout>,
     multi_workspace: Option<WeakEntity<MultiWorkspace>>,
@@ -68,6 +69,7 @@ impl PlatformTitleBar {
             platform_style,
             children: SmallVec::new(),
             should_move: false,
+            content_height: None,
             system_window_tabs,
             button_layout: None,
             multi_workspace: None,
@@ -100,6 +102,15 @@ impl PlatformTitleBar {
         T: IntoIterator<Item = AnyElement>,
     {
         self.children = children.into_iter().collect();
+    }
+
+    /// Overrides the content row height while retaining native window controls and dragging.
+    pub fn set_content_height(&mut self, height: Option<gpui::Pixels>) -> bool {
+        if self.content_height == height {
+            return false;
+        }
+        self.content_height = height;
+        true
     }
 
     pub fn set_button_layout(&mut self, button_layout: Option<WindowButtonLayout>) {
@@ -207,7 +218,9 @@ impl Render for PlatformTitleBar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let supported_controls = window.window_controls();
         let decorations = window.window_decorations();
-        let height = platform_title_bar_height(window);
+        let height = self
+            .content_height
+            .unwrap_or_else(|| platform_title_bar_height(window));
         let titlebar_color = self.title_bar_color(window, cx);
         let close_action = Box::new(workspace::CloseWindow);
         let children = mem::take(&mut self.children);
@@ -216,6 +229,7 @@ impl Render for PlatformTitleBar {
         let sidebar = self.sidebar_render_state(cx);
 
         let title_bar = h_flex()
+            .debug_selector(|| "zedx-title-frame".into())
             .window_control_area(WindowControlArea::Drag)
             .w_full()
             .h(height)

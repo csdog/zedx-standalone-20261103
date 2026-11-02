@@ -1,5 +1,6 @@
 """Create a local bundle that continues to read assets from this checkout."""
 from pathlib import Path
+import hashlib
 import os
 import plistlib
 import re
@@ -32,6 +33,8 @@ iconset = root / 'target' / profile / 'AppIcon.iconset'
 shutil.rmtree(iconset, ignore_errors=True)
 iconset.mkdir(parents=True)
 source = root / 'crates/zed/resources/app-icon@2x.png'
+# A content-specific name prevents macOS from reusing an older icon cache entry.
+icon_name = 'AppIcon-' + hashlib.sha256(source.read_bytes()).hexdigest()[:12]
 for name, pixels in {
     'icon_16x16.png': 16,
     'icon_16x16@2x.png': 32,
@@ -51,7 +54,7 @@ for name, pixels in {
         stderr=subprocess.DEVNULL,
     )
 subprocess.run(
-    ['iconutil', '-c', 'icns', str(iconset), '-o', str(resources / 'AppIcon.icns')],
+    ['iconutil', '-c', 'icns', str(iconset), '-o', str(resources / f'{icon_name}.icns')],
     check=True,
     stdout=subprocess.DEVNULL,
 )
@@ -63,11 +66,12 @@ with (contents / 'Info.plist').open('wb') as output:
         'CFBundleIdentifier': 'dev.zedx.ZedX',
         'CFBundleName': 'ZedX',
         'CFBundleDisplayName': 'ZedX',
-        'CFBundleIconFile': 'AppIcon',
+        'CFBundleIconFile': icon_name,
         'CFBundlePackageType': 'APPL',
         'CFBundleShortVersionString': version,
         'CFBundleVersion': version,
         'NSHighResolutionCapable': True,
         'NSPrincipalClass': 'NSApplication',
     }, output)
+contents.parent.touch()
 print(contents.parent)

@@ -1,3 +1,6 @@
+#[path = "zedx_window_corners.rs"]
+mod zedx_window_corners;
+
 use crate::{
     BoolExt, MacDisplay, NSRange, NSStringExt, TISCopyCurrentKeyboardInputSource,
     TISGetInputSourceProperty, WindowFrameSource, events::platform_input_from_native,
@@ -1862,6 +1865,12 @@ impl PlatformWindow for MacWindow {
     }
 
     fn set_app_id(&mut self, _app_id: &str) {}
+
+    fn set_content_corner_radius(&self, radius: Pixels) {
+        let this = self.0.as_ref().lock();
+        // SAFETY: GPUI invokes window styling on the main thread; the locked state owns NSWindow.
+        unsafe { zedx_window_corners::set_content_corner_radius(this.native_window, radius) };
+    }
 
     fn set_background_appearance(&self, background_appearance: WindowBackgroundAppearance) {
         let mut this = self.0.as_ref().lock();

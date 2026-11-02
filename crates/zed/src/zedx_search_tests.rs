@@ -1020,3 +1020,149 @@ async fn cmd_enter_does_nothing_for_actions(cx: &mut TestAppContext) {
         "the palette stays open because Find in Files cannot run an action row"
     );
 }
+
+gpui::actions!(
+    zedx_search_fixture,
+    [UnavailableNeedle, AvailableNeedle, HiddenNeedle]
+);
+
+#[gpui::test]
+async fn disabled_actions_checkbox_reveals_inert_rows_and_preserves_available_actions(
+    cx: &mut TestAppContext,
+) {
+    let (workspace, cx) = setup(cx).await;
+    let executions = Rc::new(std::cell::Cell::new(0));
+    workspace.update(cx, |workspace, cx| {
+        let executions = executions.clone();
+        workspace.register_action(move |_, _: &AvailableNeedle, _, _| {
+            executions.set(executions.get() + 1)
+        });
+        cx.notify();
+    });
+    cx.update(|_, cx| {
+        command_palette_hooks::init(cx);
+        CommandPaletteFilter::update_global(cx, |filter, _| {
+            filter.hide_action_types([&std::any::TypeId::of::<HiddenNeedle>()]);
+        });
+    });
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    cx.dispatch_action(workspace::zedx_actions::SearchActions);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .unwrap();
+    modal.update_in(cx, |modal, window, cx| {
+        modal.picker.update(cx, |picker, cx| {
+            picker.set_query("Unavailable Needle", window, cx)
+        });
+    });
+    cx.run_until_parked();
+    modal.read_with(cx, |modal, cx| {
+        let delegate = &modal.picker.read(cx).delegate;
+        assert!(delegate.rows.is_empty());
+        assert!(
+            !delegate
+                .actions
+                .iter()
+                .any(|(_, action)| action.name() == "zedx_search_fixture::HiddenNeedle")
+        );
+    });
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-search-scope").is_none());
+    assert!(cx.debug_bounds("zedx-search-file-filter").is_none());
+    let checkbox = cx.debug_bounds("zedx-search-include").unwrap();
+    cx.simulate_click(checkbox.center(), Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-search-disabled-action").is_some());
+    modal.read_with(cx, |modal, cx| {
+        let delegate = &modal.picker.read(cx).delegate;
+        assert!(delegate.include_disabled_actions);
+        assert!(!delegate.include_non_project);
+        assert_eq!(delegate.rows.len(), 1);
+        assert!(delegate.action_is_disabled(&delegate.rows[0].target));
+        assert_eq!(delegate.rows[0].detail, "Unavailable in current context");
+    });
+    cx.dispatch_action(menu::Confirm);
+    cx.run_until_parked();
+    assert!(
+        workspace
+            .read_with(cx, |workspace, cx| workspace
+                .active_modal::<SearchWindow>(cx))
+            .is_some()
+    );
+    assert_eq!(executions.get(), 0);
+    cx.dispatch_action(menu::SecondaryConfirm);
+    cx.run_until_parked();
+    assert!(
+        workspace
+            .read_with(cx, |workspace, cx| workspace
+                .active_modal::<SearchWindow>(cx))
+            .is_some()
+    );
+    cx.dispatch_action(workspace::zedx_actions::SearchEverywhere);
+    cx.run_until_parked();
+    modal.read_with(cx, |modal, cx| {
+        assert!(!modal.picker.read(cx).delegate.include_disabled_actions)
+    });
+    modal.update_in(cx, |modal, window, cx| {
+        modal.picker.update(cx, |picker, cx| {
+            picker.set_query("Available Needle", window, cx)
+        });
+    });
+    cx.run_until_parked();
+    modal.update_in(cx, |modal, window, cx| modal.picker.update(cx, |picker, cx| {
+        let index = picker.delegate.rows.iter().position(|row| matches!(row.target, Target::Action(index) if picker.delegate.actions[index].1.name() == "zedx_search_fixture::AvailableNeedle")).unwrap();
+        assert!(!picker.delegate.action_is_disabled(&picker.delegate.rows[index].target));
+        picker.set_selected_index(index, None, false, window, cx);
+    }));
+    cx.dispatch_action(menu::Confirm);
+    cx.run_until_parked();
+    assert_eq!(executions.get(), 1);
+    assert!(
+        workspace
+            .read_with(cx, |workspace, cx| workspace
+                .active_modal::<SearchWindow>(cx))
+            .is_none()
+    );
+}
+
+#[gpui::test]
+async fn action_scope_and_file_scope_remain_independent(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(workspace::zedx_actions::SearchFiles);
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .unwrap();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-search-include").is_none());
+    assert!(cx.debug_bounds("zedx-search-file-filter").is_some());
+    let scope = cx.debug_bounds("zedx-search-scope").unwrap();
+    cx.simulate_click(scope.center(), Modifiers::none());
+    cx.run_until_parked();
+    cx.dispatch_action(workspace::zedx_actions::SearchActions);
+    cx.run_until_parked();
+    modal.read_with(cx, |modal, cx| {
+        let delegate = &modal.picker.read(cx).delegate;
+        assert!(delegate.include_non_project);
+        assert!(!delegate.scope_includes_extra());
+    });
+    cx.refresh().unwrap();
+    let include = cx.debug_bounds("zedx-search-include").unwrap();
+    cx.simulate_click(include.center(), Modifiers::none());
+    cx.run_until_parked();
+    cx.dispatch_action(workspace::zedx_actions::SearchFiles);
+    cx.run_until_parked();
+    modal.read_with(cx, |modal, cx| {
+        let delegate = &modal.picker.read(cx).delegate;
+        assert!(delegate.include_disabled_actions);
+        assert!(delegate.include_non_project);
+        assert!(delegate.scope_includes_extra());
+    });
+}

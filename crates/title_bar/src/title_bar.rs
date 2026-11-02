@@ -4,8 +4,11 @@ mod onboarding_banner;
 mod plan_chip;
 mod title_bar_settings;
 mod update_version;
+#[path = "zedx_prototype_project_identity.rs"]
 mod zedx_project_identity;
+#[path = "zedx_prototype_title_actions.rs"]
 mod zedx_title_actions;
+mod zedx_title_layout;
 
 use crate::application_menu::{ApplicationMenu, show_menus};
 use crate::plan_chip::PlanChip;
@@ -239,6 +242,7 @@ impl Render for TitleBar {
             }
         }
 
+        self.configure_zedx_title_layout(window, cx);
         let title_bar_settings = *TitleBarSettings::get_global(cx);
         let button_layout = title_bar_settings.button_layout;
         let is_git_enabled = ProjectSettings::get_global(cx).git.enabled.status;
@@ -312,13 +316,19 @@ impl Render for TitleBar {
         children.push(
             h_flex()
                 .h_full()
-                .gap_0p5()
+                .gap(px(if window.viewport_size().width <= px(1100.0) {
+                    4.0
+                } else {
+                    7.0
+                }))
                 .map(|title_bar| {
                     let mut render_project_items = title_bar_settings.show_branch_name
                         || title_bar_settings.show_project_items;
                     title_bar
                         .when_some(
-                            self.application_menu.clone().filter(|_| !show_menus),
+                            self.application_menu
+                                .clone()
+                                .filter(|_| !show_menus && !zedx_title_layout::enabled()),
                             |title_bar, menu| {
                                 // Hide the project/branch items to make room when the
                                 // menu bar is expanded -- except in accessible mode,
@@ -330,24 +340,40 @@ impl Render for TitleBar {
                                 title_bar.child(menu)
                             },
                         )
-                        .children(self.render_restricted_mode(cx))
+                        .children(self.render_restricted_mode(window, cx))
                         .when(render_project_items, |title_bar| {
                             title_bar
                                 .when(title_bar_settings.show_project_items, |title_bar| {
                                     title_bar.children(self.render_project_host(cx)).child(
-                                        self.render_zedx_project_identity(project_name, window, cx),
+                                        if zedx_title_layout::enabled() {
+                                            self.render_zedx_project_identity(
+                                                project_name,
+                                                window,
+                                                cx,
+                                            )
+                                            .into_any_element()
+                                        } else {
+                                            self.render_project_name(project_name, window, cx)
+                                                .into_any_element()
+                                        },
                                     )
                                 })
                                 .when_some(
                                     repository.filter(|_| {
-                                        is_git_enabled && window.viewport_size().width >= px(760.0)
+                                        is_git_enabled && window.viewport_size().width > px(760.0)
                                     }),
                                     |title_bar, repository| {
-                                        title_bar.children(self.render_worktree_and_branch(
-                                            repository,
-                                            linked_worktree_name,
-                                            cx,
-                                        ))
+                                        if zedx_title_layout::enabled() {
+                                            title_bar.children(
+                                                self.render_zedx_branch(repository, window, cx),
+                                            )
+                                        } else {
+                                            title_bar.children(self.render_worktree_and_branch(
+                                                repository,
+                                                linked_worktree_name,
+                                                cx,
+                                            ))
+                                        }
                                     },
                                 )
                         })
@@ -356,9 +382,11 @@ impl Render for TitleBar {
                 .into_any_element(),
         );
 
-        children.push(self.render_collaborator_list(window, cx).into_any_element());
+        if !zedx_title_layout::enabled() {
+            children.push(self.render_collaborator_list(window, cx).into_any_element());
+        }
 
-        if title_bar_settings.show_onboarding_banner {
+        if title_bar_settings.show_onboarding_banner && !zedx_title_layout::enabled() {
             if let Some(banner) = &self.banner {
                 children.push(banner.clone().into_any_element())
             }
@@ -382,36 +410,40 @@ impl Render for TitleBar {
 
         children.push(
             h_flex()
-                .pr_1()
+                .when(!zedx_title_layout::enabled(), |row| row.pr_1())
                 .gap_1()
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                 .child(self.render_zedx_actions(window, cx))
-                .child(self.render_call_controls(window, cx))
-                .children(self.render_connection_status(status, cx))
-                .child(self.update_version.clone())
-                .when(
-                    user.is_none()
-                        && is_signed_out_or_auth_error
-                        && TitleBarSettings::get_global(cx).show_sign_in
-                        && window.viewport_size().width >= px(760.0),
-                    |this| this.child(self.render_sign_in_button(cx)),
-                )
-                .when(is_signing_in, |this| {
-                    this.child(
-                        Label::new("Signing in…")
-                            .size(LabelSize::Small)
-                            .color(Color::Muted)
-                            .with_animation(
-                                "signing-in",
-                                Animation::new(Duration::from_secs(2))
-                                    .repeat()
-                                    .with_easing(pulsating_between(0.4, 0.8)),
-                                |label, delta| label.alpha(delta),
-                            ),
-                    )
-                })
-                .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {
-                    this.child(self.render_user_menu_button(cx))
+                .when(!zedx_title_layout::enabled(), |row| {
+                    row.child(self.render_call_controls(window, cx))
+                        .children(self.render_connection_status(status, cx))
+                        .child(self.update_version.clone())
+                        .when(
+                            user.is_none()
+                                && is_signed_out_or_auth_error
+                                && TitleBarSettings::get_global(cx).show_sign_in
+                                && window.viewport_size().width >= px(1100.0),
+                            |this| this.child(self.render_sign_in_button(cx)),
+                        )
+                        .when(is_signing_in, |this| {
+                            this.child(
+                                Label::new("Signing in…")
+                                    .size(LabelSize::Small)
+                                    .color(Color::Muted)
+                                    .with_animation(
+                                        "signing-in",
+                                        Animation::new(Duration::from_secs(2))
+                                            .repeat()
+                                            .with_easing(pulsating_between(0.4, 0.8)),
+                                        |label, delta| label.alpha(delta),
+                                    ),
+                            )
+                        })
+                        .when(
+                            TitleBarSettings::get_global(cx).show_user_menu
+                                && window.viewport_size().width >= px(760.0),
+                            |this| this.child(self.render_user_menu_button(cx)),
+                        )
                 })
                 .into_any_element(),
         );
@@ -426,7 +458,11 @@ impl Render for TitleBar {
                 );
             });
 
-            let height = platform_title_bar_height(window);
+            let height = if zedx_title_layout::enabled() {
+                zedx_title_layout::content_height(window)
+            } else {
+                platform_title_bar_height(window)
+            };
             let title_bar_color = self.platform_titlebar.update(cx, |platform_titlebar, cx| {
                 platform_titlebar.title_bar_color(window, cx)
             });
@@ -483,6 +519,16 @@ impl TitleBar {
         };
 
         let mut subscriptions = Vec::new();
+        if let Some(inventory) = project
+            .read(cx)
+            .task_store()
+            .read(cx)
+            .task_inventory()
+            .cloned()
+        {
+            subscriptions.push(cx.observe(&inventory, |_, _, cx| cx.notify()));
+        }
+
         subscriptions.push(
             cx.observe(&workspace.weak_handle().upgrade().unwrap(), |_, _, cx| {
                 cx.notify()
@@ -709,39 +755,51 @@ impl TitleBar {
         )
     }
 
-    pub fn render_restricted_mode(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+    pub fn render_restricted_mode(
+        &self,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
         let has_restricted_worktrees =
             TrustedWorktrees::has_restricted_worktrees(&self.project.read(cx).worktree_store(), cx);
         if !has_restricted_worktrees {
             return None;
         }
 
-        let button = Button::new("restricted_mode_trigger", "Restricted Mode")
-            .style(ButtonStyle::Tinted(TintColor::Warning))
-            .label_size(LabelSize::Small)
-            .color(Color::Warning)
-            .start_icon(
-                Icon::new(IconName::Warning)
-                    .size(IconSize::Small)
-                    .color(Color::Warning),
+        let button = Button::new(
+            "restricted_mode_trigger",
+            if window.viewport_size().width < px(760.0) {
+                ""
+            } else {
+                "Restricted Mode"
+            },
+        )
+        .aria_label("Restricted Mode")
+        .style(ButtonStyle::Tinted(TintColor::Warning))
+        .label_size(LabelSize::Small)
+        .color(Color::Warning)
+        .start_icon(
+            Icon::new(IconName::Warning)
+                .size(IconSize::Small)
+                .color(Color::Warning),
+        )
+        .tooltip(|_, cx| {
+            Tooltip::with_meta(
+                "You're in Restricted Mode",
+                Some(&ToggleWorktreeSecurity),
+                "Mark this project as trusted and unlock all features",
+                cx,
             )
-            .tooltip(|_, cx| {
-                Tooltip::with_meta(
-                    "You're in Restricted Mode",
-                    Some(&ToggleWorktreeSecurity),
-                    "Mark this project as trusted and unlock all features",
-                    cx,
-                )
+        })
+        .on_click({
+            cx.listener(move |this, _, window, cx| {
+                this.workspace
+                    .update(cx, |workspace, cx| {
+                        workspace.show_worktree_trust_security_modal(true, window, cx)
+                    })
+                    .log_err();
             })
-            .on_click({
-                cx.listener(move |this, _, window, cx| {
-                    this.workspace
-                        .update(cx, |workspace, cx| {
-                            workspace.show_worktree_trust_security_modal(true, window, cx)
-                        })
-                        .log_err();
-                })
-            });
+        });
 
         if ui::utils::MACOS_SDK_26_OR_LATER {
             // Make up for Tahoe's traffic light buttons having less spacing around them
@@ -804,7 +862,7 @@ impl TitleBar {
     fn render_project_name(
         &self,
         name: Option<SharedString>,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let workspace = self.workspace.clone();
@@ -814,7 +872,12 @@ impl TitleBar {
         let display_name = if let Some(ref name) = name {
             util::truncate_and_trailoff(name, MAX_PROJECT_NAME_LENGTH)
         } else {
-            "Open Recent Project".to_string()
+            if window.viewport_size().width < px(560.0) {
+                "Projects"
+            } else {
+                "Open Recent Project"
+            }
+            .to_string()
         };
 
         let is_sidebar_open = self
@@ -863,15 +926,21 @@ impl TitleBar {
             })
             .trigger_with_tooltip(
                 Button::new("project_name_trigger", display_name)
+                    .size(ButtonSize::Large)
                     .label_size(LabelSize::Small)
                     .tab_index(0isize)
-                    .when(self.worktree_count(cx) > 1, |this| {
-                        this.end_icon(
-                            Icon::new(IconName::ChevronDown)
-                                .size(IconSize::XSmall)
-                                .color(Color::Muted),
-                        )
-                    })
+                    .when(
+                        self.worktree_count(cx) > 1
+                            || (zedx_title_layout::enabled()
+                                && window.viewport_size().width >= px(760.0)),
+                        |this| {
+                            this.end_icon(
+                                Icon::new(IconName::ChevronDown)
+                                    .size(IconSize::XSmall)
+                                    .color(Color::Muted),
+                            )
+                        },
+                    )
                     .selected_style(ButtonStyle::Tinted(TintColor::Accent))
                     .when(!is_project_selected, |s| s.color(Color::Muted)),
                 move |_window, cx| {
@@ -1499,9 +1568,11 @@ mod tests {
 #[cfg(test)]
 mod zedx_title_bar_tests {
     use super::*;
-    use fs::FakeFs;
+    use fs::{FakeFs, Fs};
     use gpui::{Entity, IntoElement, TestAppContext};
     use settings::SettingsStore;
+
+    gpui::actions!(debugger, [Start]);
 
     struct TitleBarTestView {
         title_bar: Entity<TitleBar>,
@@ -1527,7 +1598,19 @@ mod zedx_title_bar_tests {
             theme_settings::init(theme::LoadThemes::JustBase, cx);
         });
         let fs = FakeFs::new(cx.executor());
-        let project = Project::test(fs, [], cx).await;
+        fs.create_dir(std::path::Path::new(util::path!(
+            "/very-long-prototype-project-name"
+        )))
+        .await
+        .unwrap();
+        let project = Project::test(
+            fs,
+            [std::path::Path::new(util::path!(
+                "/very-long-prototype-project-name"
+            ))],
+            cx,
+        )
+        .await;
         let (view, cx) = cx.add_window_view(|window, cx| {
             let workspace = cx.new(|cx| Workspace::test_new(project.clone(), window, cx));
             let (client, user_store) = {
@@ -1544,14 +1627,72 @@ mod zedx_title_bar_tests {
             TitleBarTestView { title_bar }
         });
         cx.run_until_parked();
-        cx.simulate_resize(gpui::size(gpui::px(1000.0), gpui::px(700.0)));
+        cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(700.0)));
         let title_bar = view.update(cx, |view, _| view.title_bar());
         title_bar.update(cx, |_, cx| cx.notify());
         cx.run_until_parked();
         cx.refresh().unwrap();
         assert!(cx.debug_bounds("zedx-project-identity").is_some());
-        assert!(cx.debug_bounds("zedx-main-menu").is_some());
-        assert!(cx.debug_bounds("zedx-search-label").is_some());
+        assert!(cx.debug_bounds("zedx-main-menu").is_none());
+        assert!(cx.debug_bounds("zedx-search-label").is_none());
+        for width in [
+            1536.0, 1280.0, 1101.0, 1100.0, 1000.0, 900.0, 899.0, 761.0, 760.0, 759.0, 390.0, 360.0,
+        ] {
+            cx.simulate_resize(gpui::size(px(width), px(700.0)));
+            title_bar.update(cx, |_, cx| cx.notify());
+            cx.run_until_parked();
+            cx.refresh().unwrap();
+            let frame = cx.debug_bounds("zedx-title-frame").unwrap();
+            assert_eq!(
+                frame.size.height,
+                px(if width <= 760.0 { 38.0 } else { 40.0 })
+            );
+            let identity = cx.debug_bounds("zedx-project-identity").unwrap();
+            let actions = cx.debug_bounds("zedx-title-actions").unwrap();
+            assert!(
+                identity.right() <= actions.left(),
+                "project and actions overlap at {width}px: {identity:?} {actions:?}"
+            );
+            for id in ["zedx-run", "zedx-debug", "zedx-search", "zedx-settings"] {
+                let button = cx.debug_bounds(id).expect(id);
+                assert!(
+                    button.left() >= frame.left() && button.right() <= frame.right(),
+                    "{id} clipped at {width}px: {button:?} frame {frame:?}"
+                );
+                assert!(button.top() >= frame.top() && button.bottom() <= frame.bottom());
+                assert_eq!(button.size.height, px(34.0));
+                assert_eq!(button.size.width, px(32.0));
+            }
+            assert_eq!(
+                cx.debug_bounds("zedx-run-configuration").is_some(),
+                width > 760.0
+            );
+            assert!(cx.debug_bounds("zedx-search-label").is_none());
+            assert!(cx.debug_bounds("zedx-theme").is_none());
+            let avatar = cx.debug_bounds("zedx-project-avatar").unwrap();
+            assert_eq!(avatar.size, gpui::size(px(23.0), px(23.0)));
+            let buttons = ["zedx-run", "zedx-debug", "zedx-search", "zedx-settings"]
+                .map(|id| cx.debug_bounds(id).unwrap());
+            for pair in buttons.windows(2) {
+                assert!(pair[0].right() <= pair[1].left());
+                assert_eq!(pair[0].center().y, pair[1].center().y);
+            }
+            if let Some(configuration) = cx.debug_bounds("zedx-run-configuration") {
+                assert_eq!(configuration.size.height, px(30.0));
+                assert!(configuration.right() < buttons[0].left());
+            }
+        }
+        let opened = std::rc::Rc::new(std::cell::Cell::new(false));
+        cx.update({
+            let opened = opened.clone();
+            move |_, cx| {
+                cx.on_action(move |_: &zed_actions::OpenSettings, _| opened.set(true));
+            }
+        });
+        let settings = cx.debug_bounds("zedx-settings").unwrap();
+        cx.simulate_click(settings.center(), gpui::Modifiers::none());
+        cx.run_until_parked();
+        assert!(opened.get(), "the gear directly dispatches OpenSettings");
     }
 
     #[test]

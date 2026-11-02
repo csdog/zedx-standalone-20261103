@@ -128,6 +128,35 @@ impl RailOrder {
         self.save();
     }
 
+    /// Reorders a fixed group without discarding other panels saved in the same dock.
+    pub fn move_subset_to(
+        &mut self,
+        position: DockPosition,
+        current: &[String],
+        name: &str,
+        index: usize,
+    ) {
+        let Some(from) = current.iter().position(|entry| entry == name) else {
+            return;
+        };
+        let mut reordered = current.to_vec();
+        let entry = reordered.remove(from);
+        reordered.insert(index.min(reordered.len()), entry);
+        let slot = self.slots.entry(dock_key(position)).or_default();
+        for entry in current {
+            if !slot.contains(entry) {
+                slot.push(entry.clone());
+            }
+        }
+        let mut replacements = reordered.into_iter();
+        for entry in slot.iter_mut().filter(|entry| current.contains(entry)) {
+            if let Some(replacement) = replacements.next() {
+                *entry = replacement;
+            }
+        }
+        self.save();
+    }
+
     /// Moves `name` by `delta` positions. `current` is the dock's panels in the order the user is
     /// looking at, so the first move starts from what is on screen rather than from an empty list.
     pub fn nudge(&mut self, position: DockPosition, current: &[String], name: &str, delta: isize) {
@@ -235,6 +264,27 @@ mod tests {
             Some(2),
             "an out-of-range index clamps to the last slot"
         );
+    }
+
+    #[test]
+    fn reordering_fixed_controls_preserves_extra_panels_and_round_trips() {
+        let mut order = RailOrder::from_json(
+            r#"{"right":["AgentPanel","Project Panel","Outline Panel","Database"]}"#,
+        )
+        .unwrap();
+        order.move_subset_to(
+            DockPosition::Right,
+            &names(&["AgentPanel", "Outline Panel", "Database"]),
+            "Database",
+            0,
+        );
+        let restored = RailOrder::from_json(&order.to_json().unwrap()).unwrap();
+        for (index, name) in ["Database", "Project Panel", "AgentPanel", "Outline Panel"]
+            .iter()
+            .enumerate()
+        {
+            assert_eq!(restored.rank(DockPosition::Right, name), Some(index));
+        }
     }
 
     #[test]

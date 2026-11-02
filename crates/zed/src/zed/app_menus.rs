@@ -66,7 +66,7 @@ pub fn app_menus(cx: &mut App) -> Vec<Menu> {
         view_items.push(MenuItem::separator());
     }
 
-    vec![
+    let mut menus = vec![
         Menu {
             name: "Zed".into(),
             disabled: false,
@@ -337,5 +337,60 @@ pub fn app_menus(cx: &mut App) -> Vec<Menu> {
                 ),
             ],
         },
-    ]
+    ];
+    if std::env::var_os("ZEDX_UPSTREAM_UI").is_none()
+        && let Some(application) = menus.first_mut()
+        && let Some(settings_index) = application.items.iter().position(
+            |item| matches!(item, MenuItem::Submenu(menu) if menu.name == "Settings"),
+        )
+        && let MenuItem::Submenu(settings) = &mut application.items[settings_index]
+        && let Some(open_index) = settings.items.iter().position(|item| {
+            matches!(item, MenuItem::Action { action, .. } if action.as_any().is::<zed_actions::OpenSettings>())
+        })
+    {
+        let open_settings = settings.items.remove(open_index);
+        application.items.insert(settings_index, open_settings);
+    }
+    menus
+}
+
+#[cfg(test)]
+mod zedx_settings_menu_tests {
+    use super::*;
+
+    #[gpui::test]
+    fn open_settings_is_a_direct_application_menu_action(cx: &mut gpui::TestAppContext) {
+        cx.update(|cx| {
+            let store = settings::SettingsStore::test(cx);
+            cx.set_global(store);
+            DisableAiSettings::register(cx);
+            let menus = app_menus(cx);
+            let application = menus.first().unwrap();
+            let open = application
+                .items
+                .iter()
+                .position(|item| {
+                    matches!(item, MenuItem::Action { name, action, .. }
+                    if name == "Open Settings" && action.as_any().is::<zed_actions::OpenSettings>())
+                })
+                .expect("Open Settings is directly available in the application menu");
+            let settings = application
+                .items
+                .iter()
+                .position(|item| matches!(item, MenuItem::Submenu(menu) if menu.name == "Settings"))
+                .unwrap();
+            assert!(open < settings);
+            let MenuItem::Submenu(settings) = &application.items[settings] else {
+                unreachable!();
+            };
+            assert!(!settings.items.iter().any(|item| {
+                matches!(item, MenuItem::Action { action, .. }
+                    if action.as_any().is::<zed_actions::OpenSettings>())
+            }));
+            assert!(settings.items.iter().any(|item| {
+                matches!(item, MenuItem::Action { action, .. }
+                    if action.as_any().is::<zed_actions::OpenProjectSettings>())
+            }));
+        });
+    }
 }

@@ -53,17 +53,19 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let focus = self.focus_handle(cx);
-        ui::ButtonLike::new(id)
-            .width(px(32.0))
-            .height(px(32.0).into())
-            .aria_label(label)
-            .tab_index(0isize)
-            .child(ui::zedx::icon(icon, cx))
-            .tooltip(ui::Tooltip::text(label))
-            .on_click(move |_, window, cx| {
-                window.focus(&focus, cx);
-                window.dispatch_action(action.boxed_clone(), cx);
-            })
+        div().debug_selector(move || id.into()).child(
+            ui::ButtonLike::new(id)
+                .width(px(32.0))
+                .height(px(32.0).into())
+                .aria_label(label)
+                .tab_index(0isize)
+                .child(ui::zedx::icon(icon, cx))
+                .tooltip(ui::Tooltip::text(label))
+                .on_click(move |_, window, cx| {
+                    window.focus(&focus, cx);
+                    window.dispatch_action(action.boxed_clone(), cx);
+                }),
+        )
     }
 
     fn zedx_resize_gap(
@@ -204,6 +206,9 @@ impl Workspace {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.move_zedx_right_control(name, delta, cx) {
+            return;
+        }
         for (index, position) in [
             DockPosition::Left,
             DockPosition::Bottom,
@@ -230,11 +235,13 @@ impl Workspace {
 
     fn zedx_more_tools(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let entries = self.zedx_tool_window_entries(cx);
+        let right_order = self.zedx_right_control_order(cx);
         ui::PopoverMenu::new("zedx-more-tools")
             .trigger_with_tooltip(
                 ui::ButtonLike::new("zedx-more-tools")
-                    .width(px(28.0))
-                    .height(px(28.0).into())
+                    .width(px(32.0))
+                    .height(px(32.0).into())
+                    .tab_index(0isize)
                     .aria_label("More tool windows")
                     .child(
                         div()
@@ -245,6 +252,7 @@ impl Workspace {
             )
             .menu(move |window, cx| {
                 let entries = entries.clone();
+                let right_order = right_order.clone();
                 Some(ui::ContextMenu::build(
                     window,
                     cx,
@@ -254,17 +262,72 @@ impl Workspace {
                             (DockPosition::Bottom, "Bottom"),
                             (DockPosition::Right, "Right"),
                         ] {
-                            let mut heading = false;
-                            for (_, name, selected, panel) in
-                                entries.iter().filter(|entry| entry.0 == position)
-                            {
-                                if !heading {
-                                    menu = menu.header(title);
-                                    heading = true;
+                            menu = menu.header(title);
+                            if position == DockPosition::Right {
+                                menu = menu.entry(
+                                    "Notifications",
+                                    Some(super::zedx_actions::ShowNotifications.boxed_clone()),
+                                    |window, cx| {
+                                        window.dispatch_action(
+                                            super::zedx_actions::ShowNotifications.boxed_clone(),
+                                            cx,
+                                        );
+                                    },
+                                );
+                            }
+                            if position == DockPosition::Right {
+                                for name in &right_order {
+                                    let (label, action): (_, Box<dyn gpui::Action>) =
+                                        match name.as_str() {
+                                            "AgentPanel" => (
+                                                "AI Assistant",
+                                                Box::new(super::zedx_actions::ToggleRightAssistant),
+                                            ),
+                                            "Outline Panel" => (
+                                                "Outline",
+                                                Box::new(super::zedx_actions::ToggleRightOutline),
+                                            ),
+                                            _ => (
+                                                "Database",
+                                                Box::new(super::zedx_actions::ShowDatabase),
+                                            ),
+                                        };
+                                    let selected = entries.iter().any(|entry| {
+                                        entry.0 == DockPosition::Right
+                                            && entry.1 == *name
+                                            && entry.2
+                                    });
+                                    menu = menu.toggleable_entry(
+                                        label,
+                                        selected,
+                                        ui::IconPosition::Start,
+                                        Some(action.boxed_clone()),
+                                        move |window, cx| {
+                                            window.dispatch_action(action.boxed_clone(), cx)
+                                        },
+                                    );
                                 }
-                                let action = panel.toggle_action(window, cx);
+                            }
+                            for (_, name, selected, panel) in entries.iter().filter(|entry| {
+                                entry.0 == position
+                                    && !matches!(entry.1.as_str(), "AgentPanel" | "Outline Panel")
+                            }) {
+                                let label = match name.as_str() {
+                                    "Project Panel" => "Project",
+                                    "GitPanel" => "Commit",
+                                    "TerminalPanel" => "Terminal",
+                                    "DebugPanel" => "Debug",
+                                    "AgentPanel" => "AI Assistant",
+                                    "Outline Panel" => "Outline",
+                                    name => name,
+                                };
+                                let action = crate::dock::zedx_tool_window_bar::zedx_toggle_action(
+                                    panel.as_ref(),
+                                    window,
+                                    cx,
+                                );
                                 menu = menu.toggleable_entry(
-                                    name.clone(),
+                                    label.to_string(),
                                     *selected,
                                     ui::IconPosition::Start,
                                     Some(action.boxed_clone()),
@@ -274,16 +337,6 @@ impl Workspace {
                                 );
                             }
                         }
-                        menu = menu.separator().entry(
-                            "Git history",
-                            Some(super::zedx_actions::ShowGitHistory.boxed_clone()),
-                            |window, cx| {
-                                window.dispatch_action(
-                                    super::zedx_actions::ShowGitHistory.boxed_clone(),
-                                    cx,
-                                );
-                            },
-                        );
                         menu
                     },
                 ))
@@ -303,7 +356,12 @@ impl Workspace {
                 .max(px(1.0)),
         );
         let colors = cx.theme().colors();
-        let frame_background = colors.title_bar_background;
+        let translucent_panels = colors.panel_background.a == 0.0;
+        let frame_background = if translucent_panels {
+            colors.title_bar_background.opacity(0.30)
+        } else {
+            colors.title_bar_background
+        };
         let editor_background = colors.editor_background;
         let left_open = self.left_dock.read(cx).is_open();
         let right_open = self.right_dock.read(cx).is_open();
@@ -316,7 +374,9 @@ impl Workspace {
                     .when(left_open, |dock| {
                         dock.min_w(px(180.0))
                             .max_w(px(420.0))
-                            .child(ui::zedx::island_corners(px(10.0), frame_background))
+                            .when(!translucent_panels, |dock| {
+                                dock.child(ui::zedx::island_corners(px(10.0), frame_background))
+                            })
                     })
                     .when(compact && left_open, |dock| {
                         dock.absolute()
@@ -338,7 +398,9 @@ impl Workspace {
                 dock.relative()
                     .rounded(px(10.0))
                     .when(right_open, |dock| {
-                        dock.child(ui::zedx::island_corners(px(10.0), frame_background))
+                        dock.when(!translucent_panels, |dock| {
+                            dock.child(ui::zedx::island_corners(px(10.0), frame_background))
+                        })
                     })
                     .when(compact && right_open, |dock| {
                         dock.debug_selector(|| "zedx-right-overlay".into())
@@ -371,7 +433,7 @@ impl Workspace {
                     .flex_none()
                     .overflow_hidden()
                     .rounded(px(10.0))
-                    .child(self.render_zedx_bottom_bar(window, cx))
+                    .children(self.render_zedx_bottom_tool_window_head(cx))
                     .child(dock.h_full().flex_1().min_h_0())
                     .child(ui::zedx::island_corners(px(10.0), frame_background))
                     .into_any_element()
@@ -397,6 +459,24 @@ impl Workspace {
             .min_h_0()
             .bg(frame_background)
             .py(frame_inset())
+            // A coalesced first move can start a drag immediately before release,
+            // without another drag-move event reaching the workspace capture handler.
+            .on_drop::<DraggedDock>(cx.listener(|workspace, dragged: &DraggedDock, window, cx| {
+                if workspace.zoomed.is_some() {
+                    return;
+                }
+                let pointer = window.mouse_position();
+                let size = match dragged.0 {
+                    DockPosition::Left => pointer.x - workspace.bounds.left() - left_rail_offset(),
+                    DockPosition::Right => {
+                        workspace.bounds.right() - pointer.x - right_rail_offset()
+                    }
+                    DockPosition::Bottom => workspace.bounds.bottom() - pointer.y - frame_inset(),
+                };
+                workspace.resize_dock(dragged.0, size, window, cx);
+                workspace.serialize_workspace(window, cx);
+                cx.stop_propagation();
+            }))
             .child(
                 v_flex()
                     .debug_selector(|| "zedx-left-rail".into())
@@ -406,23 +486,9 @@ impl Workspace {
                     .items_center()
                     .py_1()
                     .child(self.zedx_panel_buttons[0].clone())
-                    .child(self.zedx_action_button(
-                        "zedx-git-history",
-                        ui::zedx::Icon::Git,
-                        "Git history",
-                        super::zedx_actions::ShowGitHistory.boxed_clone(),
-                        cx,
-                    ))
-                    .child(div().flex_1())
-                    .child(self.zedx_panel_buttons[1].clone())
                     .child(self.zedx_more_tools(cx))
-                    .child(self.zedx_action_button(
-                        "zedx-settings",
-                        ui::zedx::Icon::Settings,
-                        "Settings",
-                        zed_actions::OpenSettings.boxed_clone(),
-                        cx,
-                    )),
+                    .child(div().flex_1())
+                    .child(self.zedx_panel_buttons[1].clone()),
             )
             .children(left.map(|dock| {
                 if compact {
@@ -468,22 +534,16 @@ impl Workspace {
                     .h_full()
                     .items_center()
                     .py_1()
-                    .child(self.zedx_panel_buttons[2].clone())
                     .child(self.zedx_action_button(
-                        "zedx-database",
-                        ui::zedx::Icon::Database,
-                        "Database",
-                        super::zedx_actions::ShowDatabase.boxed_clone(),
-                        cx,
-                    ))
-                    .child(div().flex_1())
-                    .child(self.zedx_action_button(
-                        "zedx-notifications",
+                        "zedx-notifications-button",
                         ui::zedx::Icon::Bell,
                         "Notifications",
                         super::zedx_actions::ShowNotifications.boxed_clone(),
                         cx,
-                    )),
+                    ))
+                    .child(self.render_zedx_right_sidebar(cx))
+                    .child(self.zedx_panel_buttons[2].clone())
+                    .child(div().flex_1()),
             )
     }
 }

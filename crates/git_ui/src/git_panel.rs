@@ -1,3 +1,6 @@
+#[path = "zedx_commit_panel.rs"]
+mod zedx_commit_panel;
+
 use git_ui_core::askpass_modal::AskPassModal;
 pub(crate) use git_ui_core::notifications::{open_output, show_error_toast};
 
@@ -1224,6 +1227,7 @@ pub struct GitPanel {
     bulk_staging: Option<BulkStaging>,
     stash_entries: GitStash,
     active_tab: GitPanelTab,
+    zedx_commit: zedx_commit_panel::CommitPanelState,
     commit_history_scroll_handle: UniformListScrollHandle,
     commit_history: CommitHistory,
     focused_history_entry: Option<usize>,
@@ -1561,6 +1565,7 @@ impl GitPanel {
                 bulk_staging: None,
                 stash_entries: Default::default(),
                 active_tab: GitPanelTab::Changes,
+                zedx_commit: Default::default(),
                 commit_history_scroll_handle: UniformListScrollHandle::new(),
                 commit_history: CommitHistory::Loading,
                 focused_history_entry: None,
@@ -2810,6 +2815,10 @@ impl GitPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if zedx_commit_panel::enabled() && self.selection_target_kind() == Some(SelectionTargetKind::File) {
+            self.confirm_panel_entry(&menu::Confirm, window, cx);
+            return;
+        }
         let entry_primary_click_action =
             GitPanelSettings::get_global(cx).entry_primary_click_action;
         let action = match (entry_primary_click_action, secondary) {
@@ -7046,6 +7055,7 @@ impl GitPanel {
         };
 
         let footer = v_flex()
+            .when(zedx_commit_panel::enabled(), |this| this.h_full().min_h_0())
             .when(self.commit_editor_expanded, |this| this.flex_1().min_h_0())
             .child(PanelRepoFooter::new(
                 display_name,
@@ -7079,7 +7089,7 @@ impl GitPanel {
                 panel_editor_container(window, cx)
                     .id("commit-editor-container")
                     .w_full()
-                    .when(self.commit_editor_expanded, |this| this.flex_1().min_h_0())
+                    .when(self.commit_editor_expanded || zedx_commit_panel::enabled(), |this| this.flex_1().min_h_0())
                     .border_t_1()
                     .border_color(if title_exceeds_limit {
                         cx.theme().status().warning_border
@@ -7117,6 +7127,8 @@ impl GitPanel {
                     .child(
                         h_flex()
                             .id("commit-footer")
+                            .debug_selector(|| "zedx-commit-message-actions".into())
+                            .flex_none()
                             .w_full()
                             .p_1p5()
                             .border_t_1()
@@ -7549,6 +7561,10 @@ impl GitPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if zedx_commit_panel::enabled() {
+            self.select_zedx_commit_tab(zedx_commit_panel::CommitTab::Commit, window, cx);
+            return;
+        }
         self.set_active_tab(GitPanelTab::Changes, window, cx);
     }
 
@@ -7565,6 +7581,11 @@ impl GitPanel {
     /// which is handled on a rendered node and therefore depends on focus reaching the panel.
     pub fn show_history(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.set_active_tab(GitPanelTab::History, window, cx);
+    }
+
+    /// Reveals Changes without requiring a rendered action-dispatch node.
+    pub fn show_changes(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.set_active_tab(GitPanelTab::Changes, window, cx);
     }
 
     fn set_active_tab(&mut self, tab: GitPanelTab, window: &mut Window, cx: &mut Context<Self>) {
@@ -9565,7 +9586,7 @@ impl Render for GitPanel {
             .on_action(cx.listener(Self::previous_entry))
             .on_action(cx.listener(Self::last_entry))
             .on_action(cx.listener(Self::close_panel))
-            .on_action(cx.listener(Self::open_diff))
+            .on_action(cx.listener(Self::confirm_panel_entry))
             .on_action(cx.listener(Self::open_solo_diff))
             .on_action(cx.listener(Self::view_file))
             .on_action(cx.listener(Self::view_file_history))
@@ -9594,7 +9615,9 @@ impl Render for GitPanel {
             .size_full()
             .overflow_hidden()
             .bg(cx.theme().colors().panel_background)
-            .child(
+            .child(if zedx_commit_panel::enabled() && self.active_tab == GitPanelTab::Changes {
+                self.render_zedx_commit(window, cx)
+            } else {
                 v_flex()
                     .size_full()
                     .when(!self.commit_editor_expanded, |this| {
@@ -9628,8 +9651,8 @@ impl Render for GitPanel {
                             }),
                         GitPanelTab::History => this.child(self.render_history_tab(window, cx)),
                     })
-                    .into_any_element(),
-            )
+                    .into_any_element()
+            })
             .children(self.context_menu.as_ref().map(|context_menu| {
                 deferred(
                     anchored()
@@ -10297,6 +10320,10 @@ mod tests {
     };
 
     use super::*;
+
+    include!("zedx_commit_panel_tests.rs");
+    include!("zedx_source_diff_tests.rs");
+    include!("zedx_commit_resize_tests.rs");
 
     fn init_test(cx: &mut gpui::TestAppContext) {
         zlog::init_test();
@@ -14766,6 +14793,15 @@ mod tests {
     #[gpui::test]
     async fn test_history_tab_pane_navigation_focuses_rendered_panel(cx: &mut TestAppContext) {
         init_test(cx);
+
+        // This test navigates right into the panel; ZedX defaults Commit to the left.
+        cx.update(|cx| {
+            SettingsStore::update_global(cx, |store, cx| {
+                store.update_user_settings(cx, |settings| {
+                    settings.git_panel.get_or_insert_default().dock = Some(DockPosition::Right.into());
+                });
+            });
+        });
 
         let (_, _project, workspace, panel, mut cx) =
             setup_git_panel_with_changes(cx, json!({ ".git": {} }), &[]).await;

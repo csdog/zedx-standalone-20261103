@@ -22,6 +22,9 @@ use ui::{
 };
 use util::ResultExt as _;
 
+#[path = "zedx_split.rs"]
+pub mod zedx_split;
+
 pub(crate) const RESIZE_HANDLE_SIZE: Pixels = px(6.);
 
 pub enum PanelEvent {
@@ -289,6 +292,7 @@ pub struct Dock {
     focus_handle: FocusHandle,
     focus_follows_mouse: FocusFollowsMouse,
     restoration: DockRestoreState,
+    zedx_split: zedx_split::SplitState,
     zoom_layer_open: bool,
     modal_layer: Entity<ModalLayer>,
     _subscriptions: [Subscription; 2],
@@ -457,6 +461,7 @@ impl Dock {
                 focus_follows_mouse: WorkspaceSettings::get_global(cx).focus_follows_mouse,
                 _subscriptions: [focus_subscription, zoom_subscription],
                 restoration: DockRestoreState::Restoring { pending: None },
+                zedx_split: Default::default(),
                 zoom_layer_open: false,
                 modal_layer,
             }
@@ -595,6 +600,7 @@ impl Dock {
             if let Some(active_panel) = self.active_panel_entry() {
                 active_panel.panel.set_active(open, window, cx);
             }
+            self.sync_zedx_split(window, cx);
 
             cx.notify();
         }
@@ -777,6 +783,9 @@ impl Dock {
                         }
                     }
                     PanelEvent::Close => {
+                        if this.close_zedx_split_panel(Entity::entity_id(panel), window, cx) {
+                            return;
+                        }
                         if this
                             .visible_panel()
                             .is_some_and(|p| p.panel_id() == Entity::entity_id(panel))
@@ -905,6 +914,7 @@ impl Dock {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        self.close_zedx_split_panel(panel.entity_id(), window, cx);
         if let Some(panel_ix) = self
             .panel_entries
             .iter()
@@ -965,6 +975,7 @@ impl Dock {
                 active_panel.panel.set_active(true, window, cx);
             }
 
+            self.sync_zedx_split(window, cx);
             cx.notify();
         }
     }
@@ -1275,7 +1286,7 @@ impl Dock {
 }
 
 impl Render for Dock {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dispatch_context = Self::dispatch_context();
         if let Some(entry) = self.visible_entry() {
             let position = self.position;
@@ -1344,7 +1355,30 @@ impl Render for Dock {
                 .track_focus(&self.focus_handle(cx))
                 .focus_follows_mouse(self.focus_follows_mouse, cx)
                 .flex()
-                .bg(cx.theme().colors().panel_background)
+                .bg(
+                    if crate::zedx_workbench::enabled()
+                        && cx.theme().colors().panel_background.a == 0.0
+                    {
+                        let colors = cx.theme().colors();
+                        if self.position() == DockPosition::Bottom
+                            || window.viewport_size().width < px(560.0)
+                        {
+                            // Overlays need a solid backing so editor text cannot bleed through.
+                            colors.surface_background
+                        } else {
+                            // Paint the material once; panel contents inherit the transparent theme token.
+                            colors.surface_background.opacity(0.62)
+                        }
+                    } else {
+                        cx.theme().colors().panel_background
+                    },
+                )
+                .when(
+                    crate::zedx_workbench::enabled()
+                        && cx.theme().colors().panel_background.a == 0.0
+                        && self.position() != DockPosition::Bottom,
+                    |dock| dock.rounded(px(10.0)),
+                )
                 .border_color(cx.theme().colors().border)
                 .overflow_hidden()
                 .map(|this| match self.position().axis() {
@@ -1364,7 +1398,7 @@ impl Render for Dock {
                             Axis::Horizontal => this.w_full().h_full(),
                             Axis::Vertical => this.h_full().w_full(),
                         })
-                        .child(self.render_zedx_panel(&entry.panel, cx)),
+                        .child(self.render_zedx_split_or_panel(&entry.panel, window, cx)),
                 )
                 .when(
                     self.resizable(cx) && !crate::zedx_workbench::enabled(),

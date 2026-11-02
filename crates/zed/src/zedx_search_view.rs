@@ -4,7 +4,7 @@ use ui::HighlightedLabel;
 impl SearchWindow {
     fn render_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let delegate = &self.picker.read(cx).delegate;
-        let include_non_project = delegate.include_non_project;
+        let include_non_project = delegate.scope_includes_extra();
         let file_filter = delegate.file_filter;
         let actions = delegate.category == Category::Actions;
         let scope_label = if actions {
@@ -21,22 +21,25 @@ impl SearchWindow {
             .gap_2()
             .border_b_1()
             .border_color(cx.theme().colors().border)
-            .child(Button::new("search-scope", if include_non_project { "All Places" } else { "Project" })
-                .label_size(LabelSize::Small)
+            .when(!matches!(delegate.category, Category::All | Category::Actions), |controls| controls.child(div().debug_selector(|| "zedx-search-scope".into()).child(Button::new("search-scope", if include_non_project { "All Places" } else { "Project" })
+                .label_size(ui::zedx::label_size())
                 .tooltip(Tooltip::text("Search project files, or include ignored files and language-server dependencies"))
                 .on_click(cx.listener(|this, _, window, cx| {
-                    this.picker.update(cx, |picker, _| picker.delegate.include_non_project = !picker.delegate.include_non_project);
+                    this.picker.update(cx, |picker, _| {
+                        let include = !picker.delegate.scope_includes_extra();
+                        picker.delegate.set_scope_includes_extra(include);
+                    });
                     this.refresh(window, cx);
-                })))
-            .child(Checkbox::new("search-non-project", if include_non_project { ToggleState::Selected } else { ToggleState::Unselected })
+                })))))
+            .when(matches!(delegate.category, Category::All | Category::Actions), |controls| controls.child(div().debug_selector(|| "zedx-search-include".into()).child(Checkbox::new("search-non-project", if include_non_project { ToggleState::Selected } else { ToggleState::Unselected })
                 .label(scope_label)
-                .label_size(LabelSize::XSmall)
+                .label_size(ui::zedx::caption_size())
                 .on_click(cx.listener(|this, state, window, cx| {
-                    this.picker.update(cx, |picker, _| picker.delegate.include_non_project = *state == ToggleState::Selected);
+                    this.picker.update(cx, |picker, _| picker.delegate.set_scope_includes_extra(*state == ToggleState::Selected));
                     this.refresh(window, cx);
-                })))
+                })))))
             .child(div().flex_1())
-            .child(PopoverMenu::new("search-file-filter")
+            .when(!matches!(delegate.category, Category::All | Category::Actions), |controls| controls.child(div().debug_selector(|| "zedx-search-file-filter".into()).child(PopoverMenu::new("search-file-filter")
                 .trigger_with_tooltip(
                     IconButton::new("search-file-filter-button", IconName::Filter)
                         .disabled(actions)
@@ -61,7 +64,7 @@ impl SearchWindow {
                         }
                         menu
                     }))
-                }))
+                }))))
             .child(IconButton::new("search-clear", IconName::Close)
                 .aria_label("Clear search")
                 .tooltip(Tooltip::text("Clear search"))
@@ -111,12 +114,15 @@ impl Render for SearchWindow {
         self.picker.update(cx, |picker, _| {
             picker.fit_zedx_search(width, available_height, results_height, window)
         });
+        let origin = self.placement.position(viewport, width, top);
         let modal = v_flex()
             .id("zedx-search-modal")
             .debug_selector(|| "zedx-search-modal".into())
             .w(width)
             .max_h(viewport.height * height_fraction)
-            .mt(top)
+            .absolute()
+            .left(origin.x)
+            .top(origin.y)
             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .key_context("ZedXSearch")
             .max_w_full()
@@ -145,13 +151,13 @@ impl Render for SearchWindow {
                     .child(
                         h_flex()
                             .id("search-categories")
-                            .flex_1()
+                            .w(px(390.0).min((width - px(90.0)).max(px(1.0))))
                             .min_w_0()
                             .overflow_x_scroll()
                             .children(Category::ALL.into_iter().enumerate().map(
                                 |(index, category)| {
                                     Button::new(("search-category", index), category.label())
-                                        .label_size(LabelSize::Small)
+                                        .label_size(ui::zedx::label_size())
                                         .toggle_state(
                                             category == self.picker.read(cx).delegate.category,
                                         )
@@ -167,6 +173,24 @@ impl Render for SearchWindow {
                             )),
                     )
                     .child(
+                        div()
+                            .id("zedx-search-drag-handle")
+                            .debug_selector(|| "zedx-search-drag-handle".into())
+                            .flex_1()
+                            .min_w(px(24.0))
+                            .h(px(24.0))
+                            .cursor_move()
+                            .aria_label("Drag search window")
+                            .tooltip(Tooltip::text("Drag search window"))
+                            .on_mouse_down(
+                                gpui::MouseButton::Left,
+                                cx.listener(|this, event: &gpui::MouseDownEvent, _, cx| {
+                                    this.placement.begin(event.position);
+                                    cx.stop_propagation();
+                                }),
+                            ),
+                    )
+                    .child(
                         IconButton::new("search-preview", IconName::Eye)
                             .aria_label("Toggle code preview")
                             .tooltip(Tooltip::text("Toggle code preview"))
@@ -178,7 +202,26 @@ impl Render for SearchWindow {
             )
             .child(self.render_controls(cx))
             .child(self.picker.clone());
-        h_flex()
+        let bounds = self.placement.bounds.clone();
+        let weak = cx.entity().downgrade();
+        let layer = h_flex()
+            .on_children_prepainted(move |children, _, cx| {
+                if let Some(bound) = children.last().copied() {
+                    let changed = bounds.get().is_none_or(|old| old.size != bound.size);
+                    bounds.set(Some(bound));
+                    if changed {
+                        let weak = weak.clone();
+                        cx.defer(move |cx| {
+                            weak.update(cx, |this, cx| {
+                                if this.placement.fit(viewport) {
+                                    cx.notify();
+                                }
+                            })
+                            .log_err();
+                        });
+                    }
+                }
+            })
             .absolute()
             .inset_0()
             .size_full()
@@ -189,7 +232,9 @@ impl Render for SearchWindow {
                 gpui::MouseButton::Left,
                 cx.listener(|_, _, _, cx| cx.emit(DismissEvent)),
             )
-            .child(modal)
+            .child(self.drag_tracking(cx))
+            .child(modal);
+        gpui::deferred(layer).with_priority(2)
     }
 }
 
@@ -257,6 +302,7 @@ impl SearchDelegate {
         cx: &mut Context<Picker<Self>>,
     ) -> Option<AnyElement> {
         let row = self.rows.get(index)?;
+        let disabled = self.action_is_disabled(&row.target);
         let section = self.section(index);
         let starts_group = index == 0 || self.section(index - 1) != section;
         Some(
@@ -283,7 +329,7 @@ impl SearchDelegate {
                             .on_mouse_up(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .child(
                                 Label::new(section)
-                                    .size(LabelSize::XSmall)
+                                    .size(ui::zedx::caption_size())
                                     .color(Color::Muted),
                             )
                             .child(div().h_px().flex_1().bg(cx.theme().colors().border_variant)),
@@ -291,6 +337,7 @@ impl SearchDelegate {
                 })
                 .child(
                     ListItem::new(index)
+                        .disabled(disabled)
                         .spacing(ListItemSpacing::Dense)
                         .height(px(if window.viewport_size().width < px(760.0) {
                             27.0
@@ -300,6 +347,10 @@ impl SearchDelegate {
                         .toggle_state(selected)
                         .child(
                             h_flex()
+                                .when(disabled, |row| {
+                                    row.opacity(0.5)
+                                        .debug_selector(|| "zedx-search-disabled-action".into())
+                                })
                                 .w_full()
                                 .min_w_0()
                                 .gap_2()
@@ -325,7 +376,7 @@ impl SearchDelegate {
                                                 row.label.clone(),
                                                 highlight_indices(&row.label, &self.query),
                                             )
-                                            .size(LabelSize::Small)
+                                            .size(ui::zedx::label_size())
                                             .truncate(),
                                         ),
                                 )
@@ -335,7 +386,7 @@ impl SearchDelegate {
                                             row.detail.clone(),
                                             highlight_indices(&row.detail, &self.query),
                                         )
-                                        .size(LabelSize::XSmall)
+                                        .size(ui::zedx::caption_size())
                                         .color(Color::Muted)
                                         .truncate(),
                                     ),
@@ -343,7 +394,7 @@ impl SearchDelegate {
                                 .child(
                                     div().flex_none().max_w(relative(0.25)).child(
                                         Label::new(row.source.clone())
-                                            .size(LabelSize::XSmall)
+                                            .size(ui::zedx::caption_size())
                                             .color(Color::Muted)
                                             .truncate(),
                                     ),
@@ -362,6 +413,10 @@ impl SearchDelegate {
         cx: &mut Context<Picker<Self>>,
     ) -> AnyElement {
         let compact = window.viewport_size().width < px(700.0);
+        let disabled = self
+            .rows
+            .get(self.selected)
+            .is_some_and(|row| self.action_is_disabled(&row.target));
         h_flex()
             .debug_selector(|| "zedx-search-footer".into())
             .w_full()
@@ -372,19 +427,31 @@ impl SearchDelegate {
             .border_t_1()
             .border_color(cx.theme().colors().border)
             .child(
-                Label::new(self.error.clone().unwrap_or_else(|| {
-                    format!(
-                        "{} {}",
-                        self.rows.len(),
-                        if self.rows.len() == 1 {
-                            "result"
-                        } else {
-                            "results"
-                        }
-                    )
-                }))
-                .size(LabelSize::XSmall)
-                .color(Color::Muted),
+                div()
+                    .id("zedx-search-status")
+                    .debug_selector(|| "zedx-search-status".into())
+                    .min_w_0()
+                    .max_w(px(if compact { 140.0 } else { 360.0 }))
+                    .flex_shrink(1.0)
+                    .when_some(self.error.clone(), |status, error| {
+                        status.tooltip(Tooltip::text(error))
+                    })
+                    .child(
+                        Label::new(self.error.clone().unwrap_or_else(|| {
+                            format!(
+                                "{} {}",
+                                self.rows.len(),
+                                if self.rows.len() == 1 {
+                                    "result"
+                                } else {
+                                    "results"
+                                }
+                            )
+                        }))
+                        .size(ui::zedx::caption_size())
+                        .truncate()
+                        .color(Color::Muted),
+                    ),
             )
             .child(
                 div().flex_1().min_w_0().child(
@@ -394,7 +461,7 @@ impl SearchDelegate {
                             .map(|row| row.detail.clone())
                             .unwrap_or_default(),
                     )
-                    .size(LabelSize::XSmall)
+                    .size(ui::zedx::caption_size())
                     .color(Color::Muted)
                     .truncate(),
                 ),
@@ -408,7 +475,7 @@ impl SearchDelegate {
                 |bar| {
                     bar.child(
                         Button::new("search-open-right", "Open in Right Split")
-                            .label_size(LabelSize::XSmall)
+                            .label_size(ui::zedx::caption_size())
                             .on_click(cx.listener(|picker, _, window, cx| {
                                 window.focus(&picker.focus_handle(cx), cx);
                                 window.dispatch_action(menu::SecondaryConfirm.boxed_clone(), cx);
@@ -417,12 +484,14 @@ impl SearchDelegate {
                 },
             )
             .child(
-                Label::new(if compact {
+                Label::new(if disabled {
+                    "Unavailable · esc Close"
+                } else if compact {
                     "↵ Open · esc Close"
                 } else {
                     "↑↓ Navigate    ↵ Open    ⇧↵ Split    ⇥ Category    esc Close"
                 })
-                .size(LabelSize::XSmall)
+                .size(ui::zedx::caption_size())
                 .color(Color::Muted),
             )
             .into_any_element()

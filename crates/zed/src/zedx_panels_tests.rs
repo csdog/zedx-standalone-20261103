@@ -131,6 +131,78 @@ async fn restore_layout_resets_sizes_and_closes_right_dock(cx: &mut TestAppConte
 }
 
 #[gpui::test]
+async fn restore_layout_waits_for_settings_backed_project_panel(cx: &mut TestAppContext) {
+    use project_panel::ProjectPanel;
+    use settings::SettingsStore;
+    cx.update(project_panel::init);
+    let (workspace, cx) = setup(cx).await;
+    cx.update(|_, cx| {
+        cx.update_global::<SettingsStore, _>(|settings, cx| {
+            settings
+                .set_user_settings(r#"{"project_panel":{"dock":"right"}}"#, cx)
+                .unwrap();
+        });
+    });
+    let panel = workspace
+        .update_in(cx, |_, window, cx| {
+            cx.spawn_in(window, async move |workspace, cx| {
+                ProjectPanel::load(workspace, cx.clone()).await
+            })
+        })
+        .await
+        .unwrap();
+    workspace.update_in(cx, |workspace, window, cx| {
+        workspace.add_panel(panel.clone(), window, cx);
+        workspace.focus_panel::<ProjectPanel>(window, cx);
+        workspace.set_panel_size_state::<ProjectPanel>(
+            PanelSizeState {
+                size: Some(px(400.0)),
+                flex: None,
+            },
+            window,
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    // Dispatch without the test helper's automatic background-task drain.
+    // App updates flush deferred UI callbacks, while settings I/O is still queued.
+    workspace.update_in(cx, |_, window, cx| {
+        window.dispatch_action(RestoreDefaultLayout.boxed_clone(), cx);
+    });
+    workspace.read_with(cx, |workspace, cx| {
+        let right = workspace.dock_at_position(DockPosition::Right).read(cx);
+        assert_eq!(
+            right.active_panel().unwrap().persistent_name(),
+            "Project Panel"
+        );
+        assert_eq!(
+            workspace.panel_size_state::<ProjectPanel>(cx).unwrap().size,
+            Some(px(400.0)),
+            "do not reset the project panel to the right dock's width before it moves"
+        );
+    });
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        let left = workspace.dock_at_position(DockPosition::Left).read(cx);
+        assert!(left.is_open());
+        assert_eq!(
+            left.active_panel().unwrap().persistent_name(),
+            "Project Panel"
+        );
+        assert_eq!(
+            workspace.panel_size_state::<ProjectPanel>(cx).unwrap().size,
+            Some(px(265.0))
+        );
+        assert!(
+            !workspace
+                .dock_at_position(DockPosition::Right)
+                .read(cx)
+                .is_open()
+        );
+    });
+}
+
+#[gpui::test]
 async fn problems_refresh_from_project_diagnostics_and_navigate_to_source(cx: &mut TestAppContext) {
     let (workspace, cx) = setup(cx).await;
     let project = workspace.read_with(cx, |workspace, _| workspace.project().clone());
@@ -645,7 +717,7 @@ async fn bottom_hide_button_closes_bottom_dock(cx: &mut TestAppContext) {
     cx.run_until_parked();
     cx.refresh().unwrap();
     let hide = cx
-        .debug_bounds("zedx-hide-bottom")
+        .debug_bounds("zedx-problems-hide")
         .expect("bottom hide button must have a hit region");
     cx.simulate_click(hide.center(), Modifiers::none());
     cx.run_until_parked();
@@ -996,7 +1068,7 @@ async fn more_tools_menu_reaches_panels_from_every_dock(cx: &mut TestAppContext)
 }
 
 #[gpui::test]
-async fn show_git_history_opens_the_git_panel_history_tab(cx: &mut TestAppContext) {
+async fn show_git_history_opens_bottom_log_without_changing_commit_tab(cx: &mut TestAppContext) {
     use git_ui::git_panel::GitPanel;
     let (workspace, cx) = setup(cx).await;
     cx.update(|_, cx| {
@@ -1014,6 +1086,19 @@ async fn show_git_history_opens_the_git_panel_history_tab(cx: &mut TestAppContex
     load.await.unwrap();
     cx.run_until_parked();
 
+    let commit = workspace.read_with(cx, |workspace, cx| workspace.panel::<GitPanel>(cx).unwrap());
+    commit.update_in(cx, |panel, window, cx| panel.show_history(window, cx));
+    cx.dispatch_action(ToggleStructure);
+    cx.refresh().unwrap();
+    let commit_button = cx.debug_bounds("zedx-tool-GitPanel").unwrap();
+    cx.simulate_click(commit_button.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    assert!(!commit.read_with(cx, |panel, _| panel.showing_history_tab()));
+    let draft = commit.read_with(cx, |panel, cx| panel.commit_message_buffer(cx));
+    draft.update(cx, |buffer, cx| {
+        buffer.set_text("Keep this commit draft", cx)
+    });
+
     // Reach the Git log through the tool window menu, the way the prototype lists it.
     cx.refresh().unwrap();
     let trigger = cx
@@ -1028,13 +1113,41 @@ async fn show_git_history_opens_the_git_panel_history_tab(cx: &mut TestAppContex
     cx.simulate_click(entry.center(), gpui::Modifiers::none());
     cx.run_until_parked();
     workspace.read_with(cx, |workspace, cx| {
-        let dock = workspace.dock_at_position(DockPosition::Left).read(cx);
-        assert!(dock.is_open(), "the Git tool window should be revealed");
-        assert_eq!(dock.active_panel().unwrap().persistent_name(), "GitPanel");
+        let dock = workspace.dock_at_position(DockPosition::Bottom).read(cx);
+        assert!(
+            dock.is_open(),
+            "the Git history tool window should be revealed"
+        );
+        assert_eq!(
+            dock.active_panel().unwrap().persistent_name(),
+            "Git history"
+        );
         let panel = workspace.panel::<GitPanel>(cx).unwrap();
         assert!(
-            panel.read(cx).showing_history_tab(),
-            "Show Git History must land on the History tab, not Changes"
+            !panel.read(cx).showing_history_tab(),
+            "opening history must preserve the Commit sidebar"
+        );
+    });
+    assert_eq!(
+        draft.read_with(cx, |buffer, _| buffer.text()),
+        "Keep this commit draft"
+    );
+    cx.refresh().unwrap();
+    let commit_button = cx.debug_bounds("zedx-tool-GitPanel").unwrap();
+    cx.simulate_click(commit_button.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        assert!(
+            !workspace
+                .dock_at_position(DockPosition::Left)
+                .read(cx)
+                .is_open()
+        );
+        assert!(
+            workspace
+                .dock_at_position(DockPosition::Bottom)
+                .read(cx)
+                .is_open()
         );
     });
 }
@@ -1340,4 +1453,396 @@ async fn restore_default_layout_forgets_the_custom_rail_order(cx: &mut TestAppCo
         structure_after / px(1.0),
         branches_after / px(1.0)
     );
+}
+
+#[gpui::test]
+async fn sidebars_match_prototype_pins_and_toggle_real_panels(cx: &mut TestAppContext) {
+    use git_ui::git_panel::GitPanel;
+    use project_panel::ProjectPanel;
+    cx.update(project_panel::init);
+    let (workspace, cx) = setup(cx).await;
+    cx.update(|_, cx| language_model::init(cx));
+    workspace
+        .update_in(cx, |_, window, cx| {
+            cx.spawn_in(window, async move |workspace, cx| {
+                let project = ProjectPanel::load(workspace.clone(), cx.clone()).await?;
+                let git = GitPanel::load(workspace.clone(), cx.clone()).await?;
+                let outline = OutlinePanel::load(workspace.clone(), cx.clone()).await?;
+                workspace.update_in(cx, |workspace, window, cx| {
+                    workspace.add_panel(project, window, cx);
+                    workspace.add_panel(git, window, cx);
+                    git_ui::git_panel::register(workspace);
+                    workspace.add_panel(outline, window, cx);
+                    workspace.focus_panel::<ProjectPanel>(window, cx);
+                })?;
+                anyhow::Ok(())
+            })
+        })
+        .await
+        .unwrap();
+    cx.run_until_parked();
+    for viewport in [
+        gpui::size(px(1280.0), px(900.0)),
+        gpui::size(px(390.0), px(500.0)),
+    ] {
+        cx.simulate_resize(viewport);
+        cx.refresh().unwrap();
+        let project = cx
+            .debug_bounds("zedx-tool-Project Panel")
+            .expect("Project pin");
+        let commit = cx.debug_bounds("zedx-tool-GitPanel").expect("Commit pin");
+        let structure = cx
+            .debug_bounds("zedx-tool-Structure")
+            .expect("Structure pin");
+        let more = cx
+            .debug_bounds("zedx-more-tools")
+            .expect("More below top pins");
+        let history = cx
+            .debug_bounds("zedx-tool-Git history")
+            .expect("Git above bottom pins");
+        let run = cx.debug_bounds("zedx-tool-Run").expect("Run pin");
+        let problems = cx.debug_bounds("zedx-tool-Problems").expect("Problems pin");
+        assert!(project.bottom() <= commit.top());
+        assert!(commit.bottom() <= structure.top());
+        assert!(structure.bottom() <= more.top());
+        assert!(more.bottom() < history.top());
+        assert!(history.bottom() <= run.top());
+        assert!(run.bottom() <= problems.top());
+        assert!(problems.bottom() <= cx.debug_bounds("zedx-left-rail").unwrap().bottom());
+        assert!(
+            cx.debug_bounds("zedx-tool-Find").is_none(),
+            "Find stays reachable through More"
+        );
+        assert!(
+            cx.debug_bounds("zedx-tool-Branches").is_none(),
+            "Branches stays reachable through More"
+        );
+        let notifications = cx.debug_bounds("zedx-notifications-button").unwrap();
+        let outline = cx.debug_bounds("zedx-tool-Outline Panel").unwrap();
+        let database = cx.debug_bounds("zedx-database").unwrap();
+        assert!(notifications.bottom() <= outline.top());
+        assert!(outline.bottom() <= database.top());
+    }
+    let structure = cx.debug_bounds("zedx-tool-Structure").unwrap();
+    cx.simulate_click(structure.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        let left = workspace.dock_at_position(DockPosition::Left).read(cx);
+        assert!(left.is_open());
+        assert_eq!(left.active_panel().unwrap().persistent_name(), "Structure");
+    });
+    cx.refresh().unwrap();
+    let structure = cx.debug_bounds("zedx-tool-Structure").unwrap();
+    cx.simulate_click(structure.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    assert!(!workspace.read_with(cx, |workspace, cx| {
+        workspace
+            .dock_at_position(DockPosition::Left)
+            .read(cx)
+            .is_open()
+    }));
+    cx.refresh().unwrap();
+    let more = cx.debug_bounds("zedx-more-tools").unwrap();
+    cx.simulate_click(more.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("MENU_ITEM-Notifications").is_some());
+    assert!(cx.debug_bounds("MENU_ITEM-Database").is_some());
+    let find = cx
+        .debug_bounds("MENU_ITEM-Find")
+        .expect("unpinned Find is still reachable");
+    cx.simulate_click(find.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        let left = workspace.dock_at_position(DockPosition::Left).read(cx);
+        assert!(left.is_open());
+        assert_eq!(left.active_panel().unwrap().persistent_name(), "Find");
+    });
+    for (key, expected) in [
+        ("cmd-7", "Structure"),
+        ("cmd-1", "Project Panel"),
+        ("cmd-0", "GitPanel"),
+    ] {
+        cx.simulate_keystrokes(key);
+        cx.run_until_parked();
+        workspace.read_with(cx, |workspace, cx| {
+            let left = workspace.dock_at_position(DockPosition::Left).read(cx);
+            assert!(left.is_open());
+            assert_eq!(
+                left.active_panel().unwrap().persistent_name(),
+                expected,
+                "{key} opens its tool window"
+            );
+        });
+    }
+}
+
+#[gpui::test]
+async fn git_history_sidebar_button_toggles_bottom_without_replacing_commit(
+    cx: &mut TestAppContext,
+) {
+    let (workspace, cx) = setup(cx).await;
+    cx.refresh().unwrap();
+    let button = cx
+        .debug_bounds("zedx-tool-Git history")
+        .expect("Git sidebar button");
+    cx.simulate_click(button.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-git-history-no-repository").is_some());
+    assert!(cx.debug_bounds("zedx-head-git").is_some());
+    assert!(cx.debug_bounds("zedx-bottom-tabs").is_none());
+    workspace.read_with(cx, |workspace, cx| {
+        let bottom = workspace.dock_at_position(DockPosition::Bottom).read(cx);
+        assert!(bottom.is_open());
+        assert_eq!(
+            bottom.active_panel().unwrap().persistent_name(),
+            "Git history"
+        );
+    });
+    let button = cx.debug_bounds("zedx-tool-Git history").unwrap();
+    cx.simulate_click(button.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    assert!(!workspace.read_with(cx, |workspace, cx| {
+        workspace
+            .dock_at_position(DockPosition::Bottom)
+            .read(cx)
+            .is_open()
+    }));
+    cx.simulate_keystrokes("cmd-9");
+    cx.run_until_parked();
+    assert!(workspace.read_with(cx, |workspace, cx| {
+        workspace
+            .dock_at_position(DockPosition::Bottom)
+            .read(cx)
+            .is_open()
+    }));
+    cx.simulate_keystrokes("cmd-9");
+    cx.run_until_parked();
+    assert!(
+        !workspace.read_with(cx, |workspace, cx| workspace
+            .dock_at_position(DockPosition::Bottom)
+            .read(cx)
+            .is_open()),
+        "Git shortcut closes the visible log even when upstream close_panel_on_toggle is false"
+    );
+}
+
+#[gpui::test]
+async fn git_history_loads_real_graph_when_repository_appears_after_open(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.dispatch_action(workspace::zedx_actions::ShowGitHistory);
+    let project = workspace.read_with(cx, |workspace, _| workspace.project().clone());
+    let fs = project.read_with(cx, |project, _| project.fs().clone());
+    fs.as_fake().pause_events();
+    fs.as_fake()
+        .insert_tree(util::path!("/project"), serde_json::json!({".git": {}}))
+        .await;
+    let sha = git::Oid::try_from("1111111111111111111111111111111111111111").unwrap();
+    fs.as_fake().set_graph_commits(
+        std::path::Path::new(util::path!("/project/.git")),
+        vec![std::sync::Arc::new(
+            git::repository::InitialGraphCommitData {
+                sha,
+                parents: Default::default(),
+                ref_names: vec!["HEAD -> main".into()],
+            },
+        )],
+    );
+    let history = workspace.read_with(cx, |workspace, cx| {
+        workspace.panel::<GitHistory>(cx).unwrap()
+    });
+    fs.as_fake().unpause_events_and_flush();
+    project
+        .update(cx, |project, cx| project.git_scans_complete(cx))
+        .await;
+    cx.run_until_parked();
+    let graph = history
+        .read_with(cx, |history, _| history.graph.clone())
+        .expect("repository creates the real graph view");
+    let entries = graph.read_with(cx, |graph, _| graph.initial_commit_data_for_test());
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].sha, sha);
+}
+
+#[gpui::test]
+async fn native_collaboration_panel_coexists_with_zedx_tools(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    workspace.update_in(cx, |workspace, window, cx| {
+        let client = workspace.app_state().client.clone();
+        let users = workspace.user_store().clone();
+        channel::init(&client, users.clone(), cx);
+        notifications::init(client.clone(), users.clone(), cx);
+        call::init(client, users, cx);
+        let panel = collab_ui::collab_panel::CollabPanel::new(workspace, window, cx);
+        workspace.add_panel(panel, window, cx);
+    });
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        assert!(
+            workspace
+                .panel::<collab_ui::collab_panel::CollabPanel>(cx)
+                .is_some()
+        );
+        assert!(workspace.panel::<Branches>(cx).is_some());
+        let priorities = [
+            workspace
+                .panel::<collab_ui::collab_panel::CollabPanel>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<Branches>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<Structure>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<Find>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<Problems>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<Run>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+            workspace
+                .panel::<GitHistory>(cx)
+                .unwrap()
+                .read(cx)
+                .activation_priority(),
+        ];
+        let unique = priorities.iter().copied().collect::<HashSet<_>>();
+        assert_eq!(
+            priorities.len(),
+            unique.len(),
+            "fork panels must coexist with movable native panels"
+        );
+    });
+}
+
+#[gpui::test]
+async fn bottom_tools_have_independent_heads_without_shared_tabs(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    let run = workspace.read_with(cx, |workspace, cx| {
+        workspace.panel::<Run>(cx).unwrap().entity_id()
+    });
+    for (action, head) in [
+        (
+            workspace::zedx_actions::ToggleRun.boxed_clone(),
+            "zedx-head-run",
+        ),
+        (ToggleProblems.boxed_clone(), "zedx-head-problems"),
+        (
+            workspace::zedx_actions::ShowGitHistory.boxed_clone(),
+            "zedx-head-git",
+        ),
+        (
+            workspace::zedx_actions::ToggleRun.boxed_clone(),
+            "zedx-head-run",
+        ),
+    ] {
+        cx.update(|window, cx| window.dispatch_action(action, cx));
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        assert!(cx.debug_bounds(head).is_some());
+        assert!(cx.debug_bounds("zedx-bottom-tabs").is_none());
+        for other in ["zedx-head-run", "zedx-head-problems", "zedx-head-git"]
+            .into_iter()
+            .filter(|other| *other != head)
+        {
+            assert!(cx.debug_bounds(other).is_none());
+        }
+    }
+    workspace.read_with(cx, |workspace, cx| {
+        assert_eq!(workspace.panel::<Run>(cx).unwrap().entity_id(), run)
+    });
+    let hide = cx.debug_bounds("zedx-hide-bottom").unwrap();
+    cx.simulate_click(hide.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        assert!(
+            !workspace
+                .dock_at_position(DockPosition::Bottom)
+                .read(cx)
+                .is_open()
+        )
+    });
+}
+
+async fn single_move_resize(position: DockPosition, cx: &mut TestAppContext) {
+    use gpui::{Modifiers, MouseButton, point};
+    use workspace::dock::test::TestPanel;
+    let (workspace, cx) = setup(cx).await;
+    workspace.update_in(cx, |workspace, window, cx| {
+        workspace.set_random_database_id();
+        let panel = cx.new(|cx| TestPanel::new(position, 100, cx));
+        workspace.add_panel(panel, window, cx);
+        workspace.focus_panel::<TestPanel>(window, cx);
+        workspace.set_panel_size_state::<TestPanel>(
+            PanelSizeState {
+                size: Some(px(300.0)),
+                flex: None,
+            },
+            window,
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let selector = match position {
+        DockPosition::Left => "zedx-left-resize",
+        DockPosition::Right => "zedx-right-resize",
+        DockPosition::Bottom => "zedx-bottom-resize",
+    };
+    let start = cx
+        .debug_bounds(selector)
+        .expect("visible resize gap")
+        .center();
+    let end = match position {
+        DockPosition::Left => point(start.x + px(50.0), start.y),
+        DockPosition::Right => point(start.x - px(50.0), start.y),
+        DockPosition::Bottom => point(start.x, start.y - px(50.0)),
+    };
+    cx.simulate_mouse_move(start, None, Modifiers::none());
+    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::none());
+    cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    let size = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace
+                .panel_size_state::<TestPanel>(cx)
+                .and_then(|state| state.size)
+        })
+        .expect("stored panel size");
+    assert!(
+        (size - px(350.0)).abs() <= px(4.0),
+        "{position:?} single-move release must apply the final pointer position: {size:?}"
+    );
+}
+
+#[gpui::test]
+async fn left_gap_single_move_release_resizes(cx: &mut TestAppContext) {
+    single_move_resize(DockPosition::Left, cx).await;
+}
+
+#[gpui::test]
+async fn right_gap_single_move_release_resizes(cx: &mut TestAppContext) {
+    single_move_resize(DockPosition::Right, cx).await;
+}
+
+#[gpui::test]
+async fn bottom_gap_single_move_release_resizes(cx: &mut TestAppContext) {
+    single_move_resize(DockPosition::Bottom, cx).await;
 }

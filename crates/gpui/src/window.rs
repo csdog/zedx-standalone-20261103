@@ -3078,6 +3078,12 @@ impl Window {
             .set_background_appearance(background_appearance);
     }
 
+    /// Clips the native window content, including its background material, to rounded corners.
+    /// Platforms without native content clipping leave their existing decorations unchanged.
+    pub fn set_content_corner_radius(&self, radius: Pixels) {
+        self.platform_window.set_content_corner_radius(radius);
+    }
+
     /// Mark the window as dirty at the platform level.
     pub fn set_window_edited(&mut self, edited: bool) {
         self.platform_window.set_edited(edited);

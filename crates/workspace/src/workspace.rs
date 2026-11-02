@@ -29,10 +29,11 @@ pub mod welcome;
 pub mod workspace_error;
 mod workspace_settings;
 pub mod zedx_actions;
-mod zedx_bottom_bar;
+mod zedx_bottom_tool_window;
 mod zedx_compact;
 mod zedx_layout;
 pub mod zedx_rail_order;
+mod zedx_right_sidebar;
 mod zedx_workbench;
 
 pub use dock::Panel;
@@ -1592,6 +1593,8 @@ pub struct Workspace {
     maximized_pane: Option<WeakEntity<Pane>>,
     center: PaneGroup,
     zedx_panel_buttons: [Entity<PanelButtons>; 3],
+    zedx_layout_restore: Option<zedx_layout::LayoutRestore>,
+    zedx_right_panel_activation: Option<zedx_right_sidebar::RightPanelActivation>,
     left_dock: Entity<Dock>,
     bottom_dock: Entity<Dock>,
     right_dock: Entity<Dock>,
@@ -2124,6 +2127,8 @@ impl Workspace {
             bottom_dock,
             right_dock,
             zedx_panel_buttons,
+            zedx_layout_restore: None,
+            zedx_right_panel_activation: None,
             _panels_task: None,
             project: project.clone(),
             follower_states: Default::default(),
@@ -4838,8 +4843,10 @@ impl Workspace {
     pub fn close_panel<T: Panel>(&self, window: &mut Window, cx: &mut Context<Self>) {
         for dock in self.all_docks().iter() {
             dock.update(cx, |dock, cx| {
-                if dock.panel::<T>().is_some() {
-                    dock.set_open(false, window, cx)
+                if let Some(panel) = dock.panel::<T>() {
+                    if !dock.close_zedx_split_panel(panel.entity_id(), window, cx) {
+                        dock.set_open(false, window, cx)
+                    }
                 }
             })
         }
@@ -9704,7 +9711,13 @@ impl Render for Workspace {
                     .child(
                         div()
                             .id("workspace")
-                            .bg(colors.background)
+                            .bg(
+                                if zedx_workbench::enabled() && colors.panel_background.a == 0.0 {
+                                    transparent_black()
+                                } else {
+                                    colors.background
+                                },
+                            )
                             .relative()
                             .flex_1()
                             .w_full()

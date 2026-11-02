@@ -9313,6 +9313,25 @@ impl LspStore {
     }
 
     pub fn symbols(&self, query: &str, cx: &mut Context<Self>) -> Task<Result<Vec<Symbol>>> {
+        self.symbols_internal(query, false, cx)
+    }
+
+    /// Preserve successful results from other servers, but report a failed
+    /// request when no symbols are available instead of presenting a false empty result.
+    pub fn symbols_with_errors(
+        &self,
+        query: &str,
+        cx: &mut Context<Self>,
+    ) -> Task<Result<Vec<Symbol>>> {
+        self.symbols_internal(query, true, cx)
+    }
+
+    fn symbols_internal(
+        &self,
+        query: &str,
+        report_errors: bool,
+        cx: &mut Context<Self>,
+    ) -> Task<Result<Vec<Symbol>>> {
         let language_registry = self.languages.clone();
 
         if let Some((upstream_client, project_id)) = self.upstream_client().as_ref() {
@@ -9338,6 +9357,7 @@ impl LspStore {
                 lsp_adapter: Arc<CachedLspAdapter>,
                 worktree: WeakEntity<Worktree>,
                 lsp_symbols: Vec<(String, language::SymbolKind, lsp::Location, Option<String>)>,
+                error: Option<String>,
             }
 
             let mut requests = Vec::new();
@@ -9395,9 +9415,11 @@ impl LspStore {
                             request_timeout,
                         )
                         .map(move |response| {
-                            let lsp_symbols = response
+                            let response = response
                                 .into_response()
-                                .context("workspace symbols request")
+                                .context("workspace symbols request");
+                            let error = response.as_ref().err().map(|error| format!("{error:#}"));
+                            let lsp_symbols = response
                                 .log_err()
                                 .flatten()
                                 .map(|symbol_response| match symbol_response {
@@ -9446,6 +9468,7 @@ impl LspStore {
                                 lsp_adapter,
                                 worktree: worktree_handle.downgrade(),
                                 lsp_symbols,
+                                error,
                             }
                         }),
                 );
@@ -9459,7 +9482,11 @@ impl LspStore {
                 };
 
                 let mut symbols = Vec::new();
+                let mut first_error = None;
                 for result in responses {
+                    if let Some(error) = result.error {
+                        first_error.get_or_insert(error);
+                    }
                     let core_symbols = this.update(cx, |this, cx| {
                         result
                             .lsp_symbols
@@ -9510,6 +9537,11 @@ impl LspStore {
                     .await;
                 }
 
+                if report_errors && symbols.is_empty() {
+                    if let Some(error) = first_error {
+                        return Err(anyhow!("{error}"));
+                    }
+                }
                 Ok(symbols)
             })
         } else {

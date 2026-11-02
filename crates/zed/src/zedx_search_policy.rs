@@ -141,6 +141,7 @@ pub(super) fn highlight_indices(label: &str, query: &str) -> Vec<usize> {
 
 pub(super) fn action_search_text(name: &str, display: &str) -> String {
     let mut aliases = match name {
+        "zedx::ToggleCommit" => "提交 变更 git commit changes",
         "zedx::RestoreDefaultLayout" => "恢复布局 重置布局 默认布局 面板 reset layout",
         "zedx::FindInFiles" => "搜索 查找 全局 内容 Find in Files",
         "zedx::ToggleStructure" => "结构 符号 outline structure",

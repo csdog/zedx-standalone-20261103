@@ -80,6 +80,16 @@ pub fn tool_button(
         .child(icon(glyph, cx).size(px(16.0)))
 }
 
+/// Primary ZedX labels follow the configured UI font size without an extra small-label multiplier.
+pub fn label_size() -> LabelSize {
+    LabelSize::Custom(gpui::rems(1.0))
+}
+
+/// Keep secondary metadata one step below primary labels while retaining UI scaling.
+pub fn caption_size() -> LabelSize {
+    LabelSize::Custom(gpui::rems(12.0 / 13.0))
+}
+
 /// The prototype's `.tool-window-head`: one icon, one title, a bottom border, and room for a
 /// caller-supplied meta label and hide control on the right.
 pub fn tool_window_head(
@@ -96,8 +106,12 @@ pub fn tool_window_head(
         .gap_2()
         .border_b_1()
         .border_color(cx.theme().colors().border)
-        .child(icon(glyph, cx).size(px(14.0)))
-        .child(Label::new(title).size(LabelSize::Small))
+        .child(icon(glyph, cx).size(px(16.0)))
+        .child(
+            Label::new(title)
+                .size(label_size())
+                .weight(gpui::FontWeight::MEDIUM),
+        )
 }
 
 pub fn tool_window_icon(name: &str) -> Option<Icon> {
@@ -106,6 +120,7 @@ pub fn tool_window_icon(name: &str) -> Option<Icon> {
         "Project Panel" => Icon::Project,
         "TerminalPanel" => Icon::Terminal,
         "GitPanel" => Icon::Commit,
+        "Git history" => Icon::Git,
         "Outline Panel" | "Structure" => Icon::Structure,
         "Problems" => Icon::Warning,
         "Run" => Icon::RunTool,
