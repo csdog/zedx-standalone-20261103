@@ -1,3 +1,5 @@
+#[path = "zedx_context_menus.rs"]
+mod context_menus;
 use command_palette_hooks::CommandPaletteFilter;
 use editor::{Bias, Editor, SelectionEffects, scroll::Autoscroll};
 use file_icons::FileIcons;
@@ -24,6 +26,9 @@ use std::{
 use ui::{Checkbox, ContextMenu, ListItem, ListItemSpacing, PopoverMenu, Tooltip, prelude::*};
 use util::{ResultExt, rel_path::RelPath};
 use workspace::{ModalView, Workspace};
+
+#[path = "zedx_recent_files.rs"]
+mod recent;
 
 #[path = "zedx_search_drag.rs"]
 mod drag;
@@ -76,6 +81,7 @@ impl Category {
 }
 
 pub(crate) fn bind_keys(cx: &mut App) {
+    recent::bind_keys(cx);
     crate::zedx_panels::bind_keys(cx);
     cx.bind_keys([
         KeyBinding::new(
@@ -201,6 +207,8 @@ pub(crate) fn bind_keys(cx: &mut App) {
 }
 
 pub fn init(cx: &mut App) {
+    context_menus::init(cx);
+    recent::init(cx);
     workspace::zedx_actions::init(cx);
     cx.observe_new(
         |workspace: &mut Workspace, window, cx: &mut Context<Workspace>| {

@@ -246,6 +246,7 @@ impl VsCodeSettings {
             modeline_lines: None,
             feature_flags: None,
             instrumentation: None,
+            zedx_context_menus: None,
         }
     }
 
@@ -1241,6 +1242,21 @@ fn skip_default<T: Default + PartialEq>(value: T) -> Option<T> {
 mod tests {
     use super::*;
     use crate::settings_content::merge_from::MergeFrom;
+
+    #[test]
+    fn test_import_does_not_override_zedx_context_menus() -> Result<()> {
+        for source in [VsCodeSettingsSource::VsCode, VsCodeSettingsSource::Cursor] {
+            let imported = VsCodeSettings::from_str("{}", source)?.settings_content();
+            assert!(imported.zedx_context_menus.is_none());
+            let mut existing: SettingsContent = serde_json::from_str(
+                r#"{"zedx_context_menus":{"editor":{"hidden":["editor::Copy"]}}}"#,
+            )?;
+            let expected = existing.zedx_context_menus.clone();
+            existing.merge_from(&imported);
+            assert_eq!(existing.zedx_context_menus, expected);
+        }
+        Ok(())
+    }
 
     fn imported_reduce_motion(content: &str) -> Option<ReduceMotionMode> {
         VsCodeSettings::from_str(content, VsCodeSettingsSource::VsCode)

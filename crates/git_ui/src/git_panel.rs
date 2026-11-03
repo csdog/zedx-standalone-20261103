@@ -1,5 +1,6 @@
 #[path = "zedx_commit_panel.rs"]
 mod zedx_commit_panel;
+pub(crate) use zedx_commit_panel::bind_shelf_keys;
 
 use git_ui_core::askpass_modal::AskPassModal;
 pub(crate) use git_ui_core::notifications::{open_output, show_error_toast};
@@ -316,7 +317,7 @@ fn git_panel_context_menu(
     cx: &mut App,
 ) -> Entity<ContextMenu> {
     ContextMenu::build(window, cx, |context_menu, _, _| {
-        context_menu
+        context_menu.zedx_scope("git")
             .context(focus_handle.clone())
             .action_disabled_when(!has_unstaged_changes, "Stage All", StageAll.boxed_clone())
             .action_disabled_when(!has_staged_changes, "Unstage All", UnstageAll.boxed_clone())
@@ -2134,7 +2135,10 @@ impl GitPanel {
             // return `false`.
             dispatch_context.add("menu");
             match self.active_tab {
-                GitPanelTab::Changes => dispatch_context.add("ChangesList"),
+                GitPanelTab::Changes => {
+                    dispatch_context.add("ChangesList");
+                    if self.is_zedx_shelf() { dispatch_context.add("ZedxShelf"); }
+                },
                 GitPanelTab::History => dispatch_context.add("HistoryList"),
             }
         }
@@ -2270,6 +2274,7 @@ impl GitPanel {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.select_zedx_shelf_edge(false, cx) { return; }
         let is_selectable = |index| {
             self.entries
                 .get(index)
@@ -2300,6 +2305,9 @@ impl GitPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.select_zedx_shelf(true, cx) || self.select_zedx_stash(true, cx) {
+            return;
+        }
         if self.active_tab == GitPanelTab::History {
             self.select_previous_history_entry(cx);
             return;
@@ -2379,6 +2387,9 @@ impl GitPanel {
     }
 
     fn select_next(&mut self, _: &menu::SelectNext, window: &mut Window, cx: &mut Context<Self>) {
+        if self.select_zedx_shelf(false, cx) || self.select_zedx_stash(false, cx) {
+            return;
+        }
         if self.active_tab == GitPanelTab::History {
             self.select_next_history_entry(cx);
             return;
@@ -2463,6 +2474,7 @@ impl GitPanel {
     }
 
     fn select_last(&mut self, _: &menu::SelectLast, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.select_zedx_shelf_edge(true, cx) { return; }
         if self.entries.last().is_some() {
             self.mark_range_gesture = None;
             self.selected_entry = Some(self.entries.len() - 1);
@@ -4114,6 +4126,9 @@ impl GitPanel {
             let result = task.await;
             this.update_in(cx, |this, window, cx| {
                 this.pending_commit.take();
+                let succeeded = result.is_ok();
+                // Unlock before the upstream success path clears the message editor.
+                this.finish_zedx_commit(succeeded, window, cx);
 
                 match result {
                     Ok(()) => {
@@ -8606,7 +8621,7 @@ impl GitPanel {
             "View File History"
         };
         ContextMenu::build(window, cx, |context_menu, _, _| {
-            context_menu
+            context_menu.zedx_scope("git")
                 .context(self.focus_handle.clone())
                 .action(stage_title, ToggleStaged.boxed_clone())
                 .action(restore_title, RestoreFile::default().boxed_clone())
@@ -9587,6 +9602,7 @@ impl Render for GitPanel {
             .on_action(cx.listener(Self::last_entry))
             .on_action(cx.listener(Self::close_panel))
             .on_action(cx.listener(Self::confirm_panel_entry))
+            .on_action(cx.listener(Self::delete_zedx_selected_shelf))
             .on_action(cx.listener(Self::open_solo_diff))
             .on_action(cx.listener(Self::view_file))
             .on_action(cx.listener(Self::view_file_history))
@@ -9702,6 +9718,9 @@ impl editor::Addon for GitPanelAddon {
 
 impl Panel for GitPanel {
     fn activation_focus_handle(&self, cx: &App) -> FocusHandle {
+        if self.active_tab == GitPanelTab::Changes && self.zedx_commit.uses_list_focus() {
+            return self.focus_handle.clone();
+        }
         if self.active_tab == GitPanelTab::Changes
             && !self.commit_editor_collapsed
             && (self.entries.is_empty() || self.commit_editor_expanded)
@@ -10324,6 +10343,9 @@ mod tests {
     include!("zedx_commit_panel_tests.rs");
     include!("zedx_source_diff_tests.rs");
     include!("zedx_commit_resize_tests.rs");
+    include!("zedx_commit_composer_tests.rs");
+    include!("zedx_commit_stash_tests.rs");
+    include!("zedx_commit_shelf_tests.rs");
 
     fn init_test(cx: &mut gpui::TestAppContext) {
         zlog::init_test();

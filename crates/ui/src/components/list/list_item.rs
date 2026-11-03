@@ -55,6 +55,7 @@ pub struct ListItem {
     always_show_disclosure_icon: bool,
     outlined: bool,
     rounded: bool,
+    zedx_menu: bool,
     overflow_x: bool,
     focused: Option<bool>,
     dock: Option<DockSide>,
@@ -91,6 +92,7 @@ impl ListItem {
             always_show_disclosure_icon: false,
             outlined: false,
             rounded: false,
+            zedx_menu: false,
             overflow_x: false,
             focused: None,
             dock: None,
@@ -249,6 +251,11 @@ impl ListItem {
         self
     }
 
+    pub(crate) fn zedx_menu(mut self) -> Self {
+        self.zedx_menu = true;
+        self
+    }
+
     pub fn rounded(mut self) -> Self {
         self.rounded = true;
         self
@@ -319,14 +326,17 @@ impl RenderOnce for ListItem {
                             this.border_color(cx.theme().colors().border_focused)
                         })
                 })
-                .when(self.selectable && !self.disabled, |this| {
-                    this.hover(|style| style.bg(cx.theme().colors().ghost_element_hover))
-                        .active(|style| style.bg(cx.theme().colors().ghost_element_active))
-                        .when(self.outlined, |this| this.rounded_sm())
-                        .when(self.selected, |this| {
-                            this.bg(cx.theme().colors().ghost_element_selected)
-                        })
-                })
+                .when(
+                    self.selectable && !self.disabled && !self.zedx_menu,
+                    |this| {
+                        this.hover(|style| style.bg(cx.theme().colors().ghost_element_hover))
+                            .active(|style| style.bg(cx.theme().colors().ghost_element_active))
+                            .when(self.outlined, |this| this.rounded_sm())
+                            .when(self.selected, |this| {
+                                this.bg(cx.theme().colors().ghost_element_selected)
+                            })
+                    },
+                )
             })
             .when(self.rounded, |this| this.rounded_sm())
             .when_some(self.on_hover, |this, on_hover| this.on_hover(on_hover))
@@ -376,13 +386,33 @@ impl RenderOnce for ListItem {
                                 this.border_1()
                             }
                         })
-                        .when(self.selectable && !self.disabled, |this| {
-                            this.hover(|style| style.bg(cx.theme().colors().ghost_element_hover))
+                        .when(
+                            self.selectable && !self.disabled && !self.zedx_menu,
+                            |this| {
+                                this.hover(|style| {
+                                    style.bg(cx.theme().colors().ghost_element_hover)
+                                })
                                 .active(|style| style.bg(cx.theme().colors().ghost_element_active))
                                 .when(self.selected, |this| {
                                     this.bg(cx.theme().colors().ghost_element_selected)
                                 })
-                        })
+                            },
+                        )
+                    })
+                    .when(self.zedx_menu, |item| {
+                        let highlight = if cx.theme().appearance().is_light() {
+                            gpui::rgb(0xdbeafe)
+                        } else {
+                            gpui::rgb(0x2f4365)
+                        };
+                        item.h_full()
+                            .py_0()
+                            .rounded(px(4.0))
+                            .when(self.selectable && !self.disabled, |item| {
+                                item.hover(|style| style.bg(highlight))
+                                    .active(|style| style.bg(highlight))
+                            })
+                            .when(self.selected && !self.disabled, |item| item.bg(highlight))
                     })
                     .when_some(
                         self.on_click.filter(|_| !self.disabled),

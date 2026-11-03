@@ -1,3 +1,9 @@
+# ZedX local development
+
+- Run development builds from the project directory using `./script/zedx app` (`target/debug/ZedX.app`) or `./script/zedx run`.
+- Do not install or copy development builds into `/Applications` or `~/Applications`, replace installed applications, or create installation backups unless the user explicitly requests installation.
+- When an independent UI verification instance is needed, use a temporary preview bundle and remove only the temporary bundle created for that verification when finished. Preserve existing user applications and backups unless the user explicitly requests their removal.
+
 # Rust coding guidelines
 
 * Prioritize code correctness and clarity. Speed and efficiency are secondary priorities unless otherwise specified.

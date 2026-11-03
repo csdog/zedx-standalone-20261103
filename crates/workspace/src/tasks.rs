@@ -109,6 +109,7 @@ impl Workspace {
     ) {
         let spawn_in_terminal = resolved_task.resolved.clone();
         if !omit_history {
+            crate::zedx_run_history::record(self, &task_source_kind, &resolved_task, cx);
             if let Some(debugger_provider) = self.debugger_provider.as_ref() {
                 debugger_provider.task_scheduled(cx);
             }

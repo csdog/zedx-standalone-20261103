@@ -7484,6 +7484,13 @@ impl Sidebar {
                             }),
                     )
             })
+            .when(std::env::var_os("ZEDX_UPSTREAM_UI").is_none(), |this| {
+                this.child(
+                    div()
+                        .debug_selector(|| "zedx-threads-collapse".into())
+                        .child(self.render_sidebar_toggle_button(cx)),
+                )
+            })
             .when(right_window_controls, |this| {
                 this
                     // Without projects, nothing flex-grows to push right-side window controls
@@ -7530,6 +7537,8 @@ impl Sidebar {
                     IconName::ThreadsSidebarLeftOpen
                 };
                 IconButton::new("sidebar-close-toggle", icon)
+                    .aria_label("Hide threads sidebar")
+                    .tab_index(0isize)
                     .icon_size(IconSize::Small)
                     .tooltip(Tooltip::element(move |_window, cx| {
                         v_flex()
@@ -7568,6 +7577,7 @@ impl Sidebar {
         let on_right = self.side(cx) == SidebarSide::Right;
 
         h_flex()
+            .debug_selector(|| "zedx-legacy-sidebar-actions".into())
             .p_1()
             .gap_1()
             .when(on_right, |this| this.flex_row_reverse())
@@ -7898,6 +7908,14 @@ fn render_import_onboarding_banner(
 }
 
 impl WorkspaceSidebar for Sidebar {
+    fn show_thread_history(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let SidebarView::Archive(view) = &self.view {
+            view.update(cx, |view, cx| view.focus_filter_editor(window, cx));
+        } else {
+            self.show_archive(window, cx);
+        }
+    }
+
     fn width(&self, _cx: &App) -> Pixels {
         self.width
     }
@@ -8130,7 +8148,9 @@ impl Render for Sidebar {
                     this.child(self.render_cross_channel_import_onboarding(verbose, cx))
                 })
             })
-            .child(self.render_sidebar_bottom_bar(cx))
+            .when(std::env::var_os("ZEDX_UPSTREAM_UI").is_some(), |this| {
+                this.child(self.render_sidebar_bottom_bar(cx))
+            })
     }
 }
 

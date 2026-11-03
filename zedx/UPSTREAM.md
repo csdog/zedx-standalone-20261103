@@ -375,3 +375,210 @@ Both title-bar tests (including twelve-width layout and the gear pointer dispatc
 The requested lower-left Structure target is an owned extension to the single-active-panel upstream dock. `workspace/src/zedx_split.rs` owns split state, rendering, the shared rail/header drag payload, lower-half target preview, 5px ratio separator, independent close behavior and active-state synchronization. Existing Project/Structure entities are reused. Dock retains its primary active panel for existing focus/actions and renders both only when the split is enabled and either member is active. Other tools occupy the full dock; returning to a member restores the split. Narrow-window sizing clamps each section, fast single-move release is accepted, invalid/outside/other-panel drops are inert, and the default-layout action clears the split. The split preference and ratio are session-local; no new workspace database schema or on-disk layout setting is introduced.
 
 Small upstream seams add Dock state/default, active/open/close/remove lifecycle synchronization and the owned renderer, plus per-panel workspace close handling. The owned rail renderer highlights both visible panels and closes only the chosen member. Structure's owned header shares the rail drag payload; its existing header selector remains intact. Three real GPUI pointer regressions verify rail and header drops, geometry, selected pins, editor focus, both header hide controls, resize, compact/desktop round trip, reset, rejected drops, tool switching and a pin close. All 107 ZedX regressions and strict workspace/zed checks pass.
+
+Embedded build and local installation pass, with signature verification and backup `/Applications/ZedX.previous-20261102-163405.app`. The independent Split Preview remains in Restricted Mode and natively verifies dragging the Structure header into the lower half, Project above the live Markdown outline, and both pins highlighted. The user then opened Assistant in this preview; its state was preserved. Native rail/resize checks were not completed, so those behaviors rely on the rendered GPUI input regressions. The new-app CUA launch timed out after a long wait even though the app started; binding its already-running bundle ID then succeeded immediately. No main app restart, commit or push.
+
+Final focused regressions also pass with intermediate-frame continuous separator dragging in addition to single-move release. Final strict zed checks pass after that test extension.
+
+
+### Threads sidebar footer cleanup
+
+The user identified the far-left sidebar toggle / history / recent-project buttons. ZedX omits that entire footer row, moves the sidebar toggle to the bottom of the tool rail and places Thread history in More. The existing project identity remains the project-opening entry point. `workspace/src/zedx_navigation.rs` owns the new control and history action handler. The toggle follows side/open/enabled state and uses the rail selection palette. The history entry is hidden when the sidebar feature is disabled.
+
+A small default `Sidebar::show_thread_history` method and its type-erased handle delegate provide direct access to the existing archive, without relying on a hidden sidebar’s focus dispatch path. The owned action defers opening the parent, and the handle defers sidebar mutation so the archive can safely read the parent workspace. Reopening focuses the existing archive filter and preserves its view. The Sidebar renderer omits its footer only in ZedX mode; classic UI is unchanged. A real Sidebar/MultiWorkspace pointer regression covers footer removal, the new pin opening/closing, More → history from the closed state, and repeated history activation.
+
+Validation: the real Sidebar/MultiWorkspace pointer regression and all 107 ZedX regressions pass; strict workspace/sidebar/zed checks and diff whitespace checks pass. The relocated toggle retains the original sidebar-position context menu. During this task the user added local development rules: build only the checkout’s development application unless installation is explicitly requested. Installed applications and existing user-operated previews remain untouched.
+
+Build environment note: raw `rustup run ... cargo` picked Homebrew rustc 1.99.1 from PATH. Use the project script or set PATH/RUSTC explicitly for 1.98.1. The original debug dependency directory also stalled in kernel directory reads; an isolated target at `/private/tmp/zedx-navigation-target` reuses cached libraries and fingerprints without enumerating that directory. The final 1.98.1 regressions use that target. No cache contents were deleted, and no source rules were changed by this task.
+
+Final embedded build passes. Updated only `/Users/cscs/IdeaProjects/zedx/target/debug/ZedX.app` using an atomic development-binary replacement and the checkout bundler; its executable hash matches the isolated build. No native window was restarted and no application was installed.
+
+
+### Prototype commit message composer
+
+`git_ui/src/zedx_commit_composer.rs` owns the requested composer replacement: a 30px Amend / last commit / history row, inset bordered message Editor with the existing configured monospace font and prototype 1.6 line spacing, inline validation and independent 28px Commit / Commit and Push… controls plus options. The previous repository footer, editor-side expand/fill controls and split submit button remain in the upstream renderer. The normal owned Commit view now renders the new composer. Existing resize state and drafts are reused; collapsed height is 80px so actions remain visible.
+
+The options popover stays open while changing current-diagnostic checking, real sign-off and the primary push preference. Diagnostic checking examines current errors only in included files; it does not promise a new analysis/build invocation. Buttons and keyboard submission require included files (or an amend), a nonblank explicit message and existing commit access/conflict/busy checks. Inline warnings retain the configured title-length limit. The editor is temporarily read-only during an owned commit, and the completion hook unlocks it before upstream success cleanup. Successful push requests then use the existing push/remote-selection path, guarded against repository or branch changes; failed commits preserve drafts and never offer a push. Normal upstream commit behavior is otherwise retained.
+
+`zedx_commit_message_history.rs` owns a focused, dismissible, bounded popover subscribed to repository graph/detail updates. It requests at most twenty recent commits and uses the real full message when selected, with loading/error/empty states and a repository guard. Amend reads the already-loaded HEAD details synchronously, avoiding an asynchronous fetch overwriting later edits; the existing per-repository original-draft restoration remains.
+
+The upstream GitPanel file has only four added lines: completion callback and test inclusion. The owned state/module/render seams are in `zedx_commit_panel.rs`. Six new rendered GPUI tests cover 265/180px and compact widths, control order and bounds, mouse and keyboard validation, selected-only real FakeFs commits, full-message history, amend draft restoration, persistent options, current diagnostic rejection and bypass, sign-off, success-before-remote-choice and failed-commit retention. Tests use disposable FakeFs repositories; no task-repository commit or push occurs. All 91 GitPanel regressions, 19 owned Git UI tests, 107 ZedX regressions, strict git_ui/zed checks, embedded build and whitespace checks pass.
+
+Only the checkout development bundle `target/debug/ZedX.app` is updated, using the isolated target documented above and an atomic binary replacement. Installed applications and existing user-operated previews are preserved. No new native preview was launched; visual evidence in this task is rendered GPUI geometry and real-input coverage.
+
+### Sidebar material correction
+
+`zedx_workbench.rs` paints frame tint on rails, gaps, top/bottom strips and the center column, leaving side dock areas transparent down to GPUI's native blurred window. Do not restore a full workbench background beneath these docks: the two alpha layers compound and obscure the backdrop. `dock.rs` owns the single side surface tint (90% light / 75% dark); compact overlays and bottom tools keep opaque backing. Theme frame colors follow the prototype rather than multiplying the light title-bar alpha by 0.30.
+
+### Bottom Find view and popup ordering
+
+`zedx_find_panel.rs` keeps search/state/navigation; `zedx_find_view.rs` owns the prototype bottom window rendering. Find's fixed default is Bottom/202px; `zedx_layout.rs` uses the same default. The existing real-file search and selection remain unchanged. Tests and search-to-Find handoff now expect the bottom dock.
+
+`PopoverMenu::menu_priority` is a small generic upstream seam with the original default priority 1. The ZedX search window uses 2, and its file-filter menu opts into 3 so the menu paints above its parent. Keep the painted-order regression: hit testing alone did not detect the menu being drawn behind the search surface.
+
+`ui::zedx::material_corners` paints only the frame portions outside a side dock's rounded shape while retaining the frame alpha. Opaque editor/bottom islands continue to use `island_corners`, whose opaque coverage prevents child text/background from leaking through their corners.
+
+### Stash toolbar, selection and preview
+
+`zedx_commit_stash.rs` owns the extracted Stash view and operation state. The parent commit module routes Enter, synchronizes repository selection, and retains Commit / Stash / Shelf state. `GitPanel::select_next`, `select_previous` and `activation_focus_handle` have small ZedX list-focus seams, preserving the upstream path for the classic UI and other tabs. Row clicks explicitly focus the panel before keyboard navigation.
+
+Drop captures the selected OID and message before confirmation, rechecks the active repository/write access, and resolves the current cached index before invoking the existing repository operation. Busy state prevents duplicate requests. Completion refreshes the view even on cancellation/failure so removed records do not remain on screen; selection in a different repository is not cleared by an older operation. Enter/double-click reuse the existing CommitView, rather than applying or popping the stash.
+
+`zedx_commit_stash_tests.rs` covers UI operations through actual repository jobs; the test-only FakeGitRepository now implements stash removal/reindexing and an explicit failure injection. `zedx_stash_operation_tests.rs` tests the real Git backend with three disposable stashes, unchanged working files after deletion, Apply preserving the remaining stash, and invalid-index failure.
+
+### Open Local Folder destination confirmation
+
+`workspace/src/zedx_project_open.rs` owns the post-selection confirmation and all three behaviors. The native directory selector is retained. Small seams in the global `prompt_for_open_path_and_open` and the Recent Projects `open_local_project` route selected paths through this flow only for ZedX. The sidebar's existing Open action reaches the global seam. Classic UI behavior is unchanged.
+
+Attach uses the original workspace's `open_paths` with visible roots. New Window uses explicit `OpenMode::NewWindow` / `WorkspaceMatching::None`. This Window asks every workspace in the original project group for close consent, loads the replacement, then removes the old group's workspaces after success; other project groups remain. Reopening the same root preserves dirty items without prompting to save. Cancel changes nothing. Local folders cannot be attached to a remote project, so that option is omitted there. File-only selections bypass the project confirmation.
+
+Six GPUI regressions exercise the actual prompt and filesystem/workspace paths: Attach, New Window, This Window, Cancel, cancelled save and repeated opening of a dirty current project. The 37-test Recent Projects suite also verifies the confirmation in its existing current/new-window entry tests.
+
+### Project supplemental groups
+
+`project_panel/src/zedx_project_groups.rs` owns the two prototype tree groups, flattened auxiliary rows, keyboard routing, invisible external sources and profile-local scratch files. Append these rows to the existing uniform list instead of pinning a second tree to the panel footer. Upstream visible-entry data and Git/diagnostic traversal stay unchanged; indent decoration receives neutral entries for auxiliary rows. Library content comes from actual invisible worktree snapshots, excluding normal project roots and the scratch data directory. Keep the hidden scratch worktree retained in panel state so its files survive a buffer close. Normal project selection clears auxiliary selection before action routing, protecting standard tree operations. Classic UI disables the additional rows.
+
+Three GPUI regressions are queued in `zedx_project_groups_tests.rs`; they are intentionally not run per feature. Batch compilation and native verification are still required before claiming this slice verified.
+
+### Ctrl+E Recent Files
+
+`zed/src/zedx_recent_files.rs` owns a separate history-only Picker delegate and compact bare modal. It reuses workspace recent navigation history, the existing file-row/icon builder and fuzzy highlight policy, and normal file-open/adjacent-pane behavior. `zedx_search.rs` only declares and initializes the module and registers its keys; no Picker or Workspace implementation is replaced. Repeated Ctrl+E advances the same popup. Additional tests live in `zedx_recent_files_tests.rs` and await the next batch verification.
+
+### Project/Structure split persistence
+
+`workspace/src/zedx_split_persistence.rs` stores enabled/fraction in the `zedx_project_structure_split` KVP namespace, using the workspace database ID or session ID. The small Workspace::add_panel seam passes the already-borrowed workspace into the dock loader, avoiding a recursive entity read. Late panel registration synchronizes the retained preference once both panels exist. Persistence writes are ordered so an earlier drag cannot overwrite a later reset; disabled split/fraction reset are saved too. The existing split module saves successful drops, outside release, member close and default reset. Three tests run in the full 298-test Workspace suite.
+
+The Project tree's measured row-height helper includes auxiliary rows; sticky ancestors retain space for a file row in short dock splits. Existing scroll, folded selection and OS-file-drag tests retain their behavior assertions and now count the additional rendered rows correctly. All 146 ProjectPanel tests and 109 ZedX tests pass for the combined batch; Ctrl+E code was added afterward and is not included in that result.
+
+
+### Workbench completion source batch (execution deferred by user)
+
+Substantial implementations stay in owned files: `workspace/zedx_notification_center`, `sqlez/inspect`, `zed/zedx_database`, `git/zedx_shelf`, `git/zedx_log_filter`, `project/zedx_repository_tools`, `git_ui/zedx_commit_shelf`, `git_ui/zedx_git_log_filters`, `git_ui/zedx_git_revert`, `zed/zedx_git_branch_operations`, and `project_panel/zedx_library_discovery`.
+
+Upstream seams: notification construction archives the real view; Notifications stores center state; sqlez exposes a strict read-only opener; GitRepository adds default unsupported capability methods and RealGitRepository forwards them; Repository adds local job wrappers; GitGraph retains one revert-busy flag, initializes metadata filter state and refreshes filters when its graph invalidates; ProjectPanel's owned supplemental group module retains discovered roots. The SQLite browser uses the existing sqlez/libsqlite3 dependency through db. serde_json moves from Git dev dependencies to normal dependencies; ProjectPanel adds the existing workspace toml dependency. No upstream editor, picker, Git RPC schema, or GPUI implementation is replaced.
+
+All test additions in this batch are source-only. No tests, compiler, Clippy, build, native verification, bundle update, installation or restart was performed for this batch, per the latest user request. See PROTOTYPE_PARITY.md for scope and pending verification.
+
+
+### Merge revert, Shelf keys and layout flush · 2026-11-03
+
+`git/src/zedx_revert.rs` owns mainline validation and local revert execution. The existing default `GitRepository::revert_commit` remains compatible; a new default unsupported mainline method forwards ordinary commits to it. `project/zedx_repository_tools` forwards the chosen parent; the owned revert UI displays actual parent hashes. No Git RPC messages are changed.
+
+Shelf navigation/selection stays in `zedx_commit_shelf.rs`. GitPanel adds small first/last/next/previous, action-handler and key-context seams; the Git UI initializer binds Shelf-only delete keys. Cancellation no longer schedules a Shelf reload. Tests seed UI data through test-only methods and do not change the fake backend's capabilities.
+
+`zedx_split_persistence.rs` adds an awaitable flush barrier. Workspace's existing `flush_serialization` gathers these tasks alongside normal serialization, covering the existing close/quit entry points. The barrier stays chained for subsequent writes. All new regression cases remain unexecuted by explicit user instruction.
+
+
+### Database sessions · 2026-11-03 (source only)
+
+`zed/zedx_database_session.rs` owns bounded connection MRU, successful query history, project-root scope, serialization, restoration, saved-connection/history menus and the application-quit flush barrier. The owned database panel subscribes to editor changes, restores its draft before observing edits, remembers schema/query successes and clears selected state on disconnect. Saved SQL is not automatically executed. No database file is written or removed by connection management. The existing `zedx_panels::init` has one initialization call for the quit hook; upstream Workspace, Editor and GPUI files are unchanged by this batch. Regression cases are in `zedx_database_session_tests.rs` and remain unexecuted per user request.
+
+
+### Context menu appearance/customization
+
+`ui/components/zedx_context_menu.rs` owns scoped catalogs, runtime rules, action de-duplication/availability guards, ordering, separator cleanup and the menu surface/row adapters. ContextMenu has one optional scope and small constructor/rebuild/render hooks. ListItem gains an opt-in menu style so other list widgets retain their appearance. The editor, Project, Terminal and Git context builders each add one scope call; the shared commit menu covers both Git log and history views.
+
+`settings_content/zedx_context_menus.rs` owns serialized settings/schema/merge types. `zed/zedx_context_menus.rs` owns the SettingsStore bridge, customization modal and explicit completion-aware settings save. The existing ZedX search initializer calls its init so normal app and test workspaces share the registration path. No GPUI, keymap engine, original command handler or menu navigation implementation is replaced. New substantive logic stays in owned files. All new tests remain unexecuted under the user's current instruction.
+
+
+### Settings-hosted menu editor
+
+`settings_ui/src/zedx_context_menu_settings.rs` adds a standard Context Menus subpage and four-scope view cache. `page_data.rs` adds one user-scoped subpage link to Keymap; `settings_ui.rs` declares and exports the editor-factory registration API. The existing app-owned menu editor registers an AnyView factory and renders inline, so it does not need to move application-specific settings/action code into the settings_ui crate. Save keeps the page alive; Revert restores the saved draft. UI ContextMenu no longer appends a customization command. Old action bindings redirect to user Settings. All revised tests remain source-only.
+
+
+### Editor gutter Run icon
+
+`editor/src/zedx_run_indicator.rs` owns state/theme appearance selection; `assets/icons/zedx_run.svg` supplies a larger filled mask through one IconName variant. The existing runnable renderer has only the appearance lookup and selected-color hook; its click handlers remain unchanged. Test sources cover both themes, run/result states, upstream fallback and the local SVG shape. No tests or build were run.
+
+### Context menu icons
+
+- Keep icon resolution and default command symbols in `ui/components/zedx_menu_icons.rs`, and the Settings picker in `zed/zedx_context_menu_icons.rs`.
+- Per-scope `icons` maps stable menu item IDs to packaged snake_case icon names; an empty name hides a symbol, and removing an override restores the original/default icon. Apply symbols after custom command IDs are assigned and before ordering; preserve handlers, disabled state and upstream escape behavior.
+- Development build passed using `CARGO_TARGET_DIR=/private/tmp/zedx-navigation-target`; the checkout build directory stalled during compilation. Updated the checkout-local application from the completed binary. Settings previews, picker, hiding and reverting were checked manually; automated tests were written but not run.
+
+### Scratch file creation from context menus
+
+The Scratches tree no longer contains a synthetic creation row. `zedx_scratch_menu.rs` owns the New File menu for the scratch roots and their files/folders, reusing the existing scratch creation path. The project panel keyboard context-menu action uses the same entry. Remote projects and pending creation disable it. Build passed; regression cases were added but not run.
+
+### IDEA feedback batch: context execution and workbench details
+
+- Gutter Run keeps the 16px green symbol with an outline SVG. `editor/zedx_context_run.rs` and `zedx_context_run_policy.rs` build context Run/Debug from runnable ranges in the primary selection's buffer. Enclosing targets and multiple selected targets are supported without a nearest-unrelated-task fallback. Debug reuses the existing debugger scenario resolver. Captured buffer versions are checked before launch and after asynchronous resolution.
+- The title Run Configuration dropdown provides Choose Configuration, Edit Configurations and Edit Debug Configurations using existing project task/debug editing actions.
+- Commit checkboxes opt into `Checkbox::solid_selected`: opaque accent fill with white check/dash. Group state includes partially staged files.
+- Project sticky rows use an opaque theme surface. Explicit `panel.overlay_background`/`panel.overlay_hover` tokens prevent the schema fallback from turning transparent black into opaque black.
+- ZedX omits the Threads status/rail toggle and duplicate project/search/file status entries; remaining diagnostics, language-service, blame/conflict and activity items join the right side. The upstream UI escape path keeps its existing layout and imports.
+- `ui/components/zedx_menu_outline.rs` normalizes primary menu symbols to the leading position and resolves 27 packaged outline assets in `assets/icons/zedx_menu`. Settings previews use the same packaged resources. External SVG APIs accept file paths, so SVG source text must not be passed to them.
+
+Validation: development build passed using `/private/tmp/zedx-navigation-target` and the existing same-version WebRTC cache through `LK_CUSTOM_WEBRTC`. The checkout-local development application was updated and opened. Native checks confirmed outline menu symbols, disabled Run/Debug for Markdown, the editable Run Configuration dropdown, the light sticky Project root and the right-aligned status bar. Run/Debug commands were not executed. Regression cases for selection boundaries, menu icon placement/resources, checkbox fill/partial staging and sticky overlay colors were added but not run.
+
+### Scratch file operations
+
+`zedx_scratch_menu.rs` resolves auxiliary Scratch rows to entries in the retained hidden worktree. Its scoped menu uses native Cut, Copy, Duplicate, Paste, Rename, path copying, Finder/terminal and confirmed deletion actions. Scratch roots expose only New File and Paste. `zedx_project_groups.rs` preserves native selection for Scratch files, maps asynchronous selection changes back to auxiliary rows, and renders the existing filename editor during rename. This keeps project file operations and collision handling shared with upstream.
+
+Validation: development build and whitespace checks passed. Two regression cases cover hidden-worktree rename and copy/cut/paste; written but not run as requested. An isolated native preview verified leading outline icons, menu contents, stem selection, confirmed rename, and same-directory copy/paste collision naming. The checkout development bundle was updated without restarting the user's active instance. The temporary preview was closed and removed.
+
+### Light tool-window surfaces and rail selection
+
+The light theme now gives panels and sticky overlays an opaque white background; the outer frame retains its existing translucent material. Both tool-window rails use the shared `ui::zedx::tool_window_selected_background` and `tool_window_selected_icon` presentation helpers: #3574F0 with a white SVG mask. Previously the two rails independently used a pale blue background and blue-gray icons. Keep tool-window selection separate from tree-row selection colors.
+
+Validation: development build and diff whitespace check passed. Theme regression assertions were updated but not run. An isolated native preview confirmed the Project surface is white and Project/Database rail selections both show the shared blue background with white line icons. The preview was closed and its temporary bundle/data removed. The checkout dev bundle is updated; the user's active app was not restarted.
+
+### Context-menu Run icon
+
+Editor Run entries and multi-target Run submenus now use the toolbar's green (#208A3C light / #57965C dark). The packaged menu outline uses the exact path from `icons/zedx/play-light.svg`, retaining normal menu disabled treatment. ZedX submenu icons use the same outline asset resolver as leaf entries. Regression cases cover shared triangle geometry and preservation of the semantic green through outline normalization; written but not run. Development build and whitespace check passed; checkout dev bundle updated without restarting the active app.
+
+### Main-toolbar Stop for running tasks
+
+`title_bar/src/zedx_run_controls.rs` owns discovery, observation and termination of task terminals in both terminal-panel and center panes. The title bar stores subscriptions and refreshes membership as panels/panes/tasks change. Ordinary shell terminals and completed/unknown tasks are excluded. One running task stops directly; concurrent tasks open a selector rebuilt from current status. Each handler holds a weak terminal and delegates to `Terminal::kill_active_task`, which rechecks status and terminates the task's process group/shell. Red square Stop appears beside Run/Debug only while tasks run; output is retained. Upstream seams are a field, render observation hook, PanelAdded invalidation, and a toolbar child. title_bar depends on existing terminal/terminal_view workspace crates; no dependency versions changed.
+
+Validation: development build and diff whitespace check passed. Status/multiplicity unit cases and an idle rendered-control assertion were written but not run. Native isolated fixture verified idle absence, running appearance, single-task termination and disappearance, two-task chooser, stopping A while B remains Running, and final B termination/disappearance. Only temporary fixture tasks were stopped. Development bundle updated without restarting the user's active app. Temporary preview bundle and data were removed after closing.
+
+### Threads header collapse control
+
+ZedX's Threads search header now includes the existing sidebar close/toggle component at its right edge, with a keyboard-focusable Hide threads sidebar label. It reuses MultiWorkspace::close_sidebar and the sidebar-side context menu; upstream footer behavior remains intact. The pointer regression now checks the header control, hidden state and reopening/history access instead of the removed rail duplicate. Development build and whitespace checks passed. Regression case updated but not run; isolated native preview verified opening with Cmd+Alt+J and collapsing through the new header icon. Dev bundle updated; active user app not restarted. Temporary preview closed and removed.
+
+### Collapsible Git commit information
+
+The ZedX commit-details message section has a keyboard-focusable disclosure arrow and a compact subject header. It hides author/time/hash and Markdown when collapsed, releasing height to the changed-file tree; expansion restores the existing message entity and scroll handle. State belongs to the GitGraph instance and survives selecting another commit in that view. An 80px expanded minimum keeps the message viewport usable in a compact tool window. Upstream GitGraph only gains the state field/default; layout stays in `zedx_git_graph_details.rs`.
+
+Validation: development build and whitespace check passed. The rendered compact-details regression now covers collapse/expand, metadata/message visibility and increased file-list height; written but not run. An isolated disposable Git fixture verified expanded author/message visibility, collapse to a subject row, larger file area and re-expansion. Only the fixture repository received a local validation commit. Checkout development bundle updated without restarting the active user app; temporary preview closed and removed.
+
+### Commit selection work and Structure scrolling
+
+`zedx_git_detail_loading.rs` owns the ZedX-specific commit diff completion path and changed-file tree cache. ZedX does not render line-level totals in its compact details, so it skips `compute_diff_stats` on the UI thread. Classic graph statistics retain upstream behavior. Completion checks selected SHA before publishing. The cache retains path/status entries and flattened tree across repaint; commit loads and directory expansion invalidate it. This removes repeated sorting/tree construction on hover or metadata notifications. Full commit content still loads through the existing asynchronous repository API; this is not a metadata-only Git implementation.
+
+ZedX's OutlinePanel uses Auto uniform-list sizing and explicit zero minimum heights through its flex containers; Structure clips its remaining-height wrapper. The list viewport follows actual panel height rather than inferred content height. Classic list sizing remains Infer.
+
+Validation: development build and diff whitespace checks passed. File-tree reuse/invalidation and real OutlinePanel bounded-viewport/wheel regression cases written, not run. Native isolated preview with 200 Markdown headings scrolled from Section 000 to Section 086, displaying a bounded scrollbar; a 20,000-line changed commit loaded its file/details without an observed UI stall. No numerical performance claim is made from CUA latency. A sample of the existing user process did not capture the suspected expensive diff-stat computation and is not treated as causal profiling evidence. Temporary preview closed and removed. Checkout dev bundle updated.
+
+### Expose the native backdrop under light rails
+
+The ZedX workspace root must stay transparent independently of `panel.background`. Making light panels white had caused the old alpha-based condition to repaint the workspace background under the rails, compounding the rail tint and obscuring the native backdrop. The root now tests ZedX mode only; white Project/editor content remains opaque. Light outer-frame/title/status colors share #F7F8FAB3 (about 70% opacity) instead of #F7F8FAFC. Existing macOS Blurred/NSVisualEffectView plumbing is retained; this change does not synthesize blur with a flat gray fill.
+
+Validation: development build and whitespace checks passed. Light-frame alpha/white-content regression assertions were added but not run. An isolated native preview checked the resulting frame and opaque content areas; window-only captures are not used as proof of the appearance of desktop content behind the window. Temporary preview was closed and removed. Checkout dev bundle updated.
+
+### Problems row layout
+
+Owned `crates/zed/src/zedx_problem_row.rs` gives diagnostic rows a font-relative height, independent clipped message/location regions, and a single-line message summary with the full diagnostic in its tooltip. The panel applies the configured UI font. A regression covers long multiline diagnostics at normal and enlarged font sizes; written but not run. Development build passes.
+
+### Run task controls
+
+Owned `crates/zed/src/zedx_run_panel.rs` now provides scrollable task tabs, rerun/stop/clear/scroll-to-end controls, and a task-picker entry. It tracks task terminals in both the editor panes and Terminal dock, retains manual selection until a new task appears, and refreshes subscriptions when a task replaces its terminal model. Workspace pane snapshots avoid reading the leased workspace during panel initialization/activation. Rerun preserves native history/command parsing; after the native replacement reveals Terminal, Run restores its output view. Source regressions cover selection/removal and empty-view layout; not run. Development build passes. An isolated native preview verifies independent A/B output selection, stopping A with B still running, rerun staying in Run, and clear output leaving the process running.
+
+### Recent run configurations
+
+Owned `workspace/src/zedx_run_history.rs` persists ten deduplicated configuration identities and display labels per sorted project roots/remote connection in the local KV store. It caches reads and serializes writes. The task scheduling seam records usage; TitleBar restores the latest label/Run action and lists Recent Configurations above Choose/Edit. `tasks_ui` promotes currently resolved matching definitions into the recent section and handles recent clicks by resolving the current source/label identity, falling back to the picker when unavailable. Saved metadata contains no command/env snapshots; one-shot commands and ephemeral LSP tasks keep their existing session-only history. Shared guest projects are excluded. Source tests cover ordering, limits, serialization, DB reload and project isolation; not run. Build passes. Isolated native preview verifies menu MRU/deduplication, full process restart restoring the title/menu and chooser ranking, and executing a restored item.
+
+### More menu controls tool button visibility
+
+Owned `zedx_more_tools.rs` replaces the old open-panel menu with real solid checkboxes; the menu stays open for multiple changes. It only toggles rail buttons and leaves open panels/shortcuts intact. Owned `zedx_tool_visibility.rs` stores explicit visibility overrides in the profile KV store with serialized writes. Generic rails and the custom Notifications/AI/Outline/Database controls share the same preferences; Restore Default Layout clears overrides. Existing order preferences remain independent. Native preview confirms hiding Structure without changing Project, showing Branches, hiding right-side controls, and full restart retaining checkbox/button state. Build passes. Source tests cover visibility persistence/reset and menu/button behavior; existing Find navigation case now shows the pin before opening Find. Tests were not run.
+
+### Recent Files navigation and status colors
+
+Control+E opens Recent Files from workspace, editor and terminal contexts. Owned `crates/zed/src/zedx_recent_files_view.rs` supplies a responsive two-column popup: quick tool-window navigation on the left and recent files on the right. Left/Right switches keyboard focus between columns; Up/Down/Enter selects a tool and dismisses the popup before dispatch. File rows read current Git status, show IDEA blue for modified files and red for unversioned files, include status markers and an amber unsaved dot. Git-store observation refreshes the visible statuses.
+
+Validation: development build and whitespace check passed; checkout development bundle updated without restarting the user's active app. Source regressions cover compact layout, column keyboard focus, action dispatch/dismissal and status mapping; written but not run. An isolated native fixture verified physical Control+E from an editor, keyboard navigation to Commit, modified/unversioned colors and unsaved indication. Temporary preview closed and removed.
+
+### Single material layer for light sidebars
+
+ZedX Light panel contents now share the transparent panel token with Dark, leaving the side dock as the sole material painter. The light dock tint is 62% opaque instead of 97%; the light outer frame/title/status tint is 42% opaque instead of 70%. Native blurred-window rendering remains enabled. Sticky tree overlays, compact overlay docks, bottom docks, editor and popup surfaces retain opaque backgrounds. Updated theme regressions cover transparent content, frame alpha and separate opaque overlays; tests were not run. Development build and whitespace checks passed. An isolated native preview checked the Project content and editor layout; window-only captures do not establish desktop blur appearance. Temporary preview closed and removed; checkout dev bundle updated without restarting the active user app.

@@ -1,3 +1,5 @@
+mod zedx_context_menus;
+pub use zedx_context_menus::*;
 mod action;
 mod agent;
 mod editor;
@@ -172,6 +174,8 @@ pub enum ReduceMotionMode {
 #[with_fallible_options]
 #[derive(Debug, PartialEq, Default, Clone, Serialize, JsonSchema, MergeFrom)]
 pub struct SettingsContent {
+    /// Customize the editor, Project, Git and Terminal right-click menus.
+    pub zedx_context_menus: Option<ZedxContextMenus>,
     #[serde(flatten)]
     pub project: ProjectSettingsContent,
 
@@ -412,7 +416,7 @@ fallible_options::flattened_deserialize!(SettingsContent {
         journal, log, line_indicator_format, language_models, copilot, outline_panel, project_panel,
         node, proxy, reduce_motion, server_url, credentials_url, session, telemetry, terminal,
         title_bar, vim_mode, calls, which_key, vim, modeline_lines, feature_flags,
-        instrumentation,
+        instrumentation, zedx_context_menus,
     },
     defaults: {},
 });

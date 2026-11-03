@@ -38,6 +38,8 @@ impl Workspace {
         for dock in self.all_docks() {
             cx.observe(dock, |_, _, cx| cx.notify()).detach();
         }
+        cx.observe_global::<crate::zedx_tool_visibility::ToolVisibility>(|_, cx| cx.notify())
+            .detach();
         cx.observe_global::<crate::zedx_rail_order::RailOrder>(|_, cx| cx.notify())
             .detach();
     }
@@ -59,6 +61,7 @@ impl Workspace {
         let Some(panel) = self.zedx_right_panel(name, cx) else {
             self.show_toast(Toast::new(NotificationId::unique::<RightPanelActivation>(),
                 if name == "AgentPanel" { "AI Assistant is unavailable. Check AI settings or wait for it to finish loading." }
+                else if name == "Database" { "Database tool window is still loading." }
                 else { "File outline is still loading." }).autohide(), cx);
             return;
         };
@@ -203,6 +206,7 @@ impl Workspace {
         let controls = self
             .zedx_right_control_order(cx)
             .into_iter()
+            .filter(|name| crate::zedx_tool_visibility::is_visible(name, true, cx))
             .map(|name| {
                 let (id, glyph, label, action): (_, _, _, Box<dyn gpui::Action>) =
                     match name.as_str() {
@@ -226,7 +230,7 @@ impl Workspace {
                         ),
                     };
                 let panel = self.zedx_right_panel(&name, cx);
-                let available = name == "Database" || panel.is_some();
+                let available = panel.is_some();
                 let right = self.right_dock.read(cx);
                 let selected = right.is_open()
                     && panel.as_ref().is_some_and(|panel| {
@@ -286,11 +290,7 @@ impl Workspace {
                                 .absolute()
                                 .inset_0()
                                 .rounded(px(6.0))
-                                .bg(if cx.theme().appearance().is_light() {
-                                    gpui::rgb(0xcfdaea)
-                                } else {
-                                    gpui::rgb(0x3c4c65)
-                                }),
+                                .bg(ui::zedx::tool_window_selected_background()),
                         )
                     })
                     .child(
@@ -306,20 +306,7 @@ impl Workspace {
                             .disabled(!available)
                             .toggle_state(selected)
                             .child(if selected {
-                                let appearance = if cx.theme().appearance().is_light() {
-                                    "light"
-                                } else {
-                                    "dark"
-                                };
-                                gpui::svg()
-                                    .path(format!("icons/zedx/{}-{appearance}.svg", glyph.as_ref()))
-                                    .size(px(20.0))
-                                    .text_color(if cx.theme().appearance().is_light() {
-                                        gpui::rgb(0x3b5f91)
-                                    } else {
-                                        gpui::rgb(0xdae6fa)
-                                    })
-                                    .into_any_element()
+                                ui::zedx::tool_window_selected_icon(glyph, cx).into_any_element()
                             } else {
                                 ui::zedx::icon(glyph, cx).into_any_element()
                             })
@@ -327,6 +314,8 @@ impl Workspace {
                                 label
                             } else if id == "zedx-tool-AgentPanel" {
                                 "AI Assistant is disabled or still loading"
+                            } else if id == "zedx-database" {
+                                "Database tool window is still loading"
                             } else {
                                 "File outline is still loading"
                             }))
@@ -337,6 +326,6 @@ impl Workspace {
                     )
             })
             .collect::<Vec<_>>();
-        v_flex().gap_1().items_center().children(controls)
+        v_flex().gap(px(4.0)).items_center().children(controls)
     }
 }

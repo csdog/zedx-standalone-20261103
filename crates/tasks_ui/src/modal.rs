@@ -171,12 +171,33 @@ impl TasksModal {
         &mut self,
         task_contexts: Arc<TaskContexts>,
         lsp_tasks: Vec<(TaskSourceKind, task::ResolvedTask)>,
-        used_tasks: Vec<(TaskSourceKind, task::ResolvedTask)>,
-        current_resolved_tasks: Vec<(TaskSourceKind, task::ResolvedTask)>,
+        mut used_tasks: Vec<(TaskSourceKind, task::ResolvedTask)>,
+        mut current_resolved_tasks: Vec<(TaskSourceKind, task::ResolvedTask)>,
         add_current_language_tasks: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if let Some(workspace) = self.picker.read(cx).delegate.workspace.upgrade() {
+            let workspace = workspace.read(cx);
+            let recent = workspace::zedx_run_history::recent(workspace, cx);
+            let project = workspace.project().read(cx);
+            let mut remaining = Vec::new();
+            for candidate in current_resolved_tasks {
+                let key = workspace::zedx_run_history::configuration_key(
+                    project,
+                    &candidate.0,
+                    candidate.1.original_task(),
+                    cx,
+                );
+                if recent.iter().any(|entry| Some(&entry.key) == key.as_ref()) {
+                    used_tasks.push(candidate);
+                } else {
+                    remaining.push(candidate);
+                }
+            }
+            current_resolved_tasks = remaining;
+            workspace::zedx_run_history::prioritize(workspace, &mut used_tasks, cx);
+        }
         let last_used_candidate_index = if used_tasks.is_empty() {
             None
         } else {

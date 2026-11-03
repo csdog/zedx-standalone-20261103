@@ -6,6 +6,7 @@ mod title_bar_settings;
 mod update_version;
 #[path = "zedx_prototype_project_identity.rs"]
 mod zedx_project_identity;
+mod zedx_run_controls;
 #[path = "zedx_prototype_title_actions.rs"]
 mod zedx_title_actions;
 mod zedx_title_layout;
@@ -221,6 +222,7 @@ pub struct TitleBar {
     multi_workspace: Option<WeakEntity<MultiWorkspace>>,
     application_menu: Option<Entity<ApplicationMenu>>,
     _subscriptions: Vec<Subscription>,
+    zedx_run_observers: zedx_run_controls::RunObservers,
     banner: Option<Entity<OnboardingBanner>>,
     update_version: Entity<UpdateVersion>,
     screen_share_popover_handle: PopoverMenuHandle<ContextMenu>,
@@ -229,6 +231,7 @@ pub struct TitleBar {
 
 impl Render for TitleBar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.observe_zedx_run_tasks(cx);
         if self.multi_workspace.is_none() {
             if let Some(mw) = self
                 .workspace
@@ -498,6 +501,7 @@ impl TitleBar {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
+        workspace::zedx_run_history::initialize(workspace, cx);
         let project = workspace.project().clone();
         let git_store = project.read(cx).git_store().clone();
         let user_store = workspace.app_state().user_store.clone();
@@ -550,7 +554,10 @@ impl TitleBar {
             subscriptions.push(cx.subscribe(
                 &workspace_entity,
                 |_, _, event: &workspace::Event, cx| {
-                    if matches!(event, workspace::Event::WorktreeCreationChanged) {
+                    if matches!(
+                        event,
+                        workspace::Event::WorktreeCreationChanged | workspace::Event::PanelAdded(_)
+                    ) {
                         cx.notify();
                     }
                 },
@@ -583,6 +590,7 @@ impl TitleBar {
             user_store,
             client,
             _subscriptions: subscriptions,
+            zedx_run_observers: Default::default(),
             banner,
             update_version,
             screen_share_popover_handle: PopoverMenuHandle::default(),
@@ -1633,6 +1641,7 @@ mod zedx_title_bar_tests {
         cx.run_until_parked();
         cx.refresh().unwrap();
         assert!(cx.debug_bounds("zedx-project-identity").is_some());
+        assert!(cx.debug_bounds("zedx-stop-control").is_none());
         assert!(cx.debug_bounds("zedx-main-menu").is_none());
         assert!(cx.debug_bounds("zedx-search-label").is_none());
         for width in [
@@ -1653,7 +1662,13 @@ mod zedx_title_bar_tests {
                 identity.right() <= actions.left(),
                 "project and actions overlap at {width}px: {identity:?} {actions:?}"
             );
-            for id in ["zedx-run", "zedx-debug", "zedx-search", "zedx-settings"] {
+            for id in [
+                "zedx-run",
+                "zedx-debug",
+                "zedx-edit-run-configuration",
+                "zedx-search",
+                "zedx-settings",
+            ] {
                 let button = cx.debug_bounds(id).expect(id);
                 assert!(
                     button.left() >= frame.left() && button.right() <= frame.right(),
@@ -1671,8 +1686,14 @@ mod zedx_title_bar_tests {
             assert!(cx.debug_bounds("zedx-theme").is_none());
             let avatar = cx.debug_bounds("zedx-project-avatar").unwrap();
             assert_eq!(avatar.size, gpui::size(px(23.0), px(23.0)));
-            let buttons = ["zedx-run", "zedx-debug", "zedx-search", "zedx-settings"]
-                .map(|id| cx.debug_bounds(id).unwrap());
+            let buttons = [
+                "zedx-run",
+                "zedx-debug",
+                "zedx-edit-run-configuration",
+                "zedx-search",
+                "zedx-settings",
+            ]
+            .map(|id| cx.debug_bounds(id).unwrap());
             for pair in buttons.windows(2) {
                 assert!(pair[0].right() <= pair[1].left());
                 assert_eq!(pair[0].center().y, pair[1].center().y);
@@ -1693,6 +1714,22 @@ mod zedx_title_bar_tests {
         cx.simulate_click(settings.center(), gpui::Modifiers::none());
         cx.run_until_parked();
         assert!(opened.get(), "the gear directly dispatches OpenSettings");
+        let configurations_opened = std::rc::Rc::new(std::cell::Cell::new(false));
+        cx.update({
+            let configurations_opened = configurations_opened.clone();
+            move |_, cx| {
+                cx.on_action(move |_: &zed_actions::OpenProjectTasks, _| {
+                    configurations_opened.set(true)
+                });
+            }
+        });
+        let edit = cx.debug_bounds("zedx-edit-run-configuration").unwrap();
+        cx.simulate_click(edit.center(), gpui::Modifiers::none());
+        cx.run_until_parked();
+        assert!(
+            configurations_opened.get(),
+            "the edit button opens project run configurations"
+        );
     }
 
     #[test]

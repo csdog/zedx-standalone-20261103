@@ -4,6 +4,12 @@ mod zedx_details;
 mod zedx_filter;
 #[path = "zedx_filtered_graph.rs"]
 mod zedx_filtered_graph;
+#[path = "zedx_git_detail_loading.rs"]
+mod zedx_git_detail_loading;
+#[path = "zedx_git_revert.rs"]
+mod zedx_git_revert;
+#[path = "zedx_git_log_filters.rs"]
+mod zedx_log_filters;
 #[path = "zedx_git_graph_toolbar.rs"]
 mod zedx_toolbar;
 pub use crate::commit_context_menu::{CopyCommitSha, CopyCommitTag, OpenCommitView};
@@ -1081,6 +1087,7 @@ impl GraphData {
 }
 
 pub fn init(cx: &mut App) {
+    zedx_log_filters::bind_keys(cx);
     workspace::register_serializable_item::<GitGraph>(cx);
 
     cx.observe_new(|workspace: &mut workspace::Workspace, _, _| {
@@ -1463,6 +1470,9 @@ struct DetailPanelCommitMessage {
 pub struct GitGraph {
     zedx_toolbar: Option<Pixels>,
     zedx_filter: zedx_filter::FilterState,
+    zedx_revert_pending: bool,
+    zedx_commit_info_collapsed: bool,
+    zedx_details_cache: std::cell::RefCell<zedx_git_detail_loading::DetailsCache>,
     focus_handle: FocusHandle,
     search_state: SearchState,
     graph_data: GraphData,
@@ -1497,6 +1507,9 @@ pub struct GitGraph {
 
 impl GitGraph {
     fn invalidate_state(&mut self, cx: &mut Context<Self>) {
+        if self.zedx_toolbar.is_some() && !self.zedx_filter.metadata.spec.is_empty() {
+            self.refresh_zedx_log_filters(cx);
+        }
         self.graph_data.clear();
         self.search_state.matches.clear();
         self.search_state.selected_index = None;
@@ -1726,6 +1739,9 @@ impl GitGraph {
         let mut this = GitGraph {
             zedx_toolbar: None,
             zedx_filter: Default::default(),
+            zedx_revert_pending: false,
+            zedx_commit_info_collapsed: false,
+            zedx_details_cache: Default::default(),
             focus_handle,
             git_store,
             search_state: SearchState {
@@ -2424,6 +2440,13 @@ impl GitGraph {
         let diff_handle = commit.data.sha.to_string();
 
         self.load_selected_commit_message(cx, &commit_message_handle, &repository);
+
+        if self.zedx_toolbar.is_some() {
+            self.load_zedx_selected_commit_diff(commit_message_handle, &repository, cx);
+            cx.emit(ItemEvent::Edit);
+            cx.notify();
+            return;
+        }
 
         let diff_task =
             repository.update(cx, |repo, cx| repo.load_commit_diff(diff_handle, false, cx));

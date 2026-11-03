@@ -209,6 +209,8 @@ pub enum IconName {
     PencilUnavailable,
     Person,
     Pin,
+    ZedxRun,
+    ZedxPaste,
     PlayFilled,
     PlayOutlined,
     Plus,

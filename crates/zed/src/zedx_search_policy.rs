@@ -148,6 +148,7 @@ pub(super) fn action_search_text(name: &str, display: &str) -> String {
         "zedx::ToggleProblems" => "问题 诊断 错误 警告 problems diagnostics",
         "zedx::ToggleRun" => "运行 任务 run tasks",
         "zedx::ToggleBranches" => "分支 切换分支 branches git",
+        "zedx::RecentFiles" => "最近文件 最近打开 文件历史 recent files recently opened",
         "zedx::ShowGitHistory" => "历史 提交记录 日志 log history commits",
         "zedx::ToggleTheme" => "主题 外观 深色 浅色 切换",
         "zed::OpenSettings" => "设置 偏好 配置",

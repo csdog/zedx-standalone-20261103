@@ -1,3 +1,5 @@
+#[path = "zedx_repository_tools.rs"]
+mod zedx_repository_tools;
 mod conflict_set;
 pub mod diff_buffer_list;
 pub mod git_traversal;

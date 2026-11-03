@@ -11185,7 +11185,7 @@ fn click_project_entry(
             .expect("project entries should be rendered")
             .contents
             .height
-            / item_count as f32;
+            / (item_count + panel.zedx_group_count()) as f32;
         bounds.origin
             + scroll.base_handle.offset()
             + point(bounds.size.width / 2., item_height * (index as f32 + 0.5))
@@ -12526,9 +12526,9 @@ async fn test_focus_follows_mouse_into_blank_area(cx: &mut gpui::TestAppContext)
         );
     });
 
-    // Hover over the blank space below the last entry in the project panel,
-    // which lives in the right dock by default.
-    cx.simulate_mouse_move(point(px(1800.), px(600.)), None, Modifiers::none());
+    let blank = cx.debug_bounds("project-panel-blank-area").expect("blank area below project entries");
+    assert!(blank.size.height > px(0.0));
+    cx.simulate_mouse_move(blank.center(), None, Modifiers::none());
     cx.executor().advance_clock(Duration::from_millis(200));
     cx.run_until_parked();
 
@@ -13290,7 +13290,7 @@ fn enter_file_drag_over_root(panel: &Entity<ProjectPanel>, window: &mut Window, 
             .map(|worktree| worktree.entries.len())
             .sum::<usize>();
         assert_eq!(item_count, 2);
-        let item_height = item_size.contents.height / item_count as f32;
+        let item_height = item_size.contents.height / (item_count + panel.zedx_group_count()) as f32;
         let position = bounds.origin + point(bounds.size.width / 2., item_height / 2.);
         let worktree = panel
             .project

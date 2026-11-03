@@ -40,6 +40,7 @@ impl SearchWindow {
                 })))))
             .child(div().flex_1())
             .when(!matches!(delegate.category, Category::All | Category::Actions), |controls| controls.child(div().debug_selector(|| "zedx-search-file-filter".into()).child(PopoverMenu::new("search-file-filter")
+                .menu_priority(3)
                 .trigger_with_tooltip(
                     IconButton::new("search-file-filter-button", IconName::Filter)
                         .disabled(actions)

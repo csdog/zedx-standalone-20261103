@@ -643,7 +643,7 @@ async fn main_menu_actions_find_restore_layout_by_natural_chinese_phrase(cx: &mu
 }
 
 #[gpui::test]
-async fn find_tool_button_transfers_query_to_the_left_panel(cx: &mut TestAppContext) {
+async fn find_tool_button_transfers_query_to_the_bottom_panel(cx: &mut TestAppContext) {
     cx.update(crate::zedx_panels::init);
     let (workspace, cx) = setup(cx).await;
     workspace
@@ -671,7 +671,7 @@ async fn find_tool_button_transfers_query_to_the_left_panel(cx: &mut TestAppCont
     workspace.update_in(cx, |workspace, window, cx| {
         assert!(workspace.active_modal::<SearchWindow>(cx).is_none());
         let dock = workspace
-            .dock_at_position(workspace::dock::DockPosition::Left)
+            .dock_at_position(workspace::dock::DockPosition::Bottom)
             .read(cx);
         assert!(dock.is_open());
         let panel = dock.active_panel().unwrap();
@@ -680,7 +680,7 @@ async fn find_tool_button_transfers_query_to_the_left_panel(cx: &mut TestAppCont
         assert_eq!(
             workspace.panes().len(),
             1,
-            "Find results belong in the left tool window"
+            "Find results belong in the bottom tool window"
         );
     });
 }
@@ -994,7 +994,7 @@ async fn cmd_enter_transfers_the_text_query_to_find_in_files(cx: &mut TestAppCon
     workspace.update_in(cx, |workspace, window, cx| {
         assert!(workspace.active_modal::<SearchWindow>(cx).is_none());
         let dock = workspace
-            .dock_at_position(workspace::dock::DockPosition::Left)
+            .dock_at_position(workspace::dock::DockPosition::Bottom)
             .read(cx);
         let panel = dock.active_panel().expect("the Find panel should open");
         assert_eq!(panel.persistent_name(), "Find");
@@ -1165,4 +1165,82 @@ async fn action_scope_and_file_scope_remain_independent(cx: &mut TestAppContext)
         assert!(delegate.include_non_project);
         assert!(delegate.scope_includes_extra());
     });
+}
+
+#[gpui::test]
+async fn compact_file_filter_receives_clicks_above_the_search_modal(cx: &mut TestAppContext) {
+    let (workspace, cx) = setup(cx).await;
+    cx.simulate_resize(gpui::size(px(390.0), px(500.0)));
+    workspace.update_in(cx, |workspace, window, cx| {
+        open_category(workspace, Some(Category::Files), window, cx);
+    });
+    cx.run_until_parked();
+    let modal = workspace
+        .read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx)
+        })
+        .unwrap();
+    cx.refresh().unwrap();
+    let trigger = cx.debug_bounds("zedx-search-file-filter").unwrap();
+    cx.simulate_click(trigger.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let popup = cx.debug_bounds("zedx-search-modal").unwrap();
+    let first = cx.debug_bounds("MENU_ITEM-All file types").unwrap();
+    let last = cx.debug_bounds("MENU_ITEM-Other file types").unwrap();
+    cx.update(|window, _| {
+        let scale = window.scale_factor();
+        let quads = window.painted_quads();
+        let popup_quad = quads
+            .iter()
+            .find(|quad| quad.bounds == popup.scale(scale))
+            .unwrap();
+        let menu_quad = quads
+            .iter()
+            .filter(|quad| {
+                quad.bounds.size.width < popup_quad.bounds.size.width
+                    && quad.bounds.contains(&first.center().scale(scale))
+                    && quad.bounds.contains(&last.center().scale(scale))
+                    && quad
+                        .background
+                        .as_solid()
+                        .is_some_and(|color| color.a > 0.9)
+            })
+            .max_by_key(|quad| quad.order)
+            .unwrap();
+        assert!(
+            menu_quad.order > popup_quad.order,
+            "the menu must paint after the search window: menu {:?} order {}, popup {:?} order {}",
+            menu_quad.bounds,
+            menu_quad.order,
+            popup_quad.bounds,
+            popup_quad.order
+        );
+    });
+    for (selector, filter) in [
+        ("MENU_ITEM-Markdown · .md", FileFilter::Markdown),
+        ("MENU_ITEM-Rust · .rs", FileFilter::Rust),
+    ] {
+        let item = cx.debug_bounds(selector).unwrap();
+        assert!(item.left() >= px(0.0));
+        assert!(item.right() <= px(390.0));
+        assert!(item.bottom() <= px(500.0));
+        cx.simulate_click(item.center(), gpui::Modifiers::none());
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        assert!(workspace.read_with(cx, |workspace, cx| {
+            workspace.active_modal::<SearchWindow>(cx).is_some()
+        }));
+        assert!(!modal.read_with(cx, |modal, cx| {
+            modal.picker.read(cx).delegate.file_filter.contains(filter)
+        }));
+        assert!(cx.debug_bounds("MENU_ITEM-Markdown · .md").is_some());
+    }
+    cx.dispatch_action(menu::Cancel);
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("MENU_ITEM-Markdown · .md").is_none());
+    assert!(workspace.read_with(cx, |workspace, cx| {
+        workspace.active_modal::<SearchWindow>(cx).is_some()
+    }));
 }

@@ -1367,7 +1367,13 @@ impl Render for Dock {
                             colors.surface_background
                         } else {
                             // Paint the material once; panel contents inherit the transparent theme token.
-                            colors.surface_background.opacity(0.62)
+                            colors.surface_background.opacity(
+                                if cx.theme().appearance().is_light() {
+                                    0.62
+                                } else {
+                                    0.75
+                                },
+                            )
                         }
                     } else {
                         cx.theme().colors().panel_background
@@ -1416,6 +1422,7 @@ impl Render for Dock {
 impl PanelButtons {
     pub fn new(dock: Entity<Dock>, cx: &mut Context<Self>) -> Self {
         cx.observe(&dock, |_, _, cx| cx.notify()).detach();
+        cx.observe_global::<crate::zedx_tool_visibility::ToolVisibility>(|_, cx| cx.notify()).detach();
         let settings_subscription = cx.observe_global::<SettingsStore>(|_, cx| cx.notify());
         Self {
             dock,

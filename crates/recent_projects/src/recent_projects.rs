@@ -2106,6 +2106,22 @@ fn open_local_project(
             let Some(paths) = paths.await.log_err().flatten() else {
                 return;
             };
+            if std::env::var_os("ZEDX_UPSTREAM_UI").is_none()
+                && let Some(handle) = multi_workspace_handle
+            {
+                if let Some(task) = handle
+                    .update(cx, |multi_workspace, window, cx| {
+                        multi_workspace.open_project_with_zedx_prompt(paths, create_new_window, window, cx)
+                    })
+                    .log_err()
+                    && let Err(error) = task.await
+                {
+                    workspace
+                        .update_in(cx, |workspace, _, cx| workspace.show_error(error, cx))
+                        .log_err();
+                }
+                return;
+            }
             if !create_new_window {
                 if let Some(handle) = multi_workspace_handle {
                     if let Some(task) = handle
@@ -3001,6 +3017,8 @@ mod tests {
             .unwrap();
 
         cx.run_until_parked();
+        cx.simulate_prompt_answer("This Window");
+        cx.run_until_parked();
 
         // Should NOT have opened a new window.
         let final_window_count = cx.update(|cx| cx.windows().len());
@@ -3076,6 +3094,8 @@ mod tests {
             })
             .unwrap();
 
+        cx.run_until_parked();
+        cx.simulate_prompt_answer("New Window");
         cx.run_until_parked();
 
         // Should have opened a new window.

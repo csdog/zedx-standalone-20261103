@@ -30,6 +30,7 @@ fn dock_key(position: DockPosition) -> &'static str {
 /// Loads the saved order and enables persistence for this process. Called once from the binary; a
 /// test binary never calls it, which keeps the file out of test runs.
 pub fn init_global(cx: &mut App) {
+    crate::zedx_tool_visibility::init(cx);
     PERSISTENT.store(true, std::sync::atomic::Ordering::Relaxed);
     let order = std::fs::read_to_string(order_path())
         .ok()

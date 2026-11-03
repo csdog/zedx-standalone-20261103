@@ -8,6 +8,22 @@
 
 在仓库根目录运行：
 
+日常开发可以直接使用 `make`：
+
+```sh
+make dev                         # 编译并启动，默认打开当前项目
+make dev ARGS=/path/to/project    # 打开指定项目
+make dev ARGS='"/path with spaces"' # 路径包含空格
+make build                       # 仅构建开发版
+make check                       # 仅检查编译
+make app                         # macOS：构建并打开本地开发应用
+make help                        # 查看命令
+```
+
+以上入口复用 `script/zedx`，沿用项目固定的 Rust 工具链和开发配置，不安装到 Applications。可继续使用 `ZEDX_TOOLCHAIN`、`CARGO_TARGET_DIR` 环境变量覆盖工具链或构建目录。
+
+原有脚本入口：
+
 ```sh
 script/zedx check          # 原生编译检查
 script/zedx build          # 构建 target/debug/zedx

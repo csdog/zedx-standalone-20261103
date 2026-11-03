@@ -1,6 +1,8 @@
 use super::*;
 use git::repository::{LogOrder, LogSource};
 use gpui::UniformListScrollHandle;
+#[path = "zedx_git_branch_operations.rs"]
+mod operations;
 
 #[derive(Clone, Debug)]
 struct Reference {
@@ -12,6 +14,8 @@ struct Reference {
 
 pub(super) struct BranchTree {
     query: Entity<Editor>,
+    new_name: Option<Entity<Editor>>,
+    operating: bool,
     refs: Vec<Reference>,
     selected: Option<SharedString>,
     collapsed: HashSet<&'static str>,
@@ -42,6 +46,8 @@ impl BranchTree {
         let observer = cx.observe(&query, |_, _, cx| cx.notify());
         Self {
             query,
+            new_name: None,
+            operating: false,
             refs: Vec::new(),
             selected: None,
             collapsed: HashSet::new(),
@@ -57,6 +63,8 @@ impl BranchTree {
     }
 
     pub(super) fn reset(&mut self) {
+        self.new_name = None;
+        self.operating = false;
         self.generation += 1;
         self.task = Task::ready(());
         self.refs.clear();
@@ -212,21 +220,6 @@ impl GitHistory {
         cx.notify();
     }
 
-    fn prototype_branch_notice(&self, message: &'static str, cx: &mut Context<Self>) {
-        self.workspace
-            .update(cx, |workspace, cx| {
-                workspace.show_toast(
-                    workspace::Toast::new(
-                        workspace::notifications::NotificationId::unique::<BranchTree>(),
-                        message,
-                    )
-                    .autohide(),
-                    cx,
-                )
-            })
-            .log_err();
-    }
-
     pub(super) fn available_log_width(&self, window: &Window, cx: &App) -> Pixels {
         let mut width = window.viewport_size().width - px(86.0);
         if window.viewport_size().width >= px(560.0) {
@@ -254,15 +247,22 @@ impl GitHistory {
             .child(v_flex().w(px(28.0)).h_full().flex_none().gap_1().items_center().py_1().border_r_1().border_color(cx.theme().colors().border)
                 .child(ui::zedx::tool_button("zedx-git-hide-branches", ui::zedx::Icon::Collapse, "Hide branches", cx)
                     .on_click(cx.listener(|this, _, _, cx| { this.branches.hidden = true; cx.notify(); })))
-                .child(ui::IconButton::new("zedx-git-new-branch", IconName::Plus).tooltip(Tooltip::text("New Branch…"))
-                    .on_click(cx.listener(|this, _, _, cx| this.prototype_branch_notice("Prototype: creating a branch is not connected", cx))))
-                .child(ui::IconButton::new("zedx-git-delete-branch", IconName::Trash).tooltip(Tooltip::text("Delete Branch"))
-                    .on_click(cx.listener(|this, _, _, cx| this.prototype_branch_notice("Prototype: deleting a branch is not connected", cx))))
+                .child(ui::IconButton::new("zedx-git-new-branch", IconName::Plus).tooltip(Tooltip::text("Create and checkout branch…")).disabled(self.branches.operating || !self.branch_writable(cx))
+                    .on_click(cx.listener(|this, _, window, cx| this.begin_new_branch(window, cx))))
+                .child(ui::IconButton::new("zedx-git-delete-branch", IconName::Trash).tooltip(Tooltip::text("Delete Branch")).disabled(self.branches.operating || !self.branch_writable(cx) || !self.branches.refs.iter().any(|entry| Some(&entry.name) == self.branches.selected.as_ref() && !entry.current && entry.group != "Tags"))
+                    .on_click(cx.listener(|this, _, window, cx| this.delete_branch(window, cx))))
                 .child(ui::zedx::tool_button("zedx-git-branch-refresh", ui::zedx::Icon::Refresh, "Refresh branches", cx)
                     .on_click(cx.listener(|this, _, _, cx| this.reload_branches(cx)))))
             .child(v_flex().flex_1().min_w_0().h_full()
                 .child(h_flex().h(px(32.0)).flex_none().px_2().border_b_1().border_color(cx.theme().colors().border)
                     .child(self.branches.query.clone()))
+                .when_some(self.branches.new_name.clone(), |column, name| column.child(v_flex().p_2().gap_1()
+                    .child(name)
+                    .child(h_flex().gap_1()
+                        .child(Button::new("create-log-branch", "Create…").disabled(self.branches.operating)
+                            .on_click(cx.listener(|this, _, window, cx| this.create_branch(window, cx))))
+                        .child(Button::new("cancel-log-branch", "Cancel").disabled(self.branches.operating)
+                            .on_click(cx.listener(|this, _, _, cx| { this.branches.new_name = None; cx.notify(); }))))))
                 .when(self.branches.loading, |column| column.child(Label::new("Loading branches…").size(ui::zedx::caption_size()).color(Color::Muted)))
                 .when_some(self.branches.error.clone(), |column, error| column.child(Label::new(error).size(ui::zedx::caption_size()).color(Color::Warning)))
                 .when(empty && !self.branches.loading, |column| column.child(div().px_2().py_1().child(Label::new("No branches match").size(ui::zedx::caption_size()).color(Color::Muted))))
@@ -305,7 +305,7 @@ mod tests {
     use super::*;
     use gpui::{TestAppContext, VisualTestContext};
 
-    async fn setup(
+    pub(super) async fn setup(
         cx: &mut TestAppContext,
     ) -> (
         Entity<Workspace>,
@@ -534,5 +534,78 @@ mod tests {
         assert!(filters.right() <= panel.right());
         assert!(query.right() <= filters.right());
         assert!(query.size.width > px(40.0));
+    }
+}
+
+#[cfg(test)]
+mod operation_tests {
+    use super::*;
+    use gpui::TestAppContext;
+    #[gpui::test]
+    async fn create_form_rejects_empty_name_and_resets_on_repository_change(
+        cx: &mut TestAppContext,
+    ) {
+        let (_, history, cx) = super::tests::setup(cx).await;
+        history.update_in(cx, |history, window, cx| {
+            history.begin_new_branch(window, cx);
+            assert!(history.branches.new_name.is_some());
+            history.create_branch(window, cx);
+            assert!(history.branches.error.is_some());
+            assert!(!history.branches.operating);
+            history.branches.reset();
+            assert!(history.branches.new_name.is_none());
+        });
+    }
+    #[gpui::test]
+    async fn delete_current_branch_and_tags_do_not_start_an_operation(cx: &mut TestAppContext) {
+        let (_, history, cx) = super::tests::setup(cx).await;
+        history.update_in(cx, |history, window, cx| {
+            history.branches.selected = Some("refs/heads/main".into());
+            history.delete_branch(window, cx);
+            assert!(!history.branches.operating);
+            history.branches.selected = Some("refs/tags/v1.0".into());
+            history.delete_branch(window, cx);
+            assert!(!history.branches.operating);
+        });
+    }
+    #[gpui::test]
+    async fn cancel_branch_creation_keeps_head_and_closes_no_repository(cx: &mut TestAppContext) {
+        let (_, history, cx) = super::tests::setup(cx).await;
+        history.update_in(cx, |history, window, cx| {
+            history.begin_new_branch(window, cx);
+            history
+                .branches
+                .new_name
+                .as_ref()
+                .unwrap()
+                .update(cx, |editor, cx| {
+                    editor.set_text("feature/cancel", window, cx)
+                });
+            history.create_branch(window, cx);
+        });
+        cx.run_until_parked();
+        assert!(cx.has_pending_prompt());
+        cx.simulate_prompt_answer("Cancel");
+        cx.run_until_parked();
+        history.read_with(cx, |history, cx| {
+            assert!(!history.branches.operating);
+            assert_eq!(
+                history
+                    .git
+                    .read(cx)
+                    .active_repository()
+                    .unwrap()
+                    .read(cx)
+                    .branch
+                    .as_ref()
+                    .unwrap()
+                    .name(),
+                "main"
+            );
+            assert!(
+                history.branches.new_name.is_some(),
+                "cancel retains the typed name for retry"
+            );
+        });
     }
 }

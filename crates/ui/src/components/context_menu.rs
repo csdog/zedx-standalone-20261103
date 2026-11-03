@@ -1,3 +1,8 @@
+#[path = "zedx_menu_icons.rs"]
+mod zedx_menu_icons;
+pub use zedx_menu_icons::{ZEDX_MENU_ICONS, zedx_context_menu_icon, zedx_menu_icon};
+#[path = "zedx_context_menu.rs"]
+mod zedx_menu;
 use crate::{
     ButtonCommon, ButtonStyle, IconButtonShape, KeyBinding, List, ListItem, ListItemSpacing,
     ListSeparator, ListSubHeader, Tooltip, prelude::*, utils::WithRemSize,
@@ -16,6 +21,9 @@ use std::{
 };
 use theme::BufferLineHeight;
 use web_time::Instant;
+pub use zedx_menu::{
+    CustomizeContextMenu, ZedxExtraMenuItem, ZedxMenuItem, ZedxMenuRule, ZedxMenus,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum SubmenuOpenTrigger {
@@ -224,6 +232,7 @@ pub struct ContextMenu {
     keep_open_on_confirm: bool,
     fixed_width: Option<DefiniteLength>,
     spacing: ListItemSpacing,
+    zedx_scope: Option<SharedString>,
     main_menu: Option<Entity<ContextMenu>>,
     main_menu_observed_bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
     // Docs aide-related fields
@@ -280,7 +289,7 @@ impl ContextMenu {
         build_menu: impl FnOnce(Self, &mut Window, &mut Context<Self>) -> Self,
     ) -> Self {
         let menu = Self::new_inner(window, cx);
-        build_menu(menu, window, cx)
+        build_menu(menu, window, cx).finish_zedx(window, cx)
     }
 
     pub fn build(
@@ -357,6 +366,7 @@ impl ContextMenu {
                     keep_open_on_confirm: true,
                     fixed_width: None,
                     spacing: ListItemSpacing::default(),
+                    zedx_scope: None,
                     main_menu: None,
                     main_menu_observed_bounds: Rc::new(Cell::new(None)),
                     documentation_aside: None,
@@ -372,6 +382,7 @@ impl ContextMenu {
                 window,
                 cx,
             )
+            .finish_zedx(window, cx)
         })
     }
 
@@ -428,6 +439,7 @@ impl ContextMenu {
                 keep_open_on_confirm: false,
                 fixed_width: None,
                 spacing: self.spacing,
+                zedx_scope: self.zedx_scope.clone(),
                 main_menu: None,
                 main_menu_observed_bounds: Rc::new(Cell::new(None)),
                 documentation_aside: None,
@@ -444,6 +456,7 @@ impl ContextMenu {
             cx,
         );
 
+        let new_menu = new_menu.finish_zedx(window, cx);
         self.items = new_menu.items;
         self.spacing = new_menu.spacing;
 
@@ -1272,6 +1285,7 @@ impl ContextMenu {
                 keep_open_on_confirm: false,
                 fixed_width: None,
                 spacing: ListItemSpacing::default(),
+                zedx_scope: None,
                 documentation_aside: None,
                 aside_trigger_bounds: Rc::new(RefCell::new(HashMap::default())),
                 main_menu: Some(parent_entity),
@@ -1418,7 +1432,26 @@ impl ContextMenu {
         // focus, so we mark the selected item unconditionally here.
         let is_active_descendant = |selectable: bool| selectable && Some(ix) == self.selected_index;
         match item {
-            ContextMenuItem::Separator => ListSeparator.into_any_element(),
+            ContextMenuItem::Separator => {
+                if zedx_menu::enabled() {
+                    div()
+                        .h(px(9.0))
+                        .px(px(9.0))
+                        .flex_none()
+                        .justify_center()
+                        .flex()
+                        .flex_col()
+                        .child(
+                            div()
+                                .h(px(1.0))
+                                .w_full()
+                                .bg(cx.theme().colors().border_variant),
+                        )
+                        .into_any_element()
+                } else {
+                    ListSeparator.into_any_element()
+                }
+            }
             ContextMenuItem::Header(header) => ListSubHeader::new(header.clone())
                 .inset(true)
                 .into_any_element(),
@@ -1444,6 +1477,7 @@ impl ContextMenu {
             ContextMenuItem::Label(label) => ListItem::new(ix)
                 .inset(true)
                 .spacing(self.spacing)
+                .map(zedx_menu::row)
                 .disabled(true)
                 .child(Label::new(label.clone()))
                 .into_any_element(),
@@ -1464,6 +1498,7 @@ impl ContextMenu {
 
                 div()
                     .id(("context-menu-child", ix))
+                    .debug_selector(move || format!("zedx-context-menu-row-{ix}"))
                     .when_some(documentation_aside.clone(), |this, documentation_aside| {
                         this.occlude()
                             .on_hover(cx.listener(move |menu, hovered, _, cx| {
@@ -1585,6 +1620,7 @@ impl ContextMenu {
                 ListItem::new(ix)
                     .inset(true)
                     .spacing(self.spacing)
+                    .map(zedx_menu::row)
                     .aria_role(Role::MenuItem)
                     .when(is_active_descendant, |item| item.aria_active_descendant())
                     .aria_label(label.clone())
@@ -1681,11 +1717,18 @@ impl ContextMenu {
                             .child(
                                 h_flex()
                                     .gap_1p5()
+                                    .when(zedx_menu::enabled() && icon.is_none(), |row| {
+                                        row.child(div().w(px(16.0)).flex_none())
+                                    })
                                     .when_some(icon, |this, icon_name| {
                                         this.child(
-                                            Icon::new(icon_name)
-                                                .size(IconSize::Small)
-                                                .color(icon_color.unwrap_or(Color::Muted)),
+                                            (if zedx_menu::enabled() {
+                                                crate::zedx_menu_icon(icon_name)
+                                            } else {
+                                                Icon::new(icon_name)
+                                            })
+                                            .size(IconSize::Small)
+                                            .color(icon_color.unwrap_or(Color::Muted)),
                                         )
                                     })
                                     .child(Label::new(label).color(Color::Default)),
@@ -1884,6 +1927,22 @@ impl ContextMenu {
                 .into_any_element()
         };
 
+        let label_element = if zedx_menu::enabled()
+            && !((icon.is_some() || custom_icon_path.is_some() || custom_icon_svg.is_some())
+                && *icon_position == IconPosition::Start)
+            && !toggle
+                .as_ref()
+                .is_some_and(|(position, _)| *position == IconPosition::Start)
+        {
+            h_flex()
+                .gap_1p5()
+                .child(div().w(px(16.0)).flex_none())
+                .child(label_element)
+                .into_any_element()
+        } else {
+            label_element
+        };
+
         let aside_trigger_bounds = self.aside_trigger_bounds.clone();
 
         div()
@@ -1921,6 +1980,7 @@ impl ContextMenu {
                     .group_name("label_container")
                     .inset(true)
                     .spacing(self.spacing)
+                    .map(zedx_menu::row)
                     .disabled(*disabled)
                     .aria_role(if toggle.is_some() {
                         Role::MenuItemCheckBox
@@ -2040,7 +2100,22 @@ impl ContextMenu {
 
                                 div()
                                     .ml_4()
-                                    .child(binding.disabled(*disabled))
+                                    .child(if zedx_menu::enabled() {
+                                        Label::new(
+                                            binding
+                                                .keyboard_shortcut_text(window, cx)
+                                                .unwrap_or_default(),
+                                        )
+                                        .size(crate::zedx::caption_size())
+                                        .color(if *disabled {
+                                            Color::Disabled
+                                        } else {
+                                            Color::Muted
+                                        })
+                                        .into_any_element()
+                                    } else {
+                                        binding.disabled(*disabled).into_any_element()
+                                    })
                                     .when(*disabled && documentation_aside.is_some(), |parent| {
                                         parent.invisible()
                                     })
@@ -2186,6 +2261,7 @@ impl ContextMenu {
             keep_open_on_confirm: false,
             fixed_width: None,
             spacing: ListItemSpacing::default(),
+            zedx_scope: None,
             main_menu: None,
             main_menu_observed_bounds: Rc::new(Cell::new(None)),
             documentation_aside: None,
@@ -2304,12 +2380,17 @@ impl Render for ContextMenu {
                 .font_family(ui_font_family.clone())
                 .line_height(line_height)
                 .elevation_2(cx)
+                .map(|element| zedx_menu::surface(element, cx))
                 .flex()
                 .flex_row()
                 .flex_shrink_0()
                 .child(
                     v_flex()
                         .id("context-menu")
+                        .debug_selector(|| "zedx-context-menu".into())
+                        .when(zedx_menu::enabled(), |menu| {
+                            menu.max_w((window_size.width - px(16.0)).max(px(1.0)))
+                        })
                         .role(Role::Menu)
                         .max_h(vh(0.75, window))
                         .flex_shrink_0()
@@ -2318,7 +2399,13 @@ impl Render for ContextMenu {
                             this.w(width).overflow_x_hidden()
                         })
                         .when(self.fixed_width.is_none(), |this| {
-                            this.min_w(px(200.)).flex_1()
+                            this.min_w(px(if zedx_menu::enabled() {
+                                220.0_f32
+                                    .min(f32::from((window_size.width - px(16.0)).max(px(1.0))))
+                            } else {
+                                200.0
+                            }))
+                            .flex_1()
                         })
                         .overflow_y_scroll()
                         .track_focus(&self.focus_handle(cx))

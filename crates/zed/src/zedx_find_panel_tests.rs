@@ -99,7 +99,7 @@ async fn find_filters_ignored_files_and_cancels_obsolete_queries(cx: &mut TestAp
         );
         assert_eq!(
             workspace
-                .dock_at_position(DockPosition::Left)
+                .dock_at_position(DockPosition::Bottom)
                 .read(cx)
                 .active_panel()
                 .unwrap()
@@ -166,4 +166,63 @@ async fn clearing_find_query_restores_typing_focus_and_searches_again(cx: &mut T
     cx.simulate_input("fixture");
     cx.run_until_parked();
     assert_eq!(find.read_with(cx, |find, _| find.rows.len()), 2);
+}
+
+#[gpui::test]
+async fn find_uses_bottom_window_and_keeps_its_input_inside_desktop_and_compact_bounds(
+    cx: &mut TestAppContext,
+) {
+    let (workspace, cx) = crate::zedx_panels::tests::setup(cx).await;
+    cx.dispatch_action(workspace::zedx_actions::ToggleStructure);
+    cx.run_until_parked();
+    cx.dispatch_action(FindInFiles {
+        query: Some("fixture".into()),
+        include_ignored: None,
+    });
+    cx.run_until_parked();
+    for viewport in [
+        gpui::size(px(1280.0), px(900.0)),
+        gpui::size(px(390.0), px(844.0)),
+        gpui::size(px(390.0), px(500.0)),
+    ] {
+        cx.simulate_resize(viewport);
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        let panel = cx.debug_bounds("zedx-find-panel").unwrap();
+        let head = cx.debug_bounds("zedx-head-find").unwrap();
+        let input = cx.debug_bounds("zedx-find-field").unwrap();
+        let summary = cx.debug_bounds("zedx-find-summary").unwrap();
+        let results = cx.debug_bounds("zedx-find-results").unwrap();
+        assert_eq!(head.size.height, px(35.0));
+        assert_eq!(input.size.height, px(34.0));
+        assert_eq!(input.left() - panel.left(), px(14.0));
+        assert_eq!(panel.right() - input.right(), px(14.0));
+        assert!(input.top() >= head.bottom());
+        assert!(summary.top() >= input.bottom());
+        assert!(results.top() >= summary.bottom());
+        assert!(results.bottom() <= panel.bottom());
+        assert!(results.size.height > px(0.0));
+        assert!(panel.bottom() <= viewport.height);
+        workspace.read_with(cx, |workspace, cx| {
+            let bottom = workspace.dock_at_position(DockPosition::Bottom).read(cx);
+            assert!(bottom.is_open());
+            assert_eq!(bottom.active_panel().unwrap().persistent_name(), "Find");
+            let left = workspace.dock_at_position(DockPosition::Left).read(cx);
+            assert_eq!(left.active_panel().unwrap().persistent_name(), "Structure");
+            if viewport.width > px(560.0) {
+                assert!(left.is_open());
+            }
+        });
+    }
+    let hide = cx.debug_bounds("zedx-find-hide").unwrap();
+    cx.simulate_click(hide.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    workspace.read_with(cx, |workspace, cx| {
+        assert!(
+            !workspace
+                .dock_at_position(DockPosition::Bottom)
+                .read(cx)
+                .is_open()
+        );
+    });
 }

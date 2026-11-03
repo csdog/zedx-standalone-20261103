@@ -41,6 +41,7 @@ pub enum ToggleStyle {
 /// therefore checking an additional box does not affect any other selections.
 #[derive(IntoElement, RegisterComponent)]
 pub struct Checkbox {
+    solid_selected: bool,
     id: ElementId,
     toggle_state: ToggleState,
     style: ToggleStyle,
@@ -61,6 +62,7 @@ impl Checkbox {
         Self {
             id: id.into(),
             toggle_state: checked,
+            solid_selected: false,
             style: ToggleStyle::default(),
             disabled: false,
             placeholder: false,
@@ -111,6 +113,12 @@ impl Checkbox {
         self
     }
 
+    /// Use an opaque accent fill and white mark for selected/partial states.
+    pub fn solid_selected(mut self) -> Self {
+        self.solid_selected = true;
+        self
+    }
+
     /// Makes the checkbox look enabled but without pointer cursor and hover styles.
     /// Primarily used for uninteractive markdown previews.
     pub fn visualization_only(mut self, visualization: bool) -> Self {
@@ -155,6 +163,9 @@ impl Checkbox {
 
 impl Checkbox {
     fn bg_color(&self, cx: &App) -> Hsla {
+        if self.solid_selected && self.toggle_state != ToggleState::Unselected && !self.disabled {
+            return cx.theme().colors().text_accent.opacity(1.0);
+        }
         let style = self.style.clone();
         match (style, self.filled) {
             (ToggleStyle::Ghost, false) => cx.theme().colors().ghost_element_background,
@@ -171,6 +182,9 @@ impl Checkbox {
             return cx.theme().colors().border_variant;
         }
 
+        if self.solid_selected && self.toggle_state != ToggleState::Unselected {
+            return self.bg_color(cx);
+        }
         match self.style.clone() {
             ToggleStyle::Ghost => cx.theme().colors().border,
             ToggleStyle::ElevationBased(_) => cx.theme().colors().border,
@@ -188,6 +202,8 @@ impl RenderOnce for Checkbox {
         let group_id = format!("checkbox_group_{:?}", self.id);
         let color = if self.disabled {
             Color::Disabled
+        } else if self.solid_selected {
+            Color::Custom(gpui::rgb(0xffffff).into())
         } else {
             Color::Selected
         };
@@ -1096,5 +1112,33 @@ impl Component for Switch {
                 ),
             ])
             .into_any_element()
+    }
+}
+
+#[cfg(test)]
+mod zedx_solid_checkbox_tests {
+    use super::*;
+    #[gpui::test]
+    fn selected_and_partial_states_use_opaque_accent_while_empty_remains_unfilled(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        cx.update(|cx| {
+            let store = settings::SettingsStore::test(cx);
+            cx.set_global(store);
+            theme_settings::init(theme::LoadThemes::JustBase, cx);
+            for state in [ToggleState::Selected, ToggleState::Indeterminate] {
+                let checkbox = Checkbox::new("solid", state).solid_selected();
+                assert_eq!(
+                    checkbox.bg_color(cx),
+                    cx.theme().colors().text_accent.opacity(1.0)
+                );
+                assert_eq!(checkbox.border_color(cx), checkbox.bg_color(cx));
+            }
+            let empty = Checkbox::new("empty", ToggleState::Unselected).solid_selected();
+            assert_eq!(
+                empty.bg_color(cx),
+                Checkbox::new("legacy", ToggleState::Unselected).bg_color(cx)
+            );
+        });
     }
 }

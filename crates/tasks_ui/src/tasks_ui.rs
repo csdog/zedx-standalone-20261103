@@ -103,6 +103,15 @@ pub fn init(cx: &mut App) {
         |workspace: &mut Workspace, _: Option<&mut Window>, _: &mut Context<Workspace>| {
             workspace
                 .register_action(spawn_task_or_modal)
+                .register_action(
+                    |_,
+                     action: &workspace::zedx_run_history::RunRecentConfiguration,
+                     window,
+                     cx| {
+                        spawn_recent_configuration(action.key.clone(), window, cx)
+                            .detach_and_log_err(cx);
+                    },
+                )
                 .register_action(move |workspace, action: &modal::Rerun, window, cx| {
                     if let Some((task_source_kind, mut last_scheduled_task)) = workspace
                         .project()
@@ -266,6 +275,19 @@ pub fn toggle_modal(
 }
 
 pub fn spawn_tasks_filtered<F>(
+    predicate: F,
+    overrides: Option<TaskOverrides>,
+    window: &mut Window,
+    cx: &mut Context<Workspace>,
+) -> Task<anyhow::Result<()>>
+where
+    F: FnMut((&TaskSourceKind, &TaskTemplate)) -> bool + 'static,
+{
+    spawn_tasks_filtered_with_key(None, predicate, overrides, window, cx)
+}
+
+fn spawn_tasks_filtered_with_key<F>(
+    recent_key: Option<String>,
     mut predicate: F,
     overrides: Option<TaskOverrides>,
     window: &mut Window,
@@ -313,7 +335,17 @@ where
                 let active_context = task_contexts.active_context().unwrap_or(&default_context);
 
                 tasks.retain_mut(|(task_source_kind, target_task)| {
-                    if predicate((task_source_kind, target_task)) {
+                    let matches_recent = recent_key.as_ref().is_none_or(|key| {
+                        workspace::zedx_run_history::configuration_key(
+                            workspace.project().read(cx),
+                            task_source_kind,
+                            target_task,
+                            cx,
+                        )
+                        .as_ref()
+                            == Some(key)
+                    });
+                    if matches_recent && predicate((task_source_kind, target_task)) {
                         if let Some(overrides) = &overrides
                             && let Some(target_override) = overrides.reveal_target
                         {
@@ -761,4 +793,18 @@ mod tests {
             state
         })
     }
+}
+
+fn spawn_recent_configuration(
+    key: String,
+    window: &mut Window,
+    cx: &mut Context<Workspace>,
+) -> Task<anyhow::Result<()>> {
+    spawn_tasks_filtered_with_key(
+        Some(key),
+        |_: (&TaskSourceKind, &TaskTemplate)| true,
+        None,
+        window,
+        cx,
+    )
 }

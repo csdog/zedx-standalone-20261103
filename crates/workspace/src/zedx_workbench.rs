@@ -1,3 +1,6 @@
+#[path = "zedx_more_tools.rs"]
+mod more_tools;
+
 use super::*;
 use gpui::{MouseUpEvent, deferred};
 use std::sync::OnceLock;
@@ -28,20 +31,36 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
-        self.render_notifications(window, cx).map(|notifications| {
-            if enabled() {
-                // Compact docks are deferred too; messages must paint above them.
-                deferred(
-                    notifications
-                        .w(px(448.0).min((window.viewport_size().width - px(24.0)).max(px(1.0))))
-                        .debug_selector(|| "zedx-notifications".into()),
-                )
-                .with_priority(1)
-                .into_any_element()
-            } else {
-                notifications.into_any_element()
-            }
-        })
+        let notifications = (!self.notifications.center.open || !enabled())
+            .then(|| self.render_notifications(window, cx))
+            .flatten()
+            .map(|notifications| {
+                if enabled() {
+                    // Compact docks are deferred too; messages must paint above them.
+                    deferred(
+                        notifications
+                            .w(px(448.0)
+                                .min((window.viewport_size().width - px(24.0)).max(px(1.0))))
+                            .debug_selector(|| "zedx-notifications".into()),
+                    )
+                    .with_priority(1)
+                    .into_any_element()
+                } else {
+                    notifications.into_any_element()
+                }
+            });
+        let center = self.render_zedx_notification_center(window, cx);
+        if notifications.is_none() && center.is_none() {
+            return None;
+        }
+        Some(
+            div()
+                .absolute()
+                .inset_0()
+                .children(notifications)
+                .children(center)
+                .into_any_element(),
+        )
     }
 
     fn zedx_action_button(
@@ -53,19 +72,44 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let focus = self.focus_handle(cx);
-        div().debug_selector(move || id.into()).child(
-            ui::ButtonLike::new(id)
-                .width(px(32.0))
-                .height(px(32.0).into())
-                .aria_label(label)
-                .tab_index(0isize)
-                .child(ui::zedx::icon(icon, cx))
-                .tooltip(ui::Tooltip::text(label))
-                .on_click(move |_, window, cx| {
-                    window.focus(&focus, cx);
-                    window.dispatch_action(action.boxed_clone(), cx);
-                }),
-        )
+        div()
+            .relative()
+            .debug_selector(move || id.into())
+            .when(
+                id == "zedx-notifications-button" && self.notifications.center.open,
+                |button| {
+                    button
+                        .rounded(px(6.0))
+                        .bg(cx.theme().colors().element_selected)
+                },
+            )
+            .when(
+                id == "zedx-notifications-button" && self.notifications.center.unread_count() > 0,
+                |button| {
+                    button.child(
+                        div()
+                            .absolute()
+                            .right(px(3.0))
+                            .top(px(3.0))
+                            .size(px(5.0))
+                            .rounded_full()
+                            .bg(cx.theme().colors().text_accent),
+                    )
+                },
+            )
+            .child(
+                ui::ButtonLike::new(id)
+                    .width(px(32.0))
+                    .height(px(32.0).into())
+                    .aria_label(label)
+                    .tab_index(0isize)
+                    .child(ui::zedx::icon(icon, cx))
+                    .tooltip(ui::Tooltip::text(label))
+                    .on_click(move |_, window, cx| {
+                        window.focus(&focus, cx);
+                        window.dispatch_action(action.boxed_clone(), cx);
+                    }),
+            )
     }
 
     fn zedx_resize_gap(
@@ -94,6 +138,7 @@ impl Workspace {
             .when(position != DockPosition::Bottom, |gap| {
                 gap.w(px(6.0)).h_full().cursor_col_resize()
             })
+            .bg(cx.theme().colors().title_bar_background)
             .focusable()
             .tab_index(0isize)
             .aria_label(match position {
@@ -234,113 +279,7 @@ impl Workspace {
     }
 
     fn zedx_more_tools(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let entries = self.zedx_tool_window_entries(cx);
-        let right_order = self.zedx_right_control_order(cx);
-        ui::PopoverMenu::new("zedx-more-tools")
-            .trigger_with_tooltip(
-                ui::ButtonLike::new("zedx-more-tools")
-                    .width(px(32.0))
-                    .height(px(32.0).into())
-                    .tab_index(0isize)
-                    .aria_label("More tool windows")
-                    .child(
-                        div()
-                            .debug_selector(|| "zedx-more-tools".into())
-                            .child(ui::zedx::icon(ui::zedx::Icon::More, cx)),
-                    ),
-                ui::Tooltip::text("More tool windows"),
-            )
-            .menu(move |window, cx| {
-                let entries = entries.clone();
-                let right_order = right_order.clone();
-                Some(ui::ContextMenu::build(
-                    window,
-                    cx,
-                    move |mut menu, window, cx| {
-                        for (position, title) in [
-                            (DockPosition::Left, "Left"),
-                            (DockPosition::Bottom, "Bottom"),
-                            (DockPosition::Right, "Right"),
-                        ] {
-                            menu = menu.header(title);
-                            if position == DockPosition::Right {
-                                menu = menu.entry(
-                                    "Notifications",
-                                    Some(super::zedx_actions::ShowNotifications.boxed_clone()),
-                                    |window, cx| {
-                                        window.dispatch_action(
-                                            super::zedx_actions::ShowNotifications.boxed_clone(),
-                                            cx,
-                                        );
-                                    },
-                                );
-                            }
-                            if position == DockPosition::Right {
-                                for name in &right_order {
-                                    let (label, action): (_, Box<dyn gpui::Action>) =
-                                        match name.as_str() {
-                                            "AgentPanel" => (
-                                                "AI Assistant",
-                                                Box::new(super::zedx_actions::ToggleRightAssistant),
-                                            ),
-                                            "Outline Panel" => (
-                                                "Outline",
-                                                Box::new(super::zedx_actions::ToggleRightOutline),
-                                            ),
-                                            _ => (
-                                                "Database",
-                                                Box::new(super::zedx_actions::ShowDatabase),
-                                            ),
-                                        };
-                                    let selected = entries.iter().any(|entry| {
-                                        entry.0 == DockPosition::Right
-                                            && entry.1 == *name
-                                            && entry.2
-                                    });
-                                    menu = menu.toggleable_entry(
-                                        label,
-                                        selected,
-                                        ui::IconPosition::Start,
-                                        Some(action.boxed_clone()),
-                                        move |window, cx| {
-                                            window.dispatch_action(action.boxed_clone(), cx)
-                                        },
-                                    );
-                                }
-                            }
-                            for (_, name, selected, panel) in entries.iter().filter(|entry| {
-                                entry.0 == position
-                                    && !matches!(entry.1.as_str(), "AgentPanel" | "Outline Panel")
-                            }) {
-                                let label = match name.as_str() {
-                                    "Project Panel" => "Project",
-                                    "GitPanel" => "Commit",
-                                    "TerminalPanel" => "Terminal",
-                                    "DebugPanel" => "Debug",
-                                    "AgentPanel" => "AI Assistant",
-                                    "Outline Panel" => "Outline",
-                                    name => name,
-                                };
-                                let action = crate::dock::zedx_tool_window_bar::zedx_toggle_action(
-                                    panel.as_ref(),
-                                    window,
-                                    cx,
-                                );
-                                menu = menu.toggleable_entry(
-                                    label.to_string(),
-                                    *selected,
-                                    ui::IconPosition::Start,
-                                    Some(action.boxed_clone()),
-                                    move |window, cx| {
-                                        window.dispatch_action(action.boxed_clone(), cx)
-                                    },
-                                );
-                            }
-                        }
-                        menu
-                    },
-                ))
-            })
+        self.render_zedx_more_tools(cx)
     }
 
     pub(crate) fn render_zedx_workbench(
@@ -356,12 +295,7 @@ impl Workspace {
                 .max(px(1.0)),
         );
         let colors = cx.theme().colors();
-        let translucent_panels = colors.panel_background.a == 0.0;
-        let frame_background = if translucent_panels {
-            colors.title_bar_background.opacity(0.30)
-        } else {
-            colors.title_bar_background
-        };
+        let frame_background = colors.title_bar_background;
         let editor_background = colors.editor_background;
         let left_open = self.left_dock.read(cx).is_open();
         let right_open = self.right_dock.read(cx).is_open();
@@ -374,9 +308,7 @@ impl Workspace {
                     .when(left_open, |dock| {
                         dock.min_w(px(180.0))
                             .max_w(px(420.0))
-                            .when(!translucent_panels, |dock| {
-                                dock.child(ui::zedx::island_corners(px(10.0), frame_background))
-                            })
+                            .child(ui::zedx::material_corners(px(10.0), frame_background))
                     })
                     .when(compact && left_open, |dock| {
                         dock.absolute()
@@ -398,9 +330,7 @@ impl Workspace {
                 dock.relative()
                     .rounded(px(10.0))
                     .when(right_open, |dock| {
-                        dock.when(!translucent_panels, |dock| {
-                            dock.child(ui::zedx::island_corners(px(10.0), frame_background))
-                        })
+                        dock.child(ui::zedx::material_corners(px(10.0), frame_background))
                     })
                     .when(compact && right_open, |dock| {
                         dock.debug_selector(|| "zedx-right-overlay".into())
@@ -457,8 +387,25 @@ impl Workspace {
             .items_stretch()
             .size_full()
             .min_h_0()
-            .bg(frame_background)
+            // Keep the native backdrop exposed beneath side docks. Painting the frame
+            // beneath them compounds two translucent fills and hides the blur.
             .py(frame_inset())
+            .child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .w_full()
+                    .h(frame_inset())
+                    .bg(frame_background),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .bottom_0()
+                    .w_full()
+                    .h(frame_inset())
+                    .bg(frame_background),
+            )
             // A coalesced first move can start a drag immediately before release,
             // without another drag-move event reaching the workspace capture handler.
             .on_drop::<DraggedDock>(cx.listener(|workspace, dragged: &DraggedDock, window, cx| {
@@ -480,6 +427,7 @@ impl Workspace {
             .child(
                 v_flex()
                     .debug_selector(|| "zedx-left-rail".into())
+                    .bg(frame_background)
                     .w(px(LEFT_TOOL_BAR_WIDTH))
                     .flex_none()
                     .h_full()
@@ -502,6 +450,7 @@ impl Workspace {
             })
             .child(
                 v_flex()
+                    .bg(frame_background)
                     .flex_1()
                     .min_w_0()
                     .min_h_0()
@@ -529,18 +478,25 @@ impl Workspace {
             .child(
                 v_flex()
                     .debug_selector(|| "zedx-right-rail".into())
+                    .gap(px(4.0))
+                    .bg(frame_background)
                     .w(px(RIGHT_TOOL_BAR_WIDTH))
                     .flex_none()
                     .h_full()
                     .items_center()
                     .py_1()
-                    .child(self.zedx_action_button(
-                        "zedx-notifications-button",
-                        ui::zedx::Icon::Bell,
-                        "Notifications",
-                        super::zedx_actions::ShowNotifications.boxed_clone(),
-                        cx,
-                    ))
+                    .when(
+                        crate::zedx_tool_visibility::is_visible("Notifications", true, cx),
+                        |rail| {
+                            rail.child(self.zedx_action_button(
+                                "zedx-notifications-button",
+                                ui::zedx::Icon::Bell,
+                                "Notifications",
+                                super::zedx_actions::ShowNotifications.boxed_clone(),
+                                cx,
+                            ))
+                        },
+                    )
                     .child(self.render_zedx_right_sidebar(cx))
                     .child(self.zedx_panel_buttons[2].clone())
                     .child(div().flex_1()),

@@ -1689,7 +1689,7 @@ fn appearance_page() -> SettingsPage {
 }
 
 fn keymap_page() -> SettingsPage {
-    fn keybindings_section() -> [SettingsPageItem; 2] {
+    fn keybindings_section() -> [SettingsPageItem; 3] {
         [
             SettingsPageItem::SectionHeader("Keybindings"),
             SettingsPageItem::ActionLink(ActionLink {
@@ -1711,6 +1711,7 @@ fn keymap_page() -> SettingsPage {
                 }),
                 files: USER,
             }),
+            crate::zedx_context_menu_settings::settings_link(),
         ]
     }
 

@@ -81,6 +81,7 @@ pub struct FakeGitRepositoryState {
     pub graph_commits: Vec<Arc<InitialGraphCommitData>>,
     pub commit_data: HashMap<Oid, FakeCommitDataEntry>,
     pub stash_entries: GitStash,
+    pub simulated_stash_drop_error: Option<String>,
     pub commit_template: Option<GitCommitTemplate>,
     pub blob_read_gate: Option<FakeBlobReadGate>,
 }
@@ -110,6 +111,7 @@ impl FakeGitRepositoryState {
             commit_data: Default::default(),
             commit_history: Vec::new(),
             stash_entries: Default::default(),
+            simulated_stash_drop_error: None,
             commit_template: None,
         }
     }
@@ -1250,10 +1252,25 @@ impl GitRepository for FakeGitRepository {
 
     fn stash_drop(
         &self,
-        _index: Option<usize>,
+        index: Option<usize>,
         _env: Arc<HashMap<String, String>>,
     ) -> BoxFuture<'_, Result<()>> {
-        unimplemented!()
+        self.with_state_async(true, move |state| {
+            if let Some(error) = &state.simulated_stash_drop_error {
+                bail!("{error}");
+            }
+            let index = index.unwrap_or(0);
+            let mut entries = state.stash_entries.entries.to_vec();
+            let Some(position) = entries.iter().position(|entry| entry.index == index) else {
+                bail!("stash@{{{index}}} does not exist");
+            };
+            entries.remove(position);
+            for (index, entry) in entries.iter_mut().enumerate() {
+                entry.index = index;
+            }
+            state.stash_entries.entries = entries.into();
+            Ok(())
+        })
     }
 
     fn commit(

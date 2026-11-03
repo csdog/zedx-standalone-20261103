@@ -243,8 +243,9 @@ pub fn deploy_context_menu(
                     .is_some_and(|ext| ext.eq_ignore_ascii_case("svg"))
             });
 
+        let run_menu = editor.zedx_run_menu(cx);
         ui::ContextMenu::build(window, cx, |menu, _window, _cx| {
-            let builder = menu
+            let builder = run_menu.append(menu.zedx_scope("editor"))
                 .on_blur_subscription(Subscription::new(|| {}))
                 .when(run_to_cursor, |builder| {
                     builder.action("Run to Cursor", Box::new(RunToCursor))

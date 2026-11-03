@@ -32,9 +32,13 @@ pub mod zedx_actions;
 mod zedx_bottom_tool_window;
 mod zedx_compact;
 mod zedx_layout;
+mod zedx_navigation;
+mod zedx_notification_center;
 pub mod zedx_rail_order;
 mod zedx_right_sidebar;
+pub mod zedx_run_history;
 mod zedx_workbench;
+mod zedx_tool_visibility;
 
 pub use dock::Panel;
 pub use multi_workspace::{
@@ -971,6 +975,26 @@ pub fn prompt_for_open_path_and_open(
         let Some(paths) = paths.await.log_err().flatten() else {
             return;
         };
+        if std::env::var_os("ZEDX_UPSTREAM_UI").is_none()
+            && let Some(handle) = multi_workspace_handle
+        {
+            if let Some(task) = handle
+                .update(cx, |multi_workspace, window, cx| {
+                    multi_workspace.open_project_with_zedx_prompt(
+                        paths,
+                        create_new_window,
+                        window,
+                        cx,
+                    )
+                })
+                .log_err()
+                && let Err(error) = task.await
+            {
+                this.update_in(cx, |workspace, _, cx| workspace.show_error(error, cx))
+                    .log_err();
+            }
+            return;
+        }
         if !create_new_window {
             if let Some(handle) = multi_workspace_handle {
                 if let Some(task) = handle
@@ -2873,6 +2897,7 @@ impl Workspace {
 
         dock.update(cx, |dock, cx| {
             let index = dock.add_panel(panel.clone(), self.weak_self.clone(), window, cx);
+            dock.load_zedx_split(self, window, cx);
             if let Some(size_state) = persisted_size_state {
                 dock.set_panel_size_state(&panel, size_state, cx);
             }
@@ -7603,6 +7628,12 @@ impl Workspace {
         self._serialize_workspace_task.take();
         self.bounds_save_task_queued.take();
 
+        let layout_tasks = self
+            .all_docks()
+            .iter()
+            .filter_map(|dock| dock.update(cx, |dock, cx| dock.flush_zedx_split(cx)))
+            .collect::<Vec<_>>();
+
         let serializable_items = self
             .panes
             .iter()
@@ -7626,6 +7657,7 @@ impl Workspace {
         let bounds_task = self.save_window_bounds(window, cx);
         let serialize_task = self.serialize_workspace_internal(window, cx);
         cx.background_spawn(async move {
+            futures::future::join_all(layout_tasks).await;
             bounds_task.await;
             serialize_task.await;
             for result in futures::future::join_all(item_tasks).await {
@@ -9711,13 +9743,11 @@ impl Render for Workspace {
                     .child(
                         div()
                             .id("workspace")
-                            .bg(
-                                if zedx_workbench::enabled() && colors.panel_background.a == 0.0 {
-                                    transparent_black()
-                                } else {
-                                    colors.background
-                                },
-                            )
+                            .bg(if zedx_workbench::enabled() {
+                                transparent_black()
+                            } else {
+                                colors.background
+                            })
                             .relative()
                             .flex_1()
                             .w_full()
@@ -13046,7 +13076,7 @@ mod tests {
             });
         });
         cx.executor().run_until_parked();
-        assert_eq!(cx.window_title().as_deref(), Some("Zed — root1, root2"));
+        assert_eq!(cx.window_title().as_deref(), Some("ZedX — root1, root2"));
 
         let item = cx.new(|cx| {
             TestItem::new(cx).with_project_items(&[TestProjectItem::new_in_worktree(
@@ -13063,7 +13093,7 @@ mod tests {
         let expected_file_path = path!("/root1/src/one.txt");
         assert_eq!(
             cx.window_title().as_deref(),
-            Some(format!("Zed — root1, root2 — one — {expected_file_path}").as_str())
+            Some(format!("ZedX — root1, root2 — one — {expected_file_path}").as_str())
         );
     }
 

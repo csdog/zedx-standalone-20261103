@@ -1,6 +1,7 @@
 pub mod project_panel_settings;
 mod undo;
 mod utils;
+mod zedx_project_groups;
 
 use anyhow::{Context as _, Result};
 use client::{ErrorCode, ErrorExt};
@@ -137,6 +138,7 @@ impl State {
 }
 
 pub struct ProjectPanel {
+    zedx_groups: zedx_project_groups::Groups,
     project: Entity<Project>,
     fs: Arc<dyn Fs>,
     focus_handle: FocusHandle,
@@ -654,7 +656,9 @@ fn get_item_color(is_sticky: bool, cx: &App) -> ItemColors {
     let colors = cx.theme().colors();
 
     ItemColors {
-        default: if is_sticky {
+        default: if is_sticky && zedx_project_groups::enabled() && colors.panel_background.a == 0.0 {
+            colors.surface_background.opacity(1.0)
+        } else if is_sticky {
             colors.panel_overlay_background
         } else {
             colors.panel_background
@@ -882,6 +886,7 @@ impl ProjectPanel {
             let scroll_handle = UniformListScrollHandle::new();
             let weak_project_panel = cx.weak_entity();
             let mut this = Self {
+                zedx_groups: Default::default(),
                 project: project.clone(),
                 hover_scroll_task: None,
                 fs: workspace.app_state().fs.clone(),
@@ -1180,7 +1185,7 @@ impl ProjectPanel {
 
             let has_pasteable_content = self.has_pasteable_content(cx);
             let context_menu = ContextMenu::build(window, cx, |menu, _, _| {
-                menu.context(self.focus_handle.clone()).map(|menu| {
+                menu.zedx_scope("project").context(self.focus_handle.clone()).map(|menu| {
                     if is_read_only {
                         menu.when(is_markdown, |menu| {
                             menu.action("Open Markdown Preview", Box::new(OpenMarkdownPreview))
@@ -1350,6 +1355,9 @@ impl ProjectPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.open_zedx_scratch_menu(window.mouse_position(), window, cx) {
+            return;
+        }
         let entry_id = if let Some(selection) = &self.selection {
             selection.entry_id
         } else if let Some(entry_id) = self.state.last_worktree_root_id {
@@ -1381,12 +1389,13 @@ impl ProjectPanel {
 
     /// The height of a single row in the entries list, as measured by the list during its last layout.
     fn entry_row_height(&self) -> Option<Pixels> {
-        let item_count: usize = self
+        let item_count = self
             .state
             .visible_entries
             .iter()
             .map(|worktree| worktree.entries.len())
-            .sum();
+            .sum::<usize>()
+            + self.zedx_group_count();
         if item_count == 0 {
             return None;
         }
@@ -1479,6 +1488,10 @@ impl ProjectPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.activate_zedx_group(Some(true), window, cx) {
+            return;
+        }
+
         if let Some((worktree, entry)) = self.selected_entry(cx) {
             if let Some(folded_ancestors) = self.state.ancestors.get_mut(&entry.id)
                 && folded_ancestors.current_ancestor_depth > 0
@@ -1520,6 +1533,10 @@ impl ProjectPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.activate_zedx_group(Some(false), window, cx) {
+            return;
+        }
+
         let Some((worktree, entry)) = self.selected_entry_handle(cx) else {
             return;
         };
@@ -1879,6 +1896,10 @@ impl ProjectPanel {
     }
 
     fn select_previous(&mut self, _: &SelectPrevious, window: &mut Window, cx: &mut Context<Self>) {
+        if self.select_zedx_group_step(true, window, cx) {
+            return;
+        }
+
         if let Some(edit_state) = &self.state.edit_state
             && edit_state.processing_filename.is_none()
         {
@@ -1952,6 +1973,10 @@ impl ProjectPanel {
     }
 
     fn confirm(&mut self, _: &Confirm, window: &mut Window, cx: &mut Context<Self>) {
+        if self.activate_zedx_group(None, window, cx) {
+            return;
+        }
+
         if let Some(task) = self.confirm_edit(true, window, cx) {
             task.detach_and_notify_err(self.workspace.clone(), window, cx);
         }
@@ -2046,6 +2071,10 @@ impl ProjectPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.activate_zedx_group(None, window, cx) {
+            return;
+        }
+
         if let Some((_, entry)) = self.selected_entry(cx) {
             if entry.is_file() {
                 if split_direction.is_some() {
@@ -3242,6 +3271,10 @@ impl ProjectPanel {
     }
 
     fn select_next(&mut self, _: &SelectNext, window: &mut Window, cx: &mut Context<Self>) {
+        if self.select_zedx_group_step(false, window, cx) {
+            return;
+        }
+
         if let Some(edit_state) = &self.state.edit_state
             && edit_state.processing_filename.is_none()
         {
@@ -7486,6 +7519,7 @@ impl Render for ProjectPanel {
             self.clear_drag_state(cx);
         }
 
+        self.refresh_zedx_groups(cx);
         let has_worktree = !self.state.visible_entries.is_empty();
         let project = self.project.read(cx);
         let panel_settings = ProjectPanelSettings::get_global(cx);
@@ -7514,12 +7548,13 @@ impl Render for ProjectPanel {
         let is_local = project.is_local();
 
         if has_worktree {
-            let item_count = self
+            let regular_count: usize = self
                 .state
                 .visible_entries
                 .iter()
                 .map(|worktree| worktree.entries.len())
                 .sum();
+            let item_count = regular_count + self.zedx_group_count();
 
             fn handle_drag_move<T: 'static>(
                 this: &mut ProjectPanel,
@@ -7691,7 +7726,7 @@ impl Render for ProjectPanel {
                                     let marked_selections: Arc<[SelectedEntry]> =
                                         Arc::from(this.marked_entries.clone());
                                     this.for_each_visible_entry(
-                                        range,
+                                        range.clone(),
                                         window,
                                         cx,
                                         &mut |id, details, window, cx| {
@@ -7704,6 +7739,15 @@ impl Render for ProjectPanel {
                                             ));
                                         },
                                     );
+                                    let regular_count: usize = this
+                                        .state
+                                        .visible_entries
+                                        .iter()
+                                        .map(|tree| tree.entries.len())
+                                        .sum();
+                                    for index in range.start.max(regular_count)..range.end {
+                                        items.push(this.render_zedx_group(index - regular_count, cx));
+                                    }
                                     items
                                 })
                             })
@@ -7719,7 +7763,7 @@ impl Render for ProjectPanel {
                                             let mut items =
                                                 SmallVec::with_capacity(range.end - range.start);
                                             this.iter_visible_entries(
-                                                range,
+                                                range.clone(),
                                                 window,
                                                 cx,
                                                 &mut |entry, _, entries, _, _| {
@@ -7730,6 +7774,7 @@ impl Render for ProjectPanel {
                                                     items.push(depth);
                                                 },
                                             );
+                                            items.resize(range.end - range.start, 0);
                                             items
                                         },
                                     )
@@ -7849,8 +7894,9 @@ impl Render for ProjectPanel {
                                         items
                                     },
                                     |this, marker_entry, window, cx| {
-                                        let sticky_entries =
+                                        let mut sticky_entries =
                                             this.render_sticky_entries(marker_entry, window, cx);
+                                        this.limit_zedx_sticky_entries(&mut sticky_entries);
                                         this.sticky_items_count = sticky_entries.len();
                                         sticky_entries
                                     },
@@ -7914,6 +7960,7 @@ impl Render for ProjectPanel {
                         .child(
                             div()
                                 .id("project-panel-blank-area")
+                                .debug_selector(|| "project-panel-blank-area".into())
                                 .block_mouse_except_scroll()
                                 // `block_mouse_except_scroll` prevents the dock's own
                                 // focus-follows-mouse hover handler from seeing this area,

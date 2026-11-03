@@ -16027,3 +16027,57 @@ fn sidebar_painted_background_at(position: Point<Pixels>, cx: &mut VisualTestCon
         u32::from(Rgba::from(color))
     })
 }
+
+#[gpui::test]
+async fn zedx_threads_header_collapses_sidebar_and_history_reopens_it(cx: &mut TestAppContext) {
+    let project = init_test_project_with_agent_panel("/zedx-navigation", cx).await;
+    cx.update(workspace::zedx_actions::init);
+    let (multi_workspace, cx) =
+        cx.add_window_view(|window, cx| MultiWorkspace::test_new(project, window, cx));
+    let (sidebar, _panel) = setup_sidebar_with_agent_panel(&multi_workspace, cx);
+    cx.simulate_resize(gpui::size(px(1280.0), px(900.0)));
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-legacy-sidebar-actions").is_none());
+    let toggle = cx
+        .debug_bounds("zedx-threads-collapse")
+        .expect("collapse control is in the Threads header");
+    cx.simulate_click(toggle.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(!multi_workspace.read_with(cx, |mw, _| mw.sidebar_open()));
+    assert!(cx.debug_bounds("zedx-threads-collapse").is_none());
+    multi_workspace.update_in(cx, |mw, window, cx| mw.toggle_sidebar(window, cx));
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(multi_workspace.read_with(cx, |mw, _| mw.sidebar_open()));
+    assert!(cx.debug_bounds("zedx-threads-collapse").is_some());
+    multi_workspace.update_in(cx, |mw, window, cx| mw.close_sidebar(window, cx));
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let more = cx.debug_bounds("zedx-more-tools").unwrap();
+    cx.simulate_click(more.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let history = cx
+        .debug_bounds("MENU_ITEM-Thread history")
+        .expect("history stays accessible in More");
+    cx.simulate_click(history.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(multi_workspace.read_with(cx, |mw, _| mw.sidebar_open()));
+    assert!(sidebar.read_with(cx, |sidebar, _| matches!(
+        sidebar.view,
+        SidebarView::Archive(_)
+    )));
+    let history_id = sidebar.read_with(cx, |sidebar, _| match &sidebar.view {
+        SidebarView::Archive(view) => view.entity_id(),
+        SidebarView::ThreadList => unreachable!(),
+    });
+    cx.dispatch_action(workspace::zedx_actions::ShowThreadHistory);
+    cx.run_until_parked();
+    sidebar.read_with(cx, |sidebar, _| match &sidebar.view {
+        SidebarView::Archive(view) => assert_eq!(view.entity_id(), history_id),
+        SidebarView::ThreadList => panic!("history action must not toggle back to the list"),
+    });
+}

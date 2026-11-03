@@ -1029,7 +1029,7 @@ async fn workbench_rails_match_prototype_widths(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-async fn more_tools_menu_reaches_panels_from_every_dock(cx: &mut TestAppContext) {
+async fn more_tools_checkboxes_control_buttons_without_opening_panels(cx: &mut TestAppContext) {
     let (workspace, cx) = setup(cx).await;
     cx.refresh().unwrap();
     let trigger = cx
@@ -1055,16 +1055,53 @@ async fn more_tools_menu_reaches_panels_from_every_dock(cx: &mut TestAppContext)
         "the prototype's tool menu also lists the Git log entry, which is an action not a panel"
     );
 
-    let structure = cx
-        .debug_bounds("MENU_ITEM-Structure")
-        .expect("Structure lives in the left dock and stays reachable");
+    let before = workspace.read_with(cx, |workspace, cx| {
+        let dock = workspace.dock_at_position(DockPosition::Left).read(cx);
+        (
+            dock.is_open(),
+            dock.active_panel()
+                .map(|panel| panel.persistent_name().to_string()),
+        )
+    });
+    let structure = cx.debug_bounds("MENU_ITEM-Structure").unwrap();
     cx.simulate_click(structure.center(), gpui::Modifiers::none());
     cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-tool-Structure").is_none());
+    assert!(
+        cx.debug_bounds("MENU_ITEM-Structure").is_some(),
+        "checkbox menu stays open"
+    );
     workspace.read_with(cx, |workspace, cx| {
         let dock = workspace.dock_at_position(DockPosition::Left).read(cx);
-        assert!(dock.is_open());
-        assert_eq!(dock.active_panel().unwrap().persistent_name(), "Structure");
+        assert_eq!(
+            (
+                dock.is_open(),
+                dock.active_panel()
+                    .map(|panel| panel.persistent_name().to_string())
+            ),
+            before
+        );
     });
+    let branches = cx.debug_bounds("MENU_ITEM-Branches").unwrap();
+    cx.simulate_click(branches.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-tool-Branches").is_some());
+    let structure = cx.debug_bounds("MENU_ITEM-Structure").unwrap();
+    cx.simulate_click(structure.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-tool-Structure").is_some());
+    let notifications = cx.debug_bounds("MENU_ITEM-Notifications").unwrap();
+    cx.simulate_click(notifications.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-notifications-button").is_none());
+    cx.dispatch_action(workspace::zedx_actions::RestoreDefaultLayout);
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-tool-Branches").is_none());
 }
 
 #[gpui::test]
@@ -1550,13 +1587,22 @@ async fn sidebars_match_prototype_pins_and_toggle_real_panels(cx: &mut TestAppCo
     assert!(cx.debug_bounds("MENU_ITEM-Database").is_some());
     let find = cx
         .debug_bounds("MENU_ITEM-Find")
-        .expect("unpinned Find is still reachable");
+        .expect("unpinned Find can be shown from More");
+    cx.simulate_click(find.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-tool-Find").is_some());
+    let more = cx.debug_bounds("zedx-more-tools").unwrap();
+    cx.simulate_click(more.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let find = cx.debug_bounds("zedx-tool-Find").unwrap();
     cx.simulate_click(find.center(), gpui::Modifiers::none());
     cx.run_until_parked();
     workspace.read_with(cx, |workspace, cx| {
-        let left = workspace.dock_at_position(DockPosition::Left).read(cx);
-        assert!(left.is_open());
-        assert_eq!(left.active_panel().unwrap().persistent_name(), "Find");
+        let bottom = workspace.dock_at_position(DockPosition::Bottom).read(cx);
+        assert!(bottom.is_open());
+        assert_eq!(bottom.active_panel().unwrap().persistent_name(), "Find");
     });
     for (key, expected) in [
         ("cmd-7", "Structure"),
@@ -1845,4 +1891,72 @@ async fn right_gap_single_move_release_resizes(cx: &mut TestAppContext) {
 #[gpui::test]
 async fn bottom_gap_single_move_release_resizes(cx: &mut TestAppContext) {
     single_move_resize(DockPosition::Bottom, cx).await;
+}
+
+#[gpui::test]
+async fn problem_rows_keep_messages_and_locations_separate_at_large_font_sizes(
+    cx: &mut TestAppContext,
+) {
+    let (workspace, cx) = setup(cx).await;
+    let project = workspace.read_with(cx, |workspace, _| workspace.project().clone());
+    let store = project.read_with(cx, |project, _| project.lsp_store());
+    let message = "A long diagnostic message that must not overlap its source location\nwith extra context and a compiler suggestion";
+    store.update(cx, |store, cx| {
+        store
+            .update_diagnostics(
+                lsp::LanguageServerId(0),
+                lsp::PublishDiagnosticsParams {
+                    uri: lsp::Uri::from_file_path(util::path!("/project/main.rs")).unwrap(),
+                    diagnostics: (0..3)
+                        .map(|index| lsp::Diagnostic {
+                            range: lsp::Range::new(
+                                lsp::Position::new(0, index),
+                                lsp::Position::new(0, index + 1),
+                            ),
+                            severity: Some(lsp::DiagnosticSeverity::WARNING),
+                            message: message.into(),
+                            ..Default::default()
+                        })
+                        .collect(),
+                    version: None,
+                },
+                None,
+                language::DiagnosticSourceKind::Pushed,
+                &[],
+                cx,
+            )
+            .unwrap();
+    });
+    cx.dispatch_action(ToggleProblems);
+    cx.run_until_parked();
+    let panel = workspace.read_with(cx, |workspace, cx| workspace.panel::<Problems>(cx).unwrap());
+    cx.simulate_resize(gpui::size(px(800.0), px(650.0)));
+    for font_size in [13.0, 24.0] {
+        cx.update(|_, cx| theme_settings::adjust_ui_font_size(cx, |_| px(font_size)));
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        let first = cx.debug_bounds("zedx-problem-row-0").unwrap();
+        let second = cx.debug_bounds("zedx-problem-row-1").unwrap();
+        let message_bounds = cx.debug_bounds("zedx-problem-message-0").unwrap();
+        let location = cx.debug_bounds("zedx-problem-location-0").unwrap();
+        assert!(first.bottom() <= second.top());
+        assert!(first.size.height >= px(font_size * 2.0));
+        assert!(message_bounds.right() <= location.left());
+        assert!(location.right() <= first.right());
+        panel.read_with(cx, |panel, _| assert_eq!(panel.rows[0].message, message));
+    }
+}
+
+#[gpui::test]
+async fn run_view_keeps_its_actions_and_task_strip_visible_when_empty(cx: &mut TestAppContext) {
+    let (_, cx) = setup(cx).await;
+    cx.dispatch_action(workspace::zedx_actions::ToggleRun);
+    cx.run_until_parked();
+    cx.simulate_resize(gpui::size(px(800.0), px(650.0)));
+    cx.refresh().unwrap();
+    let actions = cx.debug_bounds("zedx-run-actions").unwrap();
+    let tabs = cx.debug_bounds("zedx-run-task-tabs").unwrap();
+    assert!(actions.size.width >= px(36.0));
+    assert!(actions.size.height > px(100.0));
+    assert!(tabs.bottom() <= actions.top());
 }

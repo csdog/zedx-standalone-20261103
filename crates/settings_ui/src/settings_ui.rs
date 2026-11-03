@@ -1,3 +1,6 @@
+#[path = "zedx_context_menu_settings.rs"]
+mod zedx_context_menu_settings;
+pub use zedx_context_menu_settings::{register_context_menu_settings_editor, select_context_menu_settings_scope};
 mod components;
 mod page_data;
 pub mod pages;

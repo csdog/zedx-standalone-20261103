@@ -143,6 +143,7 @@ pub struct PopoverMenu<M: ManagedView> {
     trigger_handle: Option<PopoverMenuHandle<M>>,
     on_open: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
     full_width: bool,
+    menu_priority: usize,
 }
 
 impl<M: ManagedView> PopoverMenu<M> {
@@ -158,7 +159,14 @@ impl<M: ManagedView> PopoverMenu<M> {
             trigger_handle: None,
             on_open: None,
             full_width: false,
+            menu_priority: 1,
         }
+    }
+
+    /// A menu inside a deferred modal must draw after its parent layer.
+    pub fn menu_priority(mut self, priority: usize) -> Self {
+        self.menu_priority = priority;
+        self
     }
 
     pub fn full_width(mut self, full_width: bool) -> Self {
@@ -382,7 +390,7 @@ impl<M: ManagedView> Element for PopoverMenu<M> {
                             anchored.position(child_bounds.corner(self.resolved_attach()) + offset);
                     }
                     let mut element = deferred(anchored.child(div().occlude().child(menu.clone())))
-                        .with_priority(1)
+                        .with_priority(self.menu_priority)
                         .into_any();
 
                     menu_layout_id = Some(element.request_layout(window, cx));

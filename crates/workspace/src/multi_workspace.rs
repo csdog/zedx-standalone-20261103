@@ -1,3 +1,6 @@
+#[path = "zedx_project_open.rs"]
+mod zedx_project_open;
+
 use anyhow::{Context as _, Result};
 use fs::Fs;
 
@@ -138,6 +141,9 @@ pub trait Sidebar: Focusable + Render + EventEmitter<SidebarEvent> + Sized {
     ) {
     }
 
+    /// Opens thread history without toggling back to the thread list.
+    fn show_thread_history(&mut self, _window: &mut Window, _cx: &mut Context<Self>) {}
+
     /// Activates the next or previous project.
     fn cycle_project(&mut self, _forward: bool, _window: &mut Window, _cx: &mut Context<Self>) {}
 
@@ -170,6 +176,7 @@ pub trait SidebarHandle: 'static + Send + Sync {
     fn entity_id(&self) -> EntityId;
     fn toggle_thread_switcher(&self, select_last: bool, window: &mut Window, cx: &mut App);
     fn cycle_project(&self, forward: bool, window: &mut Window, cx: &mut App);
+    fn show_thread_history(&self, window: &mut Window, cx: &mut App);
     fn cycle_thread(&self, forward: bool, window: &mut Window, cx: &mut App);
 
     fn is_threads_list_view_active(&self, cx: &App) -> bool;
@@ -228,6 +235,13 @@ impl<T: Sidebar> SidebarHandle for Entity<T> {
             entity.update(cx, |this, cx| {
                 this.toggle_thread_switcher(select_last, window, cx);
             });
+        });
+    }
+
+    fn show_thread_history(&self, window: &mut Window, cx: &mut App) {
+        let entity = self.clone();
+        window.defer(cx, move |window, cx| {
+            entity.update(cx, |this, cx| this.show_thread_history(window, cx));
         });
     }
 

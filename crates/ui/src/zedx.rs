@@ -4,6 +4,10 @@ pub fn island_corners(radius: gpui::Pixels, frame: gpui::Hsla) -> impl gpui::Int
     island::corners(radius, frame)
 }
 
+pub fn material_corners(radius: gpui::Pixels, frame: gpui::Hsla) -> impl gpui::IntoElement {
+    island::material_corners(radius, frame)
+}
+
 use crate::{ButtonCommon, ButtonLike, FixedWidth, Label, LabelCommon, LabelSize, Tooltip};
 use gpui::{App, ElementId, Img, InteractiveElement, ParentElement, SharedString, Styled, img, px};
 use theme::ActiveTheme;
@@ -21,6 +25,8 @@ pub enum Icon {
     Debug,
     Settings,
     Folder,
+    Library,
+    Scratches,
     Chevron,
     Down,
     More,
@@ -63,6 +69,23 @@ pub fn icon(icon: Icon, cx: &App) -> Img {
         "dark"
     };
     asset(format!("icons/zedx/{}-{appearance}.svg", icon.as_ref()).into()).size(px(20.0))
+}
+
+/// Selected tool windows share one opaque accent across both rails.
+pub fn tool_window_selected_background() -> gpui::Hsla {
+    gpui::rgb(0x3574f0).into()
+}
+
+pub fn tool_window_selected_icon(glyph: Icon, cx: &App) -> gpui::Svg {
+    let appearance = if cx.theme().appearance().is_light() {
+        "light"
+    } else {
+        "dark"
+    };
+    gpui::svg()
+        .path(format!("icons/zedx/{}-{appearance}.svg", glyph.as_ref()))
+        .size(px(20.0))
+        .text_color(gpui::white())
 }
 
 pub fn tool_button(

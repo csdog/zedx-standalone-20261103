@@ -35,6 +35,24 @@ fn file_status_color(status: FileStatus, light: bool) -> Color {
     Color::Custom(gpui::rgb(rgb).into())
 }
 
+fn group_toggle(states: impl IntoIterator<Item = StageStatus>) -> ToggleState {
+    let mut total = 0;
+    let mut staged = 0;
+    let mut partial = false;
+    for state in states {
+        total += 1;
+        staged += usize::from(state == StageStatus::Staged);
+        partial |= state == StageStatus::PartiallyStaged;
+    }
+    if total > 0 && staged == total {
+        ToggleState::Selected
+    } else if staged > 0 || partial {
+        ToggleState::Indeterminate
+    } else {
+        ToggleState::Unselected
+    }
+}
+
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub(super) enum CommitTab {
     #[default]
@@ -256,21 +274,11 @@ impl GitPanel {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let repository = self.active_repository.as_ref();
-        let staged_count = entries
-            .iter()
-            .filter(|entry| {
-                repository.is_some_and(|repo| {
-                    Self::stage_status_for_entry(entry, repo.read(cx)) == StageStatus::Staged
-                })
+        let toggle = group_toggle(entries.iter().map(|entry| {
+            repository.map_or(entry.staging, |repo| {
+                Self::stage_status_for_entry(entry, repo.read(cx))
             })
-            .count();
-        let toggle = if staged_count == 0 {
-            ToggleState::Unselected
-        } else if staged_count == entries.len() {
-            ToggleState::Selected
-        } else {
-            ToggleState::Indeterminate
-        };
+        }));
         let paths = entries
             .iter()
             .map(|entry| entry.repo_path.clone())
@@ -302,6 +310,7 @@ impl GitPanel {
                     )
                     .child(
                         Checkbox::new(("zedx-commit-group-check", group), toggle)
+                            .solid_selected()
                             .disabled(!can_write || entries.is_empty())
                             .on_click(cx.listener(move |this, _, window, cx| {
                                 let Some(repository) = this.active_repository.clone() else {
@@ -388,6 +397,7 @@ impl GitPanel {
                     )),
                     state,
                 )
+                .solid_selected()
                 .disabled(!self.has_write_access(cx))
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.toggle_staged_for_entry(
@@ -500,6 +510,27 @@ impl GitPanel {
 #[cfg(test)]
 mod status_color_tests {
     use super::*;
+    #[test]
+    fn group_checkbox_keeps_partial_staging_indeterminate() {
+        assert!(matches!(group_toggle([]), ToggleState::Unselected));
+        assert!(matches!(
+            group_toggle([StageStatus::Unstaged]),
+            ToggleState::Unselected
+        ));
+        assert!(matches!(
+            group_toggle([StageStatus::Staged]),
+            ToggleState::Selected
+        ));
+        assert!(matches!(
+            group_toggle([StageStatus::PartiallyStaged]),
+            ToggleState::Indeterminate
+        ));
+        assert!(matches!(
+            group_toggle([StageStatus::Unstaged, StageStatus::Staged]),
+            ToggleState::Indeterminate
+        ));
+    }
+
     use git::status::{StatusCode, TrackedStatus};
 
     fn tracked(code: StatusCode) -> FileStatus {

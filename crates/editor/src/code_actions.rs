@@ -464,7 +464,7 @@ impl Editor {
         );
     }
 
-    fn debug_scenarios(
+    pub(super) fn debug_scenarios(
         &mut self,
         resolved_tasks: &Option<ResolvedTasks>,
         buffer: &Entity<Buffer>,

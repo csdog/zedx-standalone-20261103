@@ -9,7 +9,9 @@ pub(super) struct LayoutRestore {
 fn zedx_default_dock_position(name: &str) -> DockPosition {
     match name {
         "AgentPanel" | "Outline Panel" => DockPosition::Right,
-        "TerminalPanel" | "DebugPanel" | "Run" | "Problems" | "Git history" => DockPosition::Bottom,
+        "TerminalPanel" | "DebugPanel" | "Run" | "Problems" | "Git history" | "Find" => {
+            DockPosition::Bottom
+        }
         _ => DockPosition::Left,
     }
 }
@@ -69,6 +71,7 @@ impl Workspace {
             .cloned()
             .unwrap_or_default();
         order.reset();
+        crate::zedx_tool_visibility::reset(cx);
         cx.set_global(order);
         cx.notify();
     }

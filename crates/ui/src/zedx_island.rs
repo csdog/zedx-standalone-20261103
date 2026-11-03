@@ -6,6 +6,10 @@ use gpui_util::ResultExt;
 pub(super) fn corners(radius: Pixels, mut frame: Hsla) -> impl IntoElement {
     // GPUI content masks are rectangular; panel children otherwise paint over the rounded background.
     frame.a = 1.0;
+    material_corners(radius, frame)
+}
+
+pub(super) fn material_corners(radius: Pixels, frame: Hsla) -> impl IntoElement {
     div()
         .absolute()
         .inset_0()

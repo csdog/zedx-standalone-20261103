@@ -1,3 +1,8 @@
+#[path = "zedx_context_run.rs"]
+mod zedx_context_run;
+#[path = "zedx_run_indicator.rs"]
+mod zedx_indicator;
+
 use std::{collections::BTreeMap, mem, ops::Range, sync::Arc};
 
 use clock::Global;
@@ -14,7 +19,9 @@ use settings::Settings as _;
 use smallvec::SmallVec;
 use task::{ResolvedTask, RunnableTag, TaskContext, TaskTemplate, TaskVariables, VariableName};
 use text::{BufferId, OffsetRangeExt as _, ToOffset as _, ToPoint as _};
-use ui::{Clickable as _, Color, IconButton, IconSize, Toggleable as _};
+use theme::ActiveTheme as _;
+use ui::prelude::FluentBuilder as _;
+use ui::{Clickable as _, IconButton, Toggleable as _};
 
 use crate::{
     CodeActionSource, Editor, EditorSettings, EditorStyle, RangeToAnchorExt, SpawnNearestTask,
@@ -662,18 +669,16 @@ impl Editor {
         row: DisplayRow,
         cx: &mut Context<Self>,
     ) -> IconButton {
-        let (icon, color) = match task_status {
-            Some(RunnableTaskStatus::Running) => (ui::IconName::PlayOutlined, Color::Accent),
-            Some(RunnableTaskStatus::Passed) => (ui::IconName::Check, Color::Success),
-            Some(RunnableTaskStatus::Failed) => (ui::IconName::XCircle, Color::Error),
-            None => (ui::IconName::PlayOutlined, Color::Muted),
-        };
+        let zedx = std::env::var_os("ZEDX_UPSTREAM_UI").is_none();
+        let (icon, color, icon_size) =
+            zedx_indicator::appearance(task_status, zedx, cx.theme().appearance().is_light());
 
         IconButton::new(("run_indicator", row.0 as usize), icon)
             .shape(ui::IconButtonShape::Square)
-            .icon_size(IconSize::XSmall)
+            .icon_size(icon_size)
             .icon_color(color)
             .toggle_state(is_active)
+            .when(zedx, |button| button.selected_icon_color(color))
             .on_click(cx.listener(move |editor, e: &ClickEvent, window, cx| {
                 let quick_launch = match e {
                     ClickEvent::Keyboard(_) => true,

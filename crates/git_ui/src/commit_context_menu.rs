@@ -57,7 +57,7 @@ pub(crate) fn commit_context_menu(
     };
 
     ContextMenu::build(window, cx, move |context_menu, _, _| {
-        context_menu
+        context_menu.zedx_scope("git")
             .context(focus_handle)
             .header(header)
             .entry("View Diff", Some(OpenCommitView.boxed_clone()), {

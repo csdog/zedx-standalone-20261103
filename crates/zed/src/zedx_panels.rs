@@ -1,3 +1,6 @@
+#[path = "zedx_problem_row.rs"]
+mod problem_row;
+
 use editor::{Editor, SelectionEffects, scroll::Autoscroll};
 use gpui::{
     Action, App, AsyncWindowContext, Context, Entity, EventEmitter, FocusHandle, Focusable, Render,
@@ -82,9 +85,16 @@ fn toggle_tool_window<T: Panel>(
 }
 
 pub(crate) fn init(cx: &mut App) {
+    database::init(cx);
     find::bind_keys(cx);
+    database::bind_keys(cx);
     cx.observe_new(|workspace: &mut Workspace, _, _| {
         workspace.register_action(open_find);
+        workspace.register_action(
+            |workspace, _: &workspace::zedx_actions::ShowDatabase, window, cx| {
+                toggle_tool_window::<database::Database>(workspace, window, cx);
+            },
+        );
         workspace.register_action(
             |workspace, _: &workspace::zedx_actions::ToggleCommit, window, cx| {
                 if toggle_tool_window::<git_ui::git_panel::GitPanel>(workspace, window, cx) {
@@ -152,6 +162,8 @@ pub(crate) async fn initialize(
         workspace.add_panel(branches, window, cx);
         let history = cx.new(|cx| GitHistory::new(workspace, window, cx));
         workspace.add_panel(history, window, cx);
+        let database = cx.new(|cx| database::Database::new(workspace, window, cx));
+        workspace.add_panel(database, window, cx);
     })?;
     Ok(())
 }
@@ -213,6 +225,9 @@ macro_rules! fixed_panel {
         impl EventEmitter<PanelEvent> for $type {}
     };
 }
+
+#[path = "zedx_database.rs"]
+mod database;
 
 #[path = "zedx_run_panel.rs"]
 mod run;
@@ -315,7 +330,13 @@ impl Render for Structure {
                             ),
                     ),
             )
-            .child(div().flex_1().min_h_0().child(self.outline.clone()))
+            .child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_hidden()
+                    .child(self.outline.clone()),
+            )
     }
 }
 
@@ -484,8 +505,10 @@ fixed_panel!(
     4
 );
 impl Render for Problems {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let ui_font = theme_settings::setup_ui_font(window, cx);
         v_flex()
+            .font(ui_font)
             .size_full()
             .min_h_0()
             .track_focus(&self.focus)
@@ -537,53 +560,14 @@ impl Render for Problems {
                             range
                                 .filter_map(|index| {
                                     let row = this.rows.get(index)?.clone();
-                                    Some(
-                                        ListItem::new(index)
-                                            .spacing(ListItemSpacing::Dense)
-                                            .height(px(27.0))
-                                            .child(
-                                                h_flex()
-                                                    .min_w_0()
-                                                    .gap_2()
-                                                    .child(
-                                                        Icon::new(if row.error {
-                                                            IconName::XCircle
-                                                        } else {
-                                                            IconName::Warning
-                                                        })
-                                                        .size(IconSize::Small)
-                                                        .color(if row.error {
-                                                            Color::Error
-                                                        } else {
-                                                            Color::Warning
-                                                        }),
-                                                    )
-                                                    .child(
-                                                        Label::new(row.message.clone())
-                                                            .size(ui::zedx::label_size())
-                                                            .truncate(),
-                                                    )
-                                                    .child(
-                                                        Label::new(row.location.clone())
-                                                            .size(ui::zedx::caption_size())
-                                                            .color(Color::Muted)
-                                                            .truncate(),
-                                                    ),
-                                            )
-                                            .tooltip(Tooltip::text(format!(
-                                                "{}\n{}",
-                                                row.message,
-                                                row.path.path.as_unix_str()
-                                            )))
-                                            .on_click(cx.listener(move |this, _, window, cx| {
-                                                this.open(row.clone(), window, cx)
-                                            })),
-                                    )
+                                    Some(this.render_problem_row(index, row, cx))
                                 })
                                 .collect::<Vec<_>>()
                         }),
                     )
-                    .flex_1(),
+                    .flex_1()
+                    .min_h_0()
+                    .w_full(),
                 )
             })
     }

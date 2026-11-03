@@ -154,5 +154,13 @@
   "search-history": {
     "dark": "icons/zedx/search-history-dark.svg",
     "light": "icons/zedx/search-history-light.svg"
+  },
+  "library": {
+    "dark": "icons/zedx/library-dark.svg",
+    "light": "icons/zedx/library-light.svg"
+  },
+  "scratches": {
+    "dark": "icons/zedx/scratches-dark.svg",
+    "light": "icons/zedx/scratches-light.svg"
   }
 }

@@ -80,7 +80,7 @@ async fn right_controls_stay_in_the_upper_right_and_toggle_panels(cx: &mut TestA
             );
         }
         for pair in controls.windows(2) {
-            assert!(pair[0].bottom() <= pair[1].top());
+            assert_eq!(pair[1].top() - pair[0].bottom(), px(4.0));
         }
         assert!(controls[3].bottom() < rail.center().y);
     }

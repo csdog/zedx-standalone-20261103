@@ -21,6 +21,7 @@ use util::ResultExt;
 
 #[derive(Default)]
 pub struct Notifications {
+    pub(crate) center: crate::zedx_notification_center::State,
     notifications: Vec<(NotificationId, AnyView)>,
 }
 
@@ -169,8 +170,9 @@ impl Workspace {
             return;
         }
         self.dismiss_notification(id, cx);
-        self.notifications
-            .push((id.clone(), build_notification(cx)));
+        let notification = build_notification(cx);
+        self.record_zedx_notification(id.clone(), notification.clone());
+        self.notifications.push((id.clone(), notification));
         cx.notify();
     }
 

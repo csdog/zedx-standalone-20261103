@@ -29,7 +29,7 @@ impl RailDropTarget {
                         && panel.icon(window, cx).is_some()
                         && (matches!(panel.persistent_name(), "Project Panel" | "GitPanel")
                             || panel.icon_tooltip(window, cx).is_some())
-                        && zedx_panel_is_pinned(order, self.position, panel.persistent_name())
+                        && zedx_panel_is_pinned(order, self.position, panel.persistent_name(), cx)
                 })
                 .map(|panel| panel.persistent_name().to_string())
                 .collect::<Vec<_>>();

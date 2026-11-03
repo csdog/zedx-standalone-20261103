@@ -1,12 +1,6 @@
 use super::*;
 
 impl GitGraph {
-    fn zedx_details_notice(&self, message: &'static str, cx: &mut Context<Self>) {
-        self.workspace.update(cx, |workspace, cx| {
-            workspace.show_toast(workspace::Toast::new(workspace::notifications::NotificationId::unique::<DetailPanelCommitMessage>(), message).autohide(), cx);
-        }).log_err();
-    }
-
     pub(super) fn render_zedx_commit_details(
         &self,
         window: &mut Window,
@@ -39,18 +33,14 @@ impl GitGraph {
             ),
             CommitDataState::Loading(_) => ("Loading…".into(), commit.data.sha.display_short()),
         };
-        let entries = Rc::new(
-            self.selected_commit_diff
-                .as_ref()
-                .map(|diff| {
-                    diff.files
-                        .iter()
-                        .map(|file| ChangedFileEntry::from_commit_file(file, cx))
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default(),
+        let (count, tree) = self.zedx_details_cache.borrow_mut().tree(
+            commit.data.sha,
+            self.selected_commit_diff.as_ref(),
+            &self.changed_files_expanded_dirs,
+            cx,
         );
-        let count = entries.len();
+        let tree_count = tree.len();
+        let graph = cx.weak_entity();
         let workspace = self.workspace.clone();
         let repository = repository.downgrade();
         let message = self
@@ -90,9 +80,10 @@ impl GitGraph {
                             .child(
                                 IconButton::new("zedx-git-revert", IconName::RotateCcw)
                                     .icon_size(IconSize::Small)
-                                    .tooltip(Tooltip::text("Revert Selected Changes"))
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.zedx_details_notice("原型演示：不会撤销更改", cx)
+                                    .tooltip(Tooltip::text("Revert Commit…"))
+                                    .disabled(self.zedx_revert_pending)
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.revert_zedx_commit(window, cx)
                                     })),
                             )
                             .child(
@@ -110,7 +101,8 @@ impl GitGraph {
                                     .icon_size(IconSize::Small)
                                     .tooltip(Tooltip::text("Expand All"))
                                     .on_click(cx.listener(|this, _, _, cx| {
-                                        this.zedx_details_notice("原型演示：不会展开文件树", cx)
+                                        this.changed_files_expanded_dirs.clear();
+                                        cx.notify();
                                     })),
                             )
                             .child(
@@ -136,22 +128,25 @@ impl GitGraph {
                             .child(
                                 uniform_list(
                                     "zedx-git-detail-files",
-                                    count,
+                                    tree_count,
                                     move |range, _, cx| {
                                         range
                                             .filter_map(|index| {
-                                                entries.get(index).map(|entry| {
-                                                    let directory = (!entry.dir_path.is_empty())
-                                                        .then(|| entry.dir_path.clone());
-                                                    entry.render(
-                                                        index,
-                                                        0,
-                                                        directory,
-                                                        sha.clone(),
-                                                        repository.clone(),
-                                                        workspace.clone(),
-                                                        cx,
-                                                    )
+                                                tree.get(index).map(|entry| match entry {
+                                                    ChangedFileTreeEntry::Directory(entry) => {
+                                                        entry.render(index, graph.clone(), cx)
+                                                    }
+                                                    ChangedFileTreeEntry::File(entry) => {
+                                                        entry.entry.render(
+                                                            index,
+                                                            entry.depth,
+                                                            None,
+                                                            sha.clone(),
+                                                            repository.clone(),
+                                                            workspace.clone(),
+                                                            cx,
+                                                        )
+                                                    }
                                                 })
                                             })
                                             .collect()
@@ -167,45 +162,125 @@ impl GitGraph {
             .child(
                 v_flex()
                     .debug_selector(|| "zedx-git-details-message".into())
-                    .flex_1()
-                    .flex_basis(DefiniteLength::Fraction(0.42))
                     .min_h_0()
                     .min_w_0()
-                    .p_2()
-                    .gap_1()
-                    .child(
-                        Label::new(metadata)
-                            .size(ui::zedx::caption_size())
-                            .color(Color::Muted)
-                            .truncate(),
-                    )
-                    .child(div().flex_1().min_h_0().min_w_0().map(|element| {
-                        if let Some(message) = message {
-                            element
-                                .child(
-                                    div()
-                                        .id("zedx-git-commit-message")
-                                        .debug_selector(|| "zedx-git-message-body".into())
-                                        .size_full()
-                                        .overflow_y_scroll()
-                                        .track_scroll(&message.scroll_handle)
-                                        .child(MarkdownElement::new(
-                                            message.message.clone(),
-                                            message_style,
-                                        )),
-                                )
-                                .vertical_scrollbar_for(&message.scroll_handle, window, cx)
-                                .into_any_element()
+                    .map(|section| {
+                        if self.zedx_commit_info_collapsed {
+                            section.flex_none()
                         } else {
-                            element
+                            section
+                                .flex_1()
+                                .flex_basis(DefiniteLength::Fraction(0.42))
+                                .min_h(px(80.0))
+                        }
+                    })
+                    .child(
+                        h_flex()
+                            .h(px(28.0))
+                            .flex_none()
+                            .px_1()
+                            .gap_1()
+                            .min_w_0()
+                            .child(
+                                div()
+                                    .debug_selector(|| "zedx-git-toggle-commit-info".into())
+                                    .child(
+                                        IconButton::new(
+                                            "zedx-git-toggle-commit-info",
+                                            if self.zedx_commit_info_collapsed {
+                                                IconName::ChevronRight
+                                            } else {
+                                                IconName::ChevronDown
+                                            },
+                                        )
+                                        .icon_size(IconSize::Small)
+                                        .tab_index(0isize)
+                                        .aria_label(if self.zedx_commit_info_collapsed {
+                                            "Expand commit information"
+                                        } else {
+                                            "Collapse commit information"
+                                        })
+                                        .tooltip(Tooltip::text(
+                                            if self.zedx_commit_info_collapsed {
+                                                "Expand commit information"
+                                            } else {
+                                                "Collapse commit information"
+                                            },
+                                        ))
+                                        .on_click(
+                                            cx.listener(|this, _, _, cx| {
+                                                this.zedx_commit_info_collapsed =
+                                                    !this.zedx_commit_info_collapsed;
+                                                cx.notify();
+                                            }),
+                                        ),
+                                    ),
+                            )
+                            .child(
+                                Label::new(subject.clone())
+                                    .size(ui::zedx::label_size())
+                                    .truncate(),
+                            ),
+                    )
+                    .when(!self.zedx_commit_info_collapsed, |section| {
+                        section.child(
+                            v_flex()
+                                .flex_1()
+                                .min_h_0()
+                                .min_w_0()
+                                .px_2()
+                                .pb_2()
+                                .gap_1()
                                 .child(
                                     div()
-                                        .debug_selector(|| "zedx-git-message-pending".into())
-                                        .child(Label::new(subject).size(ui::zedx::label_size())),
+                                        .debug_selector(|| "zedx-git-commit-metadata".into())
+                                        .child(
+                                            Label::new(metadata)
+                                                .size(ui::zedx::caption_size())
+                                                .color(Color::Muted)
+                                                .truncate(),
+                                        ),
                                 )
-                                .into_any_element()
-                        }
-                    })),
+                                .child(div().flex_1().min_h_0().min_w_0().map(|element| {
+                                    if let Some(message) = message {
+                                        element
+                                            .child(
+                                                div()
+                                                    .id("zedx-git-commit-message")
+                                                    .debug_selector(|| {
+                                                        "zedx-git-message-body".into()
+                                                    })
+                                                    .size_full()
+                                                    .overflow_y_scroll()
+                                                    .track_scroll(&message.scroll_handle)
+                                                    .child(MarkdownElement::new(
+                                                        message.message.clone(),
+                                                        message_style,
+                                                    )),
+                                            )
+                                            .vertical_scrollbar_for(
+                                                &message.scroll_handle,
+                                                window,
+                                                cx,
+                                            )
+                                            .into_any_element()
+                                    } else {
+                                        element
+                                            .child(
+                                                div()
+                                                    .debug_selector(|| {
+                                                        "zedx-git-message-pending".into()
+                                                    })
+                                                    .child(
+                                                        Label::new(subject)
+                                                            .size(ui::zedx::label_size()),
+                                                    ),
+                                            )
+                                            .into_any_element()
+                                    }
+                                })),
+                        )
+                    }),
             )
             .into_any_element()
     }
@@ -360,6 +435,37 @@ mod tests {
         cx.simulate_resize(gpui::size(px(500.0), px(202.0)));
         cx.run_until_parked();
         cx.refresh().unwrap();
+        assert!(cx.debug_bounds("zedx-git-message-body").is_some());
+        let files_before = graph.read_with(cx, |graph, _| {
+            graph
+                .changed_files_scroll_handle
+                .0
+                .borrow()
+                .base_handle
+                .bounds()
+        });
+        let toggle = cx.debug_bounds("zedx-git-toggle-commit-info").unwrap();
+        cx.simulate_click(toggle.center(), gpui::Modifiers::none());
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        assert!(graph.read_with(cx, |graph, _| graph.zedx_commit_info_collapsed));
+        assert!(cx.debug_bounds("zedx-git-commit-metadata").is_none());
+        assert!(cx.debug_bounds("zedx-git-message-body").is_none());
+        let files_after = graph.read_with(cx, |graph, _| {
+            graph
+                .changed_files_scroll_handle
+                .0
+                .borrow()
+                .base_handle
+                .bounds()
+        });
+        assert!(files_after.size.height > files_before.size.height);
+        let toggle = cx.debug_bounds("zedx-git-toggle-commit-info").unwrap();
+        cx.simulate_click(toggle.center(), gpui::Modifiers::none());
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        assert!(!graph.read_with(cx, |graph, _| graph.zedx_commit_info_collapsed));
+        assert!(cx.debug_bounds("zedx-git-commit-metadata").is_some());
         assert!(cx.debug_bounds("zedx-git-message-body").is_some());
         graph.update(cx, |graph, cx| {
             graph.selected_commit_message.as_mut().unwrap().sha =

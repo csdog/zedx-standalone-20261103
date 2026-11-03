@@ -120,13 +120,40 @@ impl GitGraph {
             .when(
                 self.zedx_toolbar.is_some_and(|width| width >= px(620.0)),
                 |row| {
-                    row.children(["User", "Date", "Paths"].into_iter().map(|label| {
-                        div().px_1().child(
-                            Label::new(label)
-                                .size(ui::zedx::caption_size())
-                                .color(Color::Muted),
-                        )
-                    }))
+                    row.children([("User", 0), ("Date", 1), ("Paths", 3)].into_iter().map(
+                        |(label, index)| {
+                            let spec = &self.zedx_filter.metadata.spec;
+                            let selected = match index {
+                                0 => !spec.author.is_empty(),
+                                1 => !spec.after.is_empty() || !spec.before.is_empty(),
+                                _ => !spec.paths.is_empty(),
+                            };
+                            Button::new(
+                                SharedString::from(format!("zedx-log-filter-{label}")),
+                                label,
+                            )
+                            .toggle_state(selected)
+                            .size(ui::ButtonSize::Compact)
+                            .label_size(ui::zedx::caption_size())
+                            .on_click(cx.listener(
+                                move |this, _, window, cx| {
+                                    this.open_zedx_log_filters(index, window, cx)
+                                },
+                            ))
+                        },
+                    ))
+                },
+            )
+            .when(
+                self.zedx_toolbar.is_some_and(|width| width < px(620.0)),
+                |row| {
+                    row.child(
+                        IconButton::new("zedx-log-filters-compact", IconName::Filter)
+                            .tooltip(Tooltip::text("Filter by user, date or paths"))
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.open_zedx_log_filters(0, window, cx)
+                            })),
+                    )
                 },
             )
             .child(div().flex_1())

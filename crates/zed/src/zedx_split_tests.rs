@@ -104,6 +104,25 @@ async fn structure_header_drop_resize_compact_and_reset(cx: &mut TestAppContext)
     );
     let after = cx.debug_bounds("zedx-split-project").unwrap();
     assert!((after.size.height - before.size.height - px(70.0)).abs() < px(3.0));
+    let start = cx.debug_bounds("zedx-left-split-resize").unwrap().center();
+    cx.simulate_mouse_move(start, None, Modifiers::none());
+    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_move(
+        start + point(px(0.0), px(-30.0)),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let end = start + point(px(0.0), px(-60.0));
+    cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    let continuous = cx.debug_bounds("zedx-split-project").unwrap();
+    assert!((continuous.size.height - after.size.height + px(60.0)).abs() < px(3.0));
     for viewport in [size(px(390.0), px(500.0)), size(px(1280.0), px(900.0))] {
         cx.simulate_resize(viewport);
         cx.run_until_parked();
@@ -146,6 +165,12 @@ async fn invalid_drops_are_inert_and_switching_tools_preserves_the_split(cx: &mu
     drag(cx, "zedx-tool-Structure", target);
     workspace.update_in(cx, |workspace, window, cx| {
         workspace.focus_panel::<Find>(window, cx);
+    });
+    cx.run_until_parked();
+    cx.refresh().unwrap();
+    assert!(cx.debug_bounds("zedx-split-structure").is_some());
+    workspace.update_in(cx, |workspace, window, cx| {
+        workspace.focus_panel::<Branches>(window, cx);
     });
     cx.run_until_parked();
     cx.refresh().unwrap();

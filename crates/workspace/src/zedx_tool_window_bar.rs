@@ -40,6 +40,18 @@ fn zedx_panel_is_pinned(
     order: Option<&crate::zedx_rail_order::RailOrder>,
     dock: DockPosition,
     name: &str,
+    cx: &App,
+) -> bool {
+    if matches!(name, "AgentPanel" | "Outline Panel" | "Database") {
+        return false;
+    }
+    crate::zedx_tool_visibility::is_visible(name, zedx_panel_default_pinned(order, dock, name), cx)
+}
+
+pub(crate) fn zedx_panel_default_pinned(
+    order: Option<&crate::zedx_rail_order::RailOrder>,
+    dock: DockPosition,
+    name: &str,
 ) -> bool {
     if matches!(name, "AgentPanel" | "Outline Panel") {
         return false;
@@ -92,7 +104,12 @@ impl PanelButtons {
             .into_iter()
             .filter(|(_, entry)| entry.panel.enabled(cx))
             .filter(|(_, entry)| {
-                zedx_panel_is_pinned(order.as_ref(), dock_position, entry.panel.persistent_name())
+                zedx_panel_is_pinned(
+                    order.as_ref(),
+                    dock_position,
+                    entry.panel.persistent_name(),
+                    cx,
+                )
             })
             .filter_map(|(index, entry)| {
                 let icon = entry.panel.icon(window, cx)?;
@@ -213,11 +230,7 @@ impl PanelButtons {
                                             .absolute()
                                             .inset_0()
                                             .rounded(px(6.0))
-                                            .bg(if cx.theme().appearance().is_light() {
-                                                gpui::rgb(0xcfdaea)
-                                            } else {
-                                                gpui::rgb(0x3c4c65)
-                                            }),
+                                            .bg(ui::zedx::tool_window_selected_background()),
                                     )
                                 })
                                 .child(
@@ -231,31 +244,16 @@ impl PanelButtons {
                                         .child(match ui::zedx::tool_window_icon(panel_name) {
                                             Some(icon) => {
                                                 if active {
-                                                    let appearance =
-                                                        if cx.theme().appearance().is_light() {
-                                                            "light"
-                                                        } else {
-                                                            "dark"
-                                                        };
-                                                    gpui::svg()
-                                                        .path(format!(
-                                                            "icons/zedx/{}-{appearance}.svg",
-                                                            icon.as_ref()
-                                                        ))
-                                                        .size(px(20.0))
-                                                        .text_color(
-                                                            if cx.theme().appearance().is_light() {
-                                                                gpui::rgb(0x3b5f91)
-                                                            } else {
-                                                                gpui::rgb(0xdae6fa)
-                                                            },
-                                                        )
+                                                    ui::zedx::tool_window_selected_icon(icon, cx)
                                                         .into_any_element()
                                                 } else {
                                                     ui::zedx::icon(icon, cx).into_any_element()
                                                 }
                                             }
                                             None => Icon::new(icon)
+                                                .when(active, |icon| {
+                                                    icon.color(Color::Custom(gpui::white()))
+                                                })
                                                 .size(IconSize::Small)
                                                 .into_any_element(),
                                         })

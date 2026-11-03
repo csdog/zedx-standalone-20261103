@@ -44,6 +44,15 @@ use uuid::Uuid;
 
 pub use askpass::{AskPassDelegate, AskPassResult, AskPassSession};
 
+#[path = "zedx_shelf.rs"]
+mod zedx_shelf;
+pub use zedx_shelf::ShelfEntry;
+#[path = "zedx_log_filter.rs"]
+mod zedx_log_filter;
+#[path = "zedx_revert.rs"]
+mod zedx_revert;
+pub use zedx_log_filter::ZedxLogFilter;
+
 pub const REMOTE_CANCELLED_BY_USER: &str = "Operation cancelled by user";
 
 /// Format string used in graph log to get initial data for the git graph
@@ -787,6 +796,34 @@ pub fn delete_branch_flag(is_remote_tracking_ref: bool, force: bool) -> &'static
 }
 
 pub trait GitRepository: Send + Sync {
+    fn filter_commits(&self, _source: LogSource, _filter: ZedxLogFilter) -> BoxFuture<'static, Result<Vec<Oid>>> {
+        async { bail!("This Git backend does not support log filters") }.boxed()
+    }
+
+    fn shelves(&self) -> BoxFuture<'static, Result<Vec<ShelfEntry>>> {
+        async { bail!("This Git backend does not support Shelf") }.boxed()
+    }
+    fn shelve(&self, _message: String) -> BoxFuture<'static, Result<ShelfEntry>> {
+        async { bail!("This Git backend does not support Shelf") }.boxed()
+    }
+    fn apply_shelf(&self, _id: Uuid) -> BoxFuture<'static, Result<()>> {
+        async { bail!("This Git backend does not support Shelf") }.boxed()
+    }
+    fn delete_shelf(&self, _id: Uuid) -> BoxFuture<'static, Result<()>> {
+        async { bail!("This Git backend does not support Shelf") }.boxed()
+    }
+    fn stash_file_count(&self, _oid: Oid) -> BoxFuture<'static, Result<usize>> {
+        async { bail!("This Git backend does not expose stash file counts") }.boxed()
+    }
+    fn revert_commit(&self, _oid: Oid, _env: Arc<HashMap<String, String>>) -> BoxFuture<'static, Result<()>> {
+        async { bail!("This Git backend does not support commit revert") }.boxed()
+    }
+
+    fn revert_commit_with_mainline(&self, oid: Oid, mainline: Option<usize>, environment: Arc<HashMap<String, String>>) -> BoxFuture<'static, Result<()>> {
+        if mainline.is_none() { return self.revert_commit(oid, environment); }
+        async { bail!("This Git backend does not support mainline selection") }.boxed()
+    }
+
     /// Returns the contents of an entry in the repository's index, or None if there is no entry for the given path.
     ///
     /// Also returns `None` for symlinks.
@@ -1415,6 +1452,28 @@ fn parse_remote_urls(stdout: &str) -> HashMap<String, String> {
 }
 
 impl GitRepository for RealGitRepository {
+    fn filter_commits(&self, source: LogSource, filter: ZedxLogFilter) -> BoxFuture<'static, Result<Vec<Oid>>> {
+        self.zedx_filter_commits(source, filter)
+    }
+
+    fn shelves(&self) -> BoxFuture<'static, Result<Vec<ShelfEntry>>> { self.zedx_shelves() }
+    fn shelve(&self, message: String) -> BoxFuture<'static, Result<ShelfEntry>> { self.zedx_shelve(message) }
+    fn apply_shelf(&self, id: Uuid) -> BoxFuture<'static, Result<()>> { self.zedx_apply_shelf(id) }
+    fn delete_shelf(&self, id: Uuid) -> BoxFuture<'static, Result<()>> { self.zedx_delete_shelf(id) }
+    fn stash_file_count(&self, oid: Oid) -> BoxFuture<'static, Result<usize>> {
+        let git = self.git_binary_in_worktree();
+        self.executor.spawn(async move {
+            let output = zedx_shelf::command(&git?, &["stash", "show", "--include-untracked", "--name-only", "-z", &oid.to_string()], None).await?;
+            Ok(output.split(|byte| *byte == 0).filter(|path| !path.is_empty()).collect::<HashSet<_>>().len())
+        }).boxed()
+    }
+    fn revert_commit(&self, oid: Oid, environment: Arc<HashMap<String, String>>) -> BoxFuture<'static, Result<()>> {
+        self.zedx_revert_with_mainline(oid, None, environment)
+    }
+    fn revert_commit_with_mainline(&self, oid: Oid, mainline: Option<usize>, environment: Arc<HashMap<String, String>>) -> BoxFuture<'static, Result<()>> {
+        self.zedx_revert_with_mainline(oid, mainline, environment)
+    }
+
     fn path(&self) -> PathBuf {
         self.git_dir.clone()
     }
@@ -7102,3 +7161,7 @@ mod tests {
 #[cfg(test)]
 #[path = "zedx_commit_search_tests.rs"]
 mod zedx_commit_search_tests;
+
+#[cfg(test)]
+#[path = "zedx_stash_operation_tests.rs"]
+mod zedx_stash_operation_tests;

@@ -157,7 +157,10 @@ impl Render for GitHistory {
             )
             .on_action(
                 cx.listener(|this, _: &git_ui::git_graph::RefreshZedxBranches, _, cx| {
-                    this.reload_branches(cx)
+                    this.reload_branches(cx);
+                    if let Some(graph) = &this.graph {
+                        graph.update(cx, |graph, cx| graph.refresh_zedx_log_filters(cx));
+                    }
                 }),
             )
             .size_full()

@@ -80,6 +80,16 @@ impl Connection {
         }
     }
 
+    /// Opens an existing user database without creation or an in-memory fallback.
+    pub fn open_read_only(path: &Path) -> Result<Self> {
+        let uri = path.to_str().ok_or_else(|| anyhow::anyhow!("Database path must be valid UTF-8"))?;
+        let connection = Self::open_with_flags(uri, true, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX)?;
+        *connection.write.borrow_mut() = false;
+        // Inspection should report contention promptly rather than freeze its worker.
+        unsafe { sqlite3_busy_timeout(connection.sqlite3, 500); }
+        Ok(connection)
+    }
+
     pub fn persistent(&self) -> bool {
         self.persistent
     }

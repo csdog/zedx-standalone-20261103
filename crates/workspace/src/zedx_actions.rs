@@ -1,4 +1,4 @@
-use crate::{Toast, Workspace, notifications::NotificationId};
+use crate::Workspace;
 use gpui::{App, Context, actions};
 use settings::update_settings_file;
 use theme::{ActiveTheme, Appearance, SystemAppearance};
@@ -17,6 +17,7 @@ actions!(
         ToggleRightAssistant,
         ToggleRightOutline,
         ShowNotifications,
+        ShowThreadHistory,
         ToggleBranches,
         ToggleStructure,
         ToggleProblems,
@@ -66,25 +67,9 @@ pub fn init(cx: &mut App) {
                 workspace.toggle_zedx_right_panel("Outline Panel", window, cx)
             });
             workspace.register_action(Workspace::restore_zedx_layout);
-            workspace.register_action(|workspace, _: &ShowDatabase, _, cx| {
-                workspace.show_toast(
-                    Toast::new(
-                        NotificationId::unique::<ShowDatabase>(),
-                        "Database tool window is reserved for a future implementation",
-                    )
-                    .autohide(),
-                    cx,
-                );
-            });
+            workspace.register_action(Workspace::open_zedx_thread_history);
             workspace.register_action(|workspace, _: &ShowNotifications, _, cx| {
-                workspace.show_toast(
-                    Toast::new(
-                        NotificationId::unique::<ShowNotifications>(),
-                        "ZedX workbench is ready",
-                    )
-                    .autohide(),
-                    cx,
-                );
+                workspace.toggle_zedx_notification_center(cx);
             });
             workspace.register_action(|workspace, _: &ToggleTheme, _, cx| {
                 let appearance = if cx.theme().appearance().is_light() {

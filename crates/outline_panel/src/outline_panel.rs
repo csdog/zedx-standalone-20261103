@@ -5380,7 +5380,11 @@ impl OutlinePanel {
                             .collect()
                     }),
                 )
-                .with_sizing_behavior(ListSizingBehavior::Infer)
+                .with_sizing_behavior(if std::env::var_os("ZEDX_UPSTREAM_UI").is_none() {
+                    ListSizingBehavior::Auto
+                } else {
+                    ListSizingBehavior::Infer
+                })
                 .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
                 .with_width_from_item(self.max_width_item_index)
                 .track_scroll(&self.scroll_handle)
@@ -5432,8 +5436,9 @@ impl OutlinePanel {
 
             v_flex()
                 .flex_shrink_1()
+                .min_h_0()
                 .size_full()
-                .child(list_contents.size_full().flex_shrink_1())
+                .child(list_contents.size_full().min_h_0().flex_shrink_1())
                 .custom_scrollbars(
                     Scrollbars::for_settings::<OutlinePanelSettingsScrollbarProxy>()
                         .tracked_scroll_handle(&self.scroll_handle.clone())
@@ -5456,7 +5461,12 @@ impl OutlinePanel {
             .with_priority(1)
         }));
 
-        v_flex().w_full().flex_1().overflow_hidden().child(contents)
+        v_flex()
+            .w_full()
+            .flex_1()
+            .min_h_0()
+            .overflow_hidden()
+            .child(contents)
     }
 
     fn render_filter_footer(&mut self, pinned: bool, cx: &mut Context<Self>) -> Div {
@@ -10079,6 +10089,58 @@ outline: struct OutlineEntryExcerpt
             }
         }
         display_string
+    }
+
+    #[gpui::test]
+    async fn zedx_long_outline_uses_a_bounded_viewport_and_accepts_wheel_scroll(
+        cx: &mut TestAppContext,
+    ) {
+        init_test(cx);
+        let fs = FakeFs::new(cx.background_executor.clone());
+        let text = (0..200)
+            .map(|index| format!("fn symbol_{index}() {{}}\n"))
+            .collect::<String>();
+        fs.insert_tree(path!("/scroll-project"), json!({"main.rs": text}))
+            .await;
+        let project = Project::test(fs, [Path::new(path!("/scroll-project"))], cx).await;
+        project.read_with(cx, |project, _| project.languages().add(rust_lang()));
+        let (window, workspace) = add_outline_panel(&project, cx).await;
+        let cx = &mut VisualTestContext::from_window(window.into(), cx);
+        workspace
+            .update_in(cx, |workspace, window, cx| {
+                workspace.open_paths(
+                    vec![PathBuf::from(path!("/scroll-project/main.rs"))],
+                    OpenOptions::default(),
+                    None,
+                    window,
+                    cx,
+                )
+            })
+            .await;
+        let panel = outline_panel(&workspace, cx);
+        workspace.update_in(cx, |workspace, window, cx| {
+            workspace.focus_panel::<OutlinePanel>(window, cx);
+        });
+        wait_for_outline_tasks(&panel, cx).await;
+        cx.simulate_resize(gpui::size(px(800.0), px(300.0)));
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        let bounds = panel.read_with(cx, |panel, _| {
+            assert!(panel.cached_entries.len() >= 200);
+            assert!(panel.rendered_entries_len < panel.cached_entries.len());
+            panel.scroll_handle.0.borrow().base_handle.bounds()
+        });
+        assert!(bounds.size.height <= px(300.0));
+        cx.simulate_event(gpui::ScrollEvent {
+            position: bounds.center(),
+            delta: gpui::ScrollDelta::Pixels(point(px(0.0), px(-250.0))),
+            ..Default::default()
+        });
+        cx.run_until_parked();
+        cx.refresh().unwrap();
+        panel.read_with(cx, |panel, _| {
+            assert!(panel.scroll_handle.0.borrow().base_handle.offset().y < px(0.0));
+        });
     }
 
     fn init_test(cx: &mut TestAppContext) {

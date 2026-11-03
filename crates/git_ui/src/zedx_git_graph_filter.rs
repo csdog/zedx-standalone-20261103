@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Default)]
 pub(super) struct FilterState {
+    pub(super) metadata: super::zedx_log_filters::Metadata,
     pub(super) projection: Option<Rc<zedx_filtered_graph::Projection>>,
     generation: u64,
     loading: bool,
@@ -32,10 +33,13 @@ impl GitGraph {
 
     pub(super) fn zedx_filter_active(&self) -> bool {
         self.zedx_toolbar.is_some()
-            && match &self.search_state.state {
-                QueryState::Pending(query) | QueryState::Confirmed((query, _)) => !query.is_empty(),
-                QueryState::Empty => false,
-            }
+            && (!self.zedx_filter.metadata.spec.is_empty()
+                || match &self.search_state.state {
+                    QueryState::Pending(query) | QueryState::Confirmed((query, _)) => {
+                        !query.is_empty()
+                    }
+                    QueryState::Empty => false,
+                })
     }
 
     pub(super) fn zedx_filtered_indices(&self) -> Vec<usize> {
@@ -43,17 +47,21 @@ impl GitGraph {
             QueryState::Pending(query) | QueryState::Confirmed((query, _)) => {
                 query.to_ascii_lowercase()
             }
-            QueryState::Empty => return Vec::new(),
+            QueryState::Empty => String::new(),
         };
         let search_hash = !query.is_empty() && query.bytes().all(|byte| byte.is_ascii_hexdigit());
+        let metadata = &self.zedx_filter.metadata;
         self.graph_data
             .commits
             .iter()
             .enumerate()
             .filter_map(|(index, commit)| {
-                (self.search_state.matches.contains(&commit.data.sha)
-                    || (search_hash && commit.data.sha.to_string().contains(&query)))
-                .then_some(index)
+                let text = query.is_empty()
+                    || self.search_state.matches.contains(&commit.data.sha)
+                    || (search_hash && commit.data.sha.to_string().contains(&query));
+                let attributes =
+                    metadata.spec.is_empty() || metadata.matches.contains(&commit.data.sha);
+                (text && attributes).then_some(index)
             })
             .collect()
     }
@@ -68,7 +76,7 @@ impl GitGraph {
             .flatten()
     }
 
-    fn clear_zedx_commit_selection(&mut self) {
+    pub(super) fn clear_zedx_commit_selection(&mut self) {
         self.selected_entry_idx = None;
         self.hovered_entry_idx = None;
         self.pending_select_sha = None;
@@ -388,11 +396,17 @@ impl GitGraph {
                                 .debug_selector(|| "zedx-git-filter-empty".into())
                                 .p_2()
                                 .child(
-                                    Label::new(if self.zedx_filter.loading {
-                                        "Searching commits…"
-                                    } else {
-                                        "No matching commits"
-                                    })
+                                    Label::new(
+                                        if let Some(error) = &self.zedx_filter.metadata.error {
+                                            error.clone()
+                                        } else if self.zedx_filter.loading
+                                            || self.zedx_filter.metadata.loading
+                                        {
+                                            "Searching commits…".to_string()
+                                        } else {
+                                            "No matching commits".to_string()
+                                        },
+                                    )
                                     .color(Color::Muted),
                                 ),
                         )
@@ -754,6 +768,28 @@ mod tests {
             assert!(!graph.zedx_filter_active());
             assert!(graph.search_state.matches.is_empty());
             assert_eq!(graph.graph_data.commits.len(), 4_000);
+        });
+    }
+    #[gpui::test]
+    async fn metadata_filters_intersect_text_results_and_clear_restores_rows(
+        cx: &mut TestAppContext,
+    ) {
+        let (graph, _, cx) = setup(cx).await;
+        graph.update(cx, |graph, cx| {
+            let selected = graph.graph_data.commits[1].data.sha;
+            graph.zedx_filter.metadata.spec.author = "A real author".into();
+            graph.zedx_filter.metadata.matches.insert(selected);
+            assert!(graph.zedx_filter_active());
+            assert_eq!(graph.zedx_filtered_indices(), vec![1]);
+            graph.search_state.state = QueryState::Pending("unmatched".into());
+            assert!(graph.zedx_filtered_indices().is_empty());
+            graph.search_state.matches.insert(selected);
+            assert_eq!(graph.zedx_filtered_indices(), vec![1]);
+            graph.search_state.state = QueryState::Empty;
+            graph.zedx_filter.metadata.spec = Default::default();
+            graph.refresh_zedx_log_filters(cx);
+            assert!(!graph.zedx_filter_active());
+            assert_eq!(graph.zedx_filtered_indices(), vec![0, 1, 2]);
         });
     }
 }
