@@ -1,3 +1,6 @@
+#[path = "zedx_split_persistence.rs"]
+mod persistence;
+
 use super::*;
 use gpui::{Bounds, DragMoveEvent, Point, canvas, relative};
 use std::{cell::Cell, rc::Rc};
@@ -11,7 +14,9 @@ pub struct PanelDrag {
 #[derive(Default)]
 pub(super) struct SplitState {
     enabled: bool,
+    resizing: bool,
     fraction: Option<f32>,
+    persistence: persistence::Persistence,
     bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
 }
 
@@ -91,6 +96,7 @@ impl Dock {
             panel.set_active(false, window, cx);
         }
         self.zedx_split.enabled = false;
+        self.persist_zedx_split(cx);
         if let Some(index) = self
             .panel_entries
             .iter()
@@ -117,7 +123,12 @@ impl Dock {
                 );
             }
         }
-        self.zedx_split = Default::default();
+        let persistence = std::mem::take(&mut self.zedx_split.persistence);
+        self.zedx_split = SplitState {
+            persistence,
+            ..Default::default()
+        };
+        self.persist_zedx_split(cx);
         cx.notify();
     }
 
@@ -146,6 +157,7 @@ impl Dock {
             return;
         };
         self.zedx_split.enabled = true;
+        self.persist_zedx_split(cx);
         self.activate_panel(index, window, cx);
         self.set_open(true, window, cx);
         self.sync_zedx_split(window, cx);
@@ -216,6 +228,7 @@ impl Dock {
                             cx.listener(|this, event: &MouseUpEvent, _, cx| {
                                 if event.click_count == 2 {
                                     this.zedx_split.fraction = None;
+                                    this.persist_zedx_split(cx);
                                     cx.notify();
                                 }
                             }),
@@ -241,12 +254,24 @@ impl Dock {
             .size_full()
             .on_drag_move::<ResizeSplit>(cx.listener(
                 |this, event: &DragMoveEvent<ResizeSplit>, _, cx| {
+                    this.zedx_split.resizing = true;
                     this.resize_zedx_split(event.event.position, cx)
                 },
             ))
             .on_drop::<ResizeSplit>(cx.listener(|this, _, window, cx| {
-                this.resize_zedx_split(window.mouse_position(), cx)
+                this.resize_zedx_split(window.mouse_position(), cx);
+                this.zedx_split.resizing = false;
+                this.persist_zedx_split(cx);
             }))
+            .on_mouse_up_out(
+                MouseButton::Left,
+                cx.listener(|this, _, _, cx| {
+                    if this.zedx_split.resizing {
+                        this.zedx_split.resizing = false;
+                        this.persist_zedx_split(cx);
+                    }
+                }),
+            )
             .child(
                 canvas(
                     move |current, window, cx| {

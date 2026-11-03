@@ -66,6 +66,7 @@ pub use conflict_view::MergeConflictIndicator;
 pub use solo_diff_view::zedx_source_diff::bind_keys as bind_zedx_source_diff_keys;
 
 pub fn init(cx: &mut App) {
+    git_panel::bind_shelf_keys(cx);
     solo_diff_view::zedx_source_diff::init(cx);
     editor::set_blame_renderer(blame_ui::GitBlameRenderer, cx);
     commit_view::init(cx);

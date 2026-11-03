@@ -3,8 +3,36 @@ use super::*;
 #[path = "zedx_commit_resize.rs"]
 mod resize;
 
+#[path = "zedx_commit_composer.rs"]
+mod composer;
+
+#[path = "zedx_commit_stash.rs"]
+mod stash;
+
+#[path = "zedx_commit_shelf.rs"]
+mod shelf;
+pub(crate) fn bind_shelf_keys(cx: &mut App) {
+    shelf::bind_keys(cx);
+}
+
 pub(super) fn enabled() -> bool {
     std::env::var_os("ZEDX_UPSTREAM_UI").is_none()
+}
+
+fn file_status_color(status: FileStatus, light: bool) -> Color {
+    if status.is_conflicted() {
+        return Color::VersionControlConflict;
+    }
+    let rgb = if status.is_untracked() {
+        if light { 0x993300 } else { 0xd1675a }
+    } else if status.is_deleted() {
+        if light { 0x616161 } else { 0x929292 }
+    } else if status.is_created() {
+        if light { 0x008000 } else { 0x629755 }
+    } else {
+        if light { 0x0033b3 } else { 0x6897bb }
+    };
+    Color::Custom(gpui::rgb(rgb).into())
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +48,16 @@ pub(super) struct CommitPanelState {
     tab: CommitTab,
     collapsed: [bool; 2],
     selected_stash: Option<git::Oid>,
+    stash: stash::State,
+    shelf: shelf::State,
     message: resize::MessageResize,
+    composer: composer::ComposerState,
+}
+
+impl CommitPanelState {
+    pub(super) fn uses_list_focus(&self) -> bool {
+        enabled() && self.tab != CommitTab::Commit
+    }
 }
 
 impl GitPanel {
@@ -31,8 +68,10 @@ impl GitPanel {
         cx: &mut Context<Self>,
     ) {
         if enabled() && self.active_tab == GitPanelTab::Changes {
-            if self.zedx_commit.tab == CommitTab::Commit {
-                self.open_zedx_selected_file(window, cx);
+            match self.zedx_commit.tab {
+                CommitTab::Commit => self.open_zedx_selected_file(window, cx),
+                CommitTab::Stash => self.open_zedx_selected_stash(window, cx),
+                CommitTab::Shelf => self.apply_zedx_selected_shelf(window, cx),
             }
         } else {
             self.open_diff(action, window, cx);
@@ -67,6 +106,7 @@ impl GitPanel {
     ) {
         self.zedx_commit.tab = tab;
         self.set_active_tab(GitPanelTab::Changes, window, cx);
+        window.focus(&self.activation_focus_handle(cx), cx);
         cx.notify();
     }
 
@@ -76,7 +116,7 @@ impl GitPanel {
                 .filter(|entry| !entry.status.is_untracked())
                 .count(),
             self.stash_entries.entries.len(),
-            0,
+            self.zedx_commit.shelf.entries.len(),
         ];
         h_flex()
             .debug_selector(|| "zedx-commit-tabs".into())
@@ -324,6 +364,7 @@ impl GitPanel {
             StageStatus::PartiallyStaged => ToggleState::Indeterminate,
             StageStatus::Unstaged => ToggleState::Unselected,
         };
+        let status_color = file_status_color(entry.status, cx.theme().appearance().is_light());
         let checkbox_entry = entry.clone();
         let row_entry = entry.clone();
         h_flex()
@@ -369,12 +410,12 @@ impl GitPanel {
                     "M"
                 })
                 .size(ui::zedx::caption_size())
-                .color(Color::Accent),
+                .color(status_color),
             )
             .child(
                 Label::new(name)
                     .size(ui::zedx::label_size())
-                    .color(Color::Accent)
+                    .color(status_color)
                     .truncate(),
             )
             .child(div().flex_1())
@@ -393,111 +434,14 @@ impl GitPanel {
             }))
     }
 
-    fn render_zedx_stashes(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let selected = self.zedx_commit.selected_stash;
-        let selected_entry = self
-            .stash_entries
-            .entries
-            .iter()
-            .find(|entry| Some(entry.oid) == selected);
-        let selected_index = selected_entry.map(|entry| entry.index);
-        let can_apply = selected_index.is_some() && self.has_write_access(cx);
-        v_flex()
-            .size_full()
-            .min_h_0()
-            .child(
-                h_flex()
-                    .h(px(30.0))
-                    .flex_none()
-                    .px(px(6.0))
-                    .gap(px(2.0))
-                    .border_b_1()
-                    .border_color(cx.theme().colors().border)
-                    .child(
-                        ui::zedx::tool_button(
-                            "zedx-stash-refresh",
-                            ui::zedx::Icon::Refresh,
-                            "Refresh Stashes",
-                            cx,
-                        )
-                        .on_click(
-                            cx.listener(|this, _, window, cx| this.schedule_update(window, cx)),
-                        ),
-                    )
-                    .child(
-                        IconButton::new("zedx-stash-apply", IconName::ArrowDown)
-                            .icon_size(IconSize::Small)
-                            .disabled(!can_apply)
-                            .tooltip(Tooltip::text("Apply selected stash"))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                let Some(repository) = this.active_repository.clone() else {
-                                    return;
-                                };
-                                let Some(index) = repository
-                                    .read(cx)
-                                    .cached_stash()
-                                    .entries
-                                    .iter()
-                                    .find(|entry| Some(entry.oid) == selected)
-                                    .map(|entry| entry.index)
-                                else {
-                                    return;
-                                };
-                                repository
-                                    .update(cx, |repo, cx| repo.stash_apply(Some(index), cx))
-                                    .detach_and_notify_err(this.workspace.clone(), window, cx);
-                            })),
-                    ),
-            )
-            .child(
-                v_flex()
-                    .id("zedx-stash-list")
-                    .flex_1()
-                    .min_h_0()
-                    .overflow_y_scroll()
-                    .p(px(4.0))
-                    .when(self.stash_entries.entries.is_empty(), |list| {
-                        list.child(
-                            div().p_2().child(
-                                Label::new("No stashes")
-                                    .size(ui::zedx::label_size())
-                                    .color(Color::Muted),
-                            ),
-                        )
-                    })
-                    .children(self.stash_entries.entries.iter().map(|entry| {
-                        let oid = entry.oid;
-                        h_flex()
-                            .id(SharedString::from(format!("zedx-stash-{}", entry.index)))
-                            .h(px(32.0))
-                            .px(px(6.0))
-                            .gap(px(6.0))
-                            .rounded(px(4.0))
-                            .cursor_pointer()
-                            .when(Some(oid) == selected, |row| {
-                                row.bg(cx.theme().colors().element_selected)
-                            })
-                            .hover(|row| row.bg(cx.theme().colors().ghost_element_hover))
-                            .child(ui::zedx::icon(ui::zedx::Icon::Git, cx).size(px(16.0)))
-                            .child(
-                                Label::new(entry.message.clone())
-                                    .size(ui::zedx::label_size())
-                                    .truncate(),
-                            )
-                            .tooltip(Tooltip::text(entry.message.clone()))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.zedx_commit.selected_stash = Some(oid);
-                                cx.notify();
-                            }))
-                    })),
-            )
-    }
-
     pub(super) fn render_zedx_commit(
         &mut self,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
+        self.synchronize_zedx_stash();
+        self.synchronize_zedx_shelf(cx);
+        self.load_zedx_stash_metadata(cx);
         self.prepare_zedx_commit_message(cx);
         let message_height = self.zedx_commit_message_height(window);
         let mut changes = Vec::new();
@@ -543,24 +487,56 @@ impl GitPanel {
                                 .flex_none()
                                 .min_h_0()
                                 .overflow_hidden()
-                                .children(self.render_footer(window, cx)),
+                                .child(self.render_zedx_composer(window, cx)),
                         )
                     }),
                 CommitTab::Stash => view.child(self.render_zedx_stashes(cx)),
-                CommitTab::Shelf => view.child(
-                    v_flex()
-                        .p_2()
-                        .gap_2()
-                        .child(
-                            Label::new("Shelf is not available yet").size(ui::zedx::label_size()),
-                        )
-                        .child(
-                            Label::new("Use Stash to save changes in this repository.")
-                                .size(ui::zedx::caption_size())
-                                .color(Color::Muted),
-                        ),
-                ),
+                CommitTab::Shelf => view.child(self.render_zedx_shelves(cx)),
             })
             .into_any_element()
+    }
+}
+
+#[cfg(test)]
+mod status_color_tests {
+    use super::*;
+    use git::status::{StatusCode, TrackedStatus};
+
+    fn tracked(code: StatusCode) -> FileStatus {
+        FileStatus::Tracked(TrackedStatus {
+            index_status: code,
+            worktree_status: StatusCode::Unmodified,
+        })
+    }
+
+    #[test]
+    fn commit_status_colors_distinguish_unversioned_deleted_added_and_modified() {
+        for (light, expected) in [
+            (true, [0x993300, 0x616161, 0x008000, 0x0033b3]),
+            (false, [0xd1675a, 0x929292, 0x629755, 0x6897bb]),
+        ] {
+            for (status, rgb) in [
+                FileStatus::Untracked,
+                tracked(StatusCode::Deleted),
+                tracked(StatusCode::Added),
+                tracked(StatusCode::Modified),
+            ]
+            .into_iter()
+            .zip(expected)
+            {
+                assert_eq!(
+                    file_status_color(status, light),
+                    Color::Custom(gpui::rgb(rgb).into())
+                );
+            }
+            let unstaged_deletion = FileStatus::Tracked(TrackedStatus {
+                index_status: StatusCode::Unmodified,
+                worktree_status: StatusCode::Deleted,
+            });
+            assert_eq!(
+                file_status_color(unstaged_deletion, light),
+                file_status_color(tracked(StatusCode::Deleted), light)
+            );
+        }
     }
 }

@@ -50,7 +50,7 @@ impl GitPanel {
 
     pub(super) fn zedx_commit_message_height(&self, window: &Window) -> Pixels {
         if self.commit_editor_collapsed {
-            px(64.0)
+            px(80.0)
         } else {
             self.zedx_commit
                 .message
