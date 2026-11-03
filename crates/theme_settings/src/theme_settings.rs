@@ -445,3 +445,20 @@ pub fn increase_buffer_font_size(cx: &mut App) {
 pub fn decrease_buffer_font_size(cx: &mut App) {
     adjust_buffer_font_size(cx, |size| size - px(1.0));
 }
+
+#[cfg(test)]
+#[test]
+fn test_zedx_themes_use_native_blur() -> Result<()> {
+    let family = deserialize_user_theme(include_bytes!("../../../assets/themes/zedx/zedx.json"))?;
+    let family = refine_theme_family(family);
+    assert_eq!(family.themes.len(), 2);
+    for theme in family.themes {
+        assert_eq!(
+            theme.window_background_appearance(),
+            gpui::WindowBackgroundAppearance::Blurred,
+            "{} must enable native desktop blur",
+            theme.name
+        );
+    }
+    Ok(())
+}

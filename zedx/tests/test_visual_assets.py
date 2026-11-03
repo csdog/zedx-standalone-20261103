@@ -91,7 +91,8 @@ class NativeVisualAssets(unittest.TestCase):
         for theme in family['themes']:
             with self.subTest(theme=theme['name']):
                 style = theme['style']
-                self.assertEqual(style['window_background_appearance'], 'blurred')
+                self.assertEqual(style['background.appearance'], 'blurred')
+                self.assertNotIn('window_background_appearance', style)
                 for key in ['background', 'title_bar.background', 'status_bar.background']:
                     color = style[key]
                     self.assertEqual(len(color), 9)
@@ -112,7 +113,7 @@ class NativeVisualAssets(unittest.TestCase):
         self.assertLessEqual(int(style['title_bar.background'][-2:], 16), 128)
         self.assertEqual(style['panel.background'], '#00000000')
         self.assertEqual(style['editor.background'], '#ffffff')
-        self.assertEqual(style['window_background_appearance'], 'blurred')
+        self.assertEqual(style['background.appearance'], 'blurred')
 
     def test_panel_defaults_match_the_confirmed_prototype(self):
         source = (ROOT / 'assets/settings/default.json').read_text()

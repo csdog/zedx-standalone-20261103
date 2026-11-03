@@ -376,6 +376,9 @@ impl TabSnapshot {
 
     #[ztracing::instrument(skip_all)]
     pub fn fold_point_to_tab_point(&self, input: FoldPoint) -> TabPoint {
+        if input.column() == 0 {
+            return TabPoint::new(input.row(), 0);
+        }
         let chunks = self.fold_snapshot.chunks_at(FoldPoint::new(input.row(), 0));
         let mut tab_cursor = TabStopCursor::new(chunks);
         let expanded = self.expand_tabs(&mut tab_cursor, &mut 0, &mut 0, input.column());
@@ -555,6 +558,9 @@ impl TabPointCursor<'_> {
 
     #[ztracing::instrument(skip_all)]
     pub fn map(&mut self, point: FoldPoint) -> TabPoint {
+        if point.column() == 0 {
+            return TabPoint::new(point.row(), 0);
+        }
         let snapshot = self.snapshot;
         let row = point.row();
         let end_column = point.column().min(snapshot.max_expansion_column);
@@ -1689,6 +1695,30 @@ mod tests {
                 actual, expected,
                 "to_tab_point mismatch for fold_point {:?} in text {:?}",
                 fold_point, text
+            );
+        }
+    }
+
+    #[gpui::test]
+    fn test_tab_point_cursor_line_starts_between_seeks(cx: &mut gpui::App) {
+        let buffer = MultiBuffer::build_simple("\talpha\n\t\tbeta\n\tx", cx);
+        let buffer_snapshot = buffer.read(cx).snapshot(cx);
+        let (_, inlay_snapshot) = InlayMap::new(buffer_snapshot);
+        let (_, fold_snapshot) = FoldMap::new(inlay_snapshot);
+        let (_, tab_snapshot) = TabMap::new(fold_snapshot, NonZeroU32::MIN.saturating_add(3));
+        let mut cursor = tab_snapshot.tab_point_cursor();
+        for point in [
+            FoldPoint::new(1, 2),
+            FoldPoint::new(2, 0),
+            FoldPoint::new(0, 0),
+            FoldPoint::new(1, 1),
+            FoldPoint::new(1, 0),
+            FoldPoint::new(0, 1),
+        ] {
+            assert_eq!(cursor.map(point), tab_snapshot.expected_to_tab_point(point));
+            assert_eq!(
+                tab_snapshot.fold_point_to_tab_point(point),
+                tab_snapshot.expected_to_tab_point(point)
             );
         }
     }

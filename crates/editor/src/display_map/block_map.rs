@@ -1338,15 +1338,28 @@ impl BlockMap {
                 ))
                 .row()
         };
+        let mut companion_inlay_point_cursor = companion_snapshot.inlay_point_cursor();
+        let mut companion_fold_point_cursor = companion_snapshot.fold_point_cursor();
+        let mut companion_tab_point_cursor = companion_snapshot.tab_point_cursor();
+        let mut companion_wrap_point_cursor = companion_snapshot.wrap_point_cursor();
+        let mut previous_companion_point = None;
         let mut companion_wrapper = |their_point: Point, bias: Bias| {
-            // TODO(split-diff) fix companion points being passed in decreasing order
-            let inlay_point = companion_snapshot
-                .inlay_snapshot
-                .inlay_point_cursor()
-                .map(their_point, bias);
-            let fold_point = companion_snapshot.to_fold_point(inlay_point, bias);
-            let tab_point = companion_snapshot.fold_point_to_tab_point(fold_point);
-            companion_snapshot.tab_point_to_wrap_point(tab_point).row()
+            // Hunk boundaries can move backward or revisit an inlay with a different bias.
+            if previous_companion_point.is_some_and(|previous| their_point <= previous) {
+                companion_inlay_point_cursor = companion_snapshot.inlay_point_cursor();
+                companion_fold_point_cursor.reset();
+                companion_tab_point_cursor.reset();
+                companion_wrap_point_cursor.reset();
+            }
+            previous_companion_point = Some(their_point);
+            companion_wrap_point_cursor
+                .map(
+                    companion_tab_point_cursor.map(
+                        companion_fold_point_cursor
+                            .map(companion_inlay_point_cursor.map(their_point, bias), bias),
+                    ),
+                )
+                .row()
         };
         fn determine_spacer(
             our_wrapper: &mut dyn FnMut(Point, Bias) -> WrapRow,
@@ -5349,14 +5362,23 @@ mod tests {
 
     #[gpui::test]
     fn test_companion_spacer_blocks(cx: &mut gpui::TestAppContext) {
+        assert_companion_spacer_blocks("", cx);
+    }
+
+    #[gpui::test]
+    fn test_companion_spacer_blocks_large_unchanged_prefix(cx: &mut gpui::TestAppContext) {
+        assert_companion_spacer_blocks(&"unchanged prefix\n".repeat(10_000), cx);
+    }
+
+    fn assert_companion_spacer_blocks(prefix: &str, cx: &mut gpui::TestAppContext) {
         cx.update(init_test);
 
-        let base_text = "aaa\nbbb\nccc\nddd\nddd\nddd\neee\n";
-        let main_text = "aaa\nddd\nddd\nddd\nXXX\nYYY\nZZZ\neee\n";
+        let base_text = format!("{prefix}aaa\nbbb\nccc\nddd\nddd\nddd\neee\n");
+        let main_text = format!("{prefix}aaa\nddd\nddd\nddd\nXXX\nYYY\nZZZ\neee\n");
 
         let rhs_buffer = cx.new(|cx| Buffer::local(main_text, cx));
         let diff = cx.new(|cx| {
-            BufferDiff::new_with_base_text(base_text, &rhs_buffer.read(cx).text_snapshot(), cx)
+            BufferDiff::new_with_base_text(&base_text, &rhs_buffer.read(cx).text_snapshot(), cx)
         });
         let lhs_buffer = diff.read_with(cx, |diff, _| diff.base_text_buffer().clone());
 
@@ -5469,13 +5491,13 @@ mod tests {
 
         assert_eq!(
             rhs_snapshot.snapshot.text(),
-            "aaa\n\n\nddd\nddd\nddd\nXXX\nYYY\nZZZ\neee\n",
+            format!("{prefix}aaa\n\n\nddd\nddd\nddd\nXXX\nYYY\nZZZ\neee\n"),
             "RHS should have 2 spacer lines after 'aaa' to align with LHS's deleted lines"
         );
 
         assert_eq!(
             lhs_snapshot.snapshot.text(),
-            "aaa\nbbb\nccc\nddd\nddd\nddd\n\n\n\neee\n",
+            format!("{prefix}aaa\nbbb\nccc\nddd\nddd\nddd\n\n\n\neee\n"),
             "LHS should have 3 spacer lines in place of RHS's inserted lines"
         );
 
@@ -5508,7 +5530,11 @@ mod tests {
 
         let rhs_buffer_snapshot = rhs_multibuffer.update(cx, |multibuffer, cx| {
             multibuffer.edit(
-                [(Point::new(2, 0)..Point::new(2, 0), "foo\nfoo\nfoo\n")],
+                [(
+                    Point::new(prefix.lines().count() as u32 + 2, 0)
+                        ..Point::new(prefix.lines().count() as u32 + 2, 0),
+                    "foo\nfoo\nfoo\n",
+                )],
                 None,
                 cx,
             );
@@ -5553,13 +5579,13 @@ mod tests {
 
         assert_eq!(
             rhs_snapshot.snapshot.text(),
-            "aaa\n\n\nddd\nfoo\nfoo\nfoo\nddd\nddd\nXXX\nYYY\nZZZ\neee\n",
+            format!("{prefix}aaa\n\n\nddd\nfoo\nfoo\nfoo\nddd\nddd\nXXX\nYYY\nZZZ\neee\n"),
             "RHS should have the insertion"
         );
 
         assert_eq!(
             lhs_snapshot.snapshot.text(),
-            "aaa\nbbb\nccc\nddd\n\n\n\nddd\nddd\n\n\n\neee\n",
+            format!("{prefix}aaa\nbbb\nccc\nddd\n\n\n\nddd\nddd\n\n\n\neee\n"),
             "LHS should have 3 more spacer lines to balance the insertion"
         );
     }

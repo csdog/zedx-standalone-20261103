@@ -422,7 +422,7 @@
             "font_weight": null
           }
         },
-        "window_background_appearance": "blurred"
+        "background.appearance": "blurred"
       }
     },
     {
@@ -842,7 +842,7 @@
             "font_weight": null
           }
         },
-        "window_background_appearance": "blurred"
+        "background.appearance": "blurred"
       }
     }
   ]
